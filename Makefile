@@ -30,6 +30,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
   $(SDK_ROOT)/components/drivers_nrf/uart/nrf_drv_uart.c \
   $(PROJ_DIR)/main.c \
+  $(PROJ_DIR)/src/ic_bluetooth.c \
   $(SDK_ROOT)/external/freertos/source/croutine.c \
   $(SDK_ROOT)/external/freertos/source/event_groups.c \
   $(SDK_ROOT)/external/freertos/source/portable/MemMang/heap_1.c \
@@ -72,6 +73,7 @@ SRC_FILES += \
 # Include folders common to all targets
 INC_FOLDERS += \
   $(PROJ_DIR)/inc \
+  $(PROJ_DIR)/src \
   $(SDK_ROOT)/components/drivers_nrf/comp \
   $(SDK_ROOT)/components/drivers_nrf/twi_master \
   $(SDK_ROOT)/components/ble/ble_services/ble_ancs_c \
@@ -183,8 +185,8 @@ LIB_FILES += \
 
 # C flags common to all targets
 #CFLAGS += -DBOARD_CUSTOM
-CFLAGS += -D__STACK_SIZE=2048
-CFLAGS += -D__HEAP_SIZE=1024
+CFLAGS += -D__STACK_SIZE=4096
+CFLAGS += -D__HEAP_SIZE=2048
 CFLAGS += -DFREERTOS
 CFLAGS += -std=gnu11
 CFLAGS += -DSOFTDEVICE_PRESENT

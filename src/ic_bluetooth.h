@@ -13,12 +13,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef struct{
-  uint32_t first_conn_params_update_delay;
-  uint32_t next_conn_params_update_delay;
-}sRcInitInput;
-
-bool rc_master_init(sRcInitInput args);
+void ble_module_init (void);
 bool rc_start_advertising();
 
 #endif /* !IC_BLUETOOTH_H */
