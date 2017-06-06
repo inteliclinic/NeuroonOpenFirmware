@@ -2942,7 +2942,7 @@
 // <e> APP_SCHEDULER_ENABLED - app_scheduler - Events scheduler
 //==========================================================
 #ifndef APP_SCHEDULER_ENABLED
-#define APP_SCHEDULER_ENABLED 1
+#define APP_SCHEDULER_ENABLED 0
 #endif
 #if  APP_SCHEDULER_ENABLED
 // <q> APP_SCHEDULER_WITH_PAUSE  - Enabling pause feature
@@ -3571,7 +3571,7 @@
 // <i> Function for getting the timestamp is provided by the user
 
 #ifndef NRF_LOG_USES_TIMESTAMP
-#define NRF_LOG_USES_TIMESTAMP 0
+#define NRF_LOG_USES_TIMESTAMP 1
 #endif
 
 #endif //NRF_LOG_ENABLED
@@ -3597,7 +3597,7 @@
 // <e> NRF_LOG_BACKEND_SERIAL_USES_UART - If enabled data is printed over UART
 //==========================================================
 #ifndef NRF_LOG_BACKEND_SERIAL_USES_UART
-#define NRF_LOG_BACKEND_SERIAL_USES_UART 0
+#define NRF_LOG_BACKEND_SERIAL_USES_UART 1
 #endif
 #if  NRF_LOG_BACKEND_SERIAL_USES_UART
 // <o> NRF_LOG_BACKEND_SERIAL_UART_BAUDRATE  - Default Baudrate

@@ -122,7 +122,8 @@ APP_TIMER_DEF(m_app_timer_id);
 static void dummy_timer(TimerHandle_t xTimer){
   UNUSED_VARIABLE(xTimer);
   static int val = 0;
-  NRF_LOG_INFO("hi! . My val is: %d", ++val);
+  NRF_LOG_INFO("hi! . My val is: %d\n", ++val);
+  nrf_gpio_pin_toggle(20);
 }
 
 /**@brief Function for the Timer initialization.
@@ -134,7 +135,7 @@ static void timers_init(void)
   // Initialize timer module.
   APP_TIMER_INIT(APP_TIMER_PRESCALER, APP_TIMER_OP_QUEUE_SIZE, false);
 
-  m_dummy_timer = xTimerCreate("DUMM", 32000, pdTRUE, NULL, dummy_timer);
+  m_dummy_timer = xTimerCreate("DUMM", 1000, pdTRUE, NULL, dummy_timer);
 
   // Create timers.
 
@@ -240,7 +241,8 @@ static void power_manage(void)
 
 void vApplicationIdleHook( void )
 {
-     /*vTaskResume(m_logger_thread);*/
+  /*vTaskResume(m_logger_thread);*/
+  NRF_LOG_FLUSH();
 }
 
 void init_task (void *arg){
@@ -259,13 +261,14 @@ void init_task (void *arg){
 int main(void)
 {
     // Initialize.
-    __auto_type err_code = NRF_LOG_INIT(NULL);
+    __auto_type err_code = NRF_LOG_INIT(xTaskGetTickCount);
     APP_ERROR_CHECK(err_code);
 
     err_code = nrf_drv_clock_init();
     APP_ERROR_CHECK(err_code);
 
-
+    nrf_gpio_cfg_output(20);
+    nrf_gpio_pin_clear(20);
 
     /*
      *if (pdPASS != xTaskCreate(logger_thread, "LOG", 128, NULL, 1, &m_logger_thread))
