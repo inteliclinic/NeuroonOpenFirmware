@@ -94,7 +94,7 @@
 #define DEAD_BEEF                       0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 #define OSTIMER_WAIT_FOR_QUEUE           2                                /**< Number of ticks to wait for the timer queue to be ready */
 
-static TaskHandle_t m_logger_thread;         /**< Definition of Logger thread. */
+/*static TaskHandle_t m_logger_thread;*/
 static TimerHandle_t m_dummy_timer;
 static TaskHandle_t m_init_thread;
 /*uint32_t m_app_ticks_per_100ms =0; [> EXTERN!!! <]*/
@@ -134,7 +134,7 @@ static void timers_init(void)
   // Initialize timer module.
   APP_TIMER_INIT(APP_TIMER_PRESCALER, APP_TIMER_OP_QUEUE_SIZE, false);
 
-  m_dummy_timer = xTimerCreate("DUMMY", 1000, pdTRUE, NULL, dummy_timer);
+  m_dummy_timer = xTimerCreate("DUMM", 32000, pdTRUE, NULL, dummy_timer);
 
   // Create timers.
 
@@ -224,21 +224,23 @@ static void power_manage(void)
     APP_ERROR_CHECK(err_code);
 }
 
-static void logger_thread(void * arg)
-{
-    UNUSED_PARAMETER(arg);
-
-    while(1)
-    {
-        NRF_LOG_FLUSH();
-
-        vTaskSuspend(NULL); // Suspend myself
-    }
-}
+/*
+ *static void logger_thread(void * arg)
+ *{
+ *    UNUSED_PARAMETER(arg);
+ *
+ *    while(1)
+ *    {
+ *        NRF_LOG_FLUSH();
+ *
+ *        vTaskDelay(32000); // Suspend myself
+ *    }
+ *}
+ */
 
 void vApplicationIdleHook( void )
 {
-     vTaskResume(m_logger_thread);
+     /*vTaskResume(m_logger_thread);*/
 }
 
 void init_task (void *arg){
@@ -256,19 +258,21 @@ void init_task (void *arg){
  */
 int main(void)
 {
-    __auto_type err_code = nrf_drv_clock_init();
-    APP_ERROR_CHECK(err_code);
-
     // Initialize.
-    err_code = NRF_LOG_INIT(NULL);
-    NRF_LOG_INFO("HELLO!");
+    __auto_type err_code = NRF_LOG_INIT(NULL);
+    APP_ERROR_CHECK(err_code);
+
+    err_code = nrf_drv_clock_init();
     APP_ERROR_CHECK(err_code);
 
 
-    if (pdPASS != xTaskCreate(logger_thread, "LOGGER", 128, NULL, 1, &m_logger_thread))
-    {
-        APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
-    }
+
+    /*
+     *if (pdPASS != xTaskCreate(logger_thread, "LOG", 128, NULL, 1, &m_logger_thread))
+     *{
+     *    APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+     *}
+     */
 
     if(pdPASS != xTaskCreate(init_task, "INIT", 128, NULL, 1, &m_init_thread))
     {
@@ -276,7 +280,7 @@ int main(void)
     }
 
     // Start execution.
-    NRF_LOG_INFO("Template started\r\n");
+    /*NRF_LOG_INFO("Template started\r\n");*/
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
     vTaskStartScheduler();

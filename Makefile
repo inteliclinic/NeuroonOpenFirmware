@@ -185,8 +185,8 @@ LIB_FILES += \
 
 # C flags common to all targets
 #CFLAGS += -DBOARD_CUSTOM
-CFLAGS += -D__STACK_SIZE=4096
-CFLAGS += -D__HEAP_SIZE=2048
+CFLAGS += -D__STACK_SIZE=8192
+CFLAGS += -D__HEAP_SIZE=4096
 CFLAGS += -DFREERTOS
 CFLAGS += -std=gnu11
 CFLAGS += -DSOFTDEVICE_PRESENT
@@ -198,7 +198,7 @@ CFLAGS += -DNRF51822
 CFLAGS += -DNRF_SD_BLE_API_VERSION=2
 CFLAGS += -mcpu=cortex-m0
 CFLAGS += -mthumb -mabi=aapcs
-CFLAGS += -Wall -Werror -O3 -g3
+CFLAGS += -Wall -Werror -Og -g3
 CFLAGS += -mfloat-abi=soft
 # keep every function in separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
