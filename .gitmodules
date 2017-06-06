@@ -1,0 +1,3 @@
+[submodule "sdk"]
+	path = sdk
+	url = git@gitlab.local.inteliclinic.pl:firmware/nRF5_SDK_12.3.0.git
