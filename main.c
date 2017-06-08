@@ -70,7 +70,6 @@
 /*#include "bsp.h"*/
 /*#include "bsp_btn_ble.h"*/
 #include "nrf_gpio.h"
-
 #include "nrf_drv_clock.h"
 
 #define NRF_LOG_MODULE_NAME "APP"
@@ -121,8 +120,8 @@ APP_TIMER_DEF(m_app_timer_id);
 
 static void dummy_timer(TimerHandle_t xTimer){
   UNUSED_VARIABLE(xTimer);
-  static int val = 0;
-  NRF_LOG_INFO("hi! . My val is: %d\n", ++val);
+  /*static int val = 0;*/
+  /*NRF_LOG_INFO("hi! . My val is: %d\n", ++val);*/
   nrf_gpio_pin_toggle(20);
 }
 
@@ -246,15 +245,14 @@ void vApplicationIdleHook( void )
 }
 
 void init_task (void *arg){
-
   UNUSED_PARAMETER(arg);
-
   timers_init();
   ble_module_init();
   application_timers_start();
   vTaskDelete(NULL);
   taskYIELD();
 }
+
 
 /**@brief Function for application main entry.
  */
@@ -277,7 +275,7 @@ int main(void)
      *}
      */
 
-    if(pdPASS != xTaskCreate(init_task, "INIT", 128, NULL, 1, &m_init_thread))
+    if(pdPASS != xTaskCreate(init_task, "INIT", 256, NULL, 1, &m_init_thread))
     {
         APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }

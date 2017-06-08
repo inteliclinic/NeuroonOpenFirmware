@@ -37,6 +37,7 @@
 #include "ble_conn_state.h"
 
 #define NRF_LOG_MODULE_NAME "BLE"
+#define NRF_LOG_LEVEL 5
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 
@@ -52,7 +53,7 @@
 
 #define PERIPHERAL_LINK_COUNT           1                                           /**< Number of peripheral links used by the application. When changing this number remember to adjust the RAM settings*/
 
-#define DEVICE_NAME                     "NeuroonOpen_Kazik"                           /**< Name of device. Will be included in the advertising data. */
+#define DEVICE_NAME                     "NeuroonOpen"                           /**< Name of device. Will be included in the advertising data. */
 #define MANUFACTURER_NAME               "Inteliclinic"                       /**< Manufacturer. Will be passed to Device Information Service. */
 
 #define APP_ADV_INTERVAL                300                                         /**< The advertising interval (in units of 0.625 ms. This value corresponds to 187.5 ms). */
@@ -349,6 +350,7 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
             break;
 
         case BLE_ADV_EVT_IDLE:
+            NRF_LOG_INFO("Advertising Idle\r\n");
             sleep_mode_enter();
             break;
 
@@ -631,6 +633,7 @@ static void ble_stack_thread(void * arg)
     {
       // Just wait again in the case when INCLUDE_vTaskSuspend is not enabled
     }
+    NRF_LOG_INFO("I'm %s\n", (uint32_t)__func__);
 
     // This function gets events from the SoftDevice and processes them by calling the function
     // registered by softdevice_ble_evt_handler_set during stack initialization.
