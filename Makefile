@@ -35,6 +35,8 @@ SRC_FILES += \
   $(PROJ_DIR)/main.c \
   $(PROJ_DIR)/src/ic_bluetooth.c \
   $(PROJ_DIR)/src/ic_driver_uart.c \
+  $(PROJ_DIR)/src/ic_driver_button.c \
+  $(PROJ_DIR)/src/ic_clock_controller.c \
   $(SDK_ROOT)/external/freertos/source/croutine.c \
   $(SDK_ROOT)/external/freertos/source/event_groups.c \
   $(SDK_ROOT)/external/freertos/source/portable/MemMang/heap_1.c \
@@ -190,8 +192,8 @@ LIB_FILES += \
 
 # C flags common to all targets
 #CFLAGS += -DBOARD_CUSTOM
-CFLAGS += -D__STACK_SIZE=8192
-CFLAGS += -D__HEAP_SIZE=4096
+CFLAGS += -D__STACK_SIZE=6144
+CFLAGS += -D__HEAP_SIZE=1024
 CFLAGS += -DFREERTOS
 CFLAGS += -std=gnu11
 CFLAGS += -DSOFTDEVICE_PRESENT
@@ -203,11 +205,12 @@ CFLAGS += -DNRF51822
 CFLAGS += -DNRF_SD_BLE_API_VERSION=2
 CFLAGS += -mcpu=cortex-m0
 CFLAGS += -mthumb -mabi=aapcs
-CFLAGS += -Wall -Werror -Og -g3
+CFLAGS += -Wall -Werror -O3 -g3
 CFLAGS += -mfloat-abi=soft
 # keep every function in separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin --short-enums 
+CFLAGS += -DDEBUG
 
 # C++ flags common to all targets
 CXXFLAGS += \
@@ -222,7 +225,8 @@ ASMFLAGS += -DSWI_DISABLE0
 ASMFLAGS += -DNRF51822
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=2
 ASMFLAGS += -D__STACK_SIZE=6144
-ASMFLAGS += -D__HEAP_SIZE=3072
+ASMFLAGS += -D__HEAP_SIZE=1024
+ASMFLAGS += -DDEBUG
 
 # Linker flags
 LDFLAGS += -mthumb -mabi=aapcs -L $(TEMPLATE_PATH) -T$(LINKER_SCRIPT)

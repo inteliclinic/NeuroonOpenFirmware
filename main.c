@@ -78,6 +78,10 @@
 
 #include "ic_bluetooth.h"
 #include "ic_driver_uart.h"
+#include "ic_driver_button.h"
+#include "ic_clock_controller.h"
+
+#include "ic_config.h"
 
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE         4                                           /**< Size of timer operation queues. */
@@ -92,7 +96,6 @@
 #define SEC_PARAM_MAX_KEY_SIZE          16                                          /**< Maximum encryption key size. */
 
 #define DEAD_BEEF                       0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
-#define OSTIMER_WAIT_FOR_QUEUE           2                                /**< Number of ticks to wait for the timer queue to be ready */
 
 /*static TaskHandle_t m_logger_thread;*/
 static TimerHandle_t m_dummy_timer;
@@ -123,7 +126,7 @@ static void dummy_timer(TimerHandle_t xTimer){
   UNUSED_VARIABLE(xTimer);
   /*static int val = 0;*/
   /*NRF_LOG_INFO("hi! . My val is: %d\n", ++val);*/
-  nrf_gpio_pin_toggle(20);
+  /*nrf_gpio_pin_toggle(20);*/
 }
 
 /**@brief Function for the Timer initialization.
@@ -191,38 +194,13 @@ static void application_timers_start(void)
 }
 
 
-#if 0
-/**@brief Function for putting the chip into sleep mode.
- *
- * @note This function will not return.
- */
-static void sleep_mode_enter(void)
-{
-  //[TODO] delete it
-/*
- *    uint32_t err_code = bsp_indication_set(BSP_INDICATE_IDLE);
- *
- *    APP_ERROR_CHECK(err_code);
- *
- *    // Prepare wakeup buttons.
- *    err_code = bsp_btn_ble_sleep_mode_prepare();
- *    APP_ERROR_CHECK(err_code);
- *
- */
-    // Go to system-off mode (this function will not return; wakeup will cause a reset).
-    uint32_t err_code = sd_power_system_off();
-    APP_ERROR_CHECK(err_code);
-}
-#endif
-
 
 /**@brief Function for the Power manager.
  */
 static void power_manage(void)
 {
-    __auto_type err_code = sd_app_evt_wait();
-
-    APP_ERROR_CHECK(err_code);
+  __auto_type err_code = sd_app_evt_wait();
+  APP_ERROR_CHECK(err_code);
 }
 
 /*
@@ -241,8 +219,23 @@ static void power_manage(void)
 
 void vApplicationIdleHook( void )
 {
-  /*vTaskResume(m_logger_thread);*/
   NRF_LOG_FLUSH();
+  power_manage();
+}
+
+void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
+{
+  __auto_type _err = (error_info_t *)info;
+
+  NRF_LOG_ERROR("{%s}[%d](%s)\r\n", (uint32_t)_err->p_file_name, _err->line_num,
+      (uint32_t)ERR_TO_STR(_err->err_code));
+  NRF_LOG_FINAL_FLUSH();
+  // On assert, the system can only recover with a reset.
+#ifndef DEBUG
+  NVIC_SystemReset();
+#else
+  app_error_save_and_stop(id, pc, info);
+#endif // DEBUG
 }
 
 void init_task (void *arg){
@@ -250,7 +243,8 @@ void init_task (void *arg){
   timers_init();
   ble_module_init();
   application_timers_start();
-  ic_uart_init();
+  neuroon_exti_init();
+  clock_controller_init();
   vTaskDelete(NULL);
   taskYIELD();
 }
@@ -267,27 +261,15 @@ int main(void)
     err_code = nrf_drv_clock_init();
     APP_ERROR_CHECK(err_code);
 
-    nrf_gpio_cfg_output(20);
-    nrf_gpio_pin_clear(20);
-
-    /*
-     *if (pdPASS != xTaskCreate(logger_thread, "LOG", 128, NULL, 1, &m_logger_thread))
-     *{
-     *    APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
-     *}
-     */
-
     if(pdPASS != xTaskCreate(init_task, "INIT", 256, NULL, 1, &m_init_thread))
     {
         APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
 
-    // Start execution.
-    /*NRF_LOG_INFO("Template started\r\n");*/
-
+    ic_uart_init();
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
     vTaskStartScheduler();
-    // Enter main loop.
+
     for (;;)
     {
       APP_ERROR_HANDLER(NRF_ERROR_FORBIDDEN);
