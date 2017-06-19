@@ -77,6 +77,7 @@
 #include "nrf_log_ctrl.h"
 
 #include "ic_bluetooth.h"
+#include "ic_driver_uart.h"
 
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE         4                                           /**< Size of timer operation queues. */
@@ -249,6 +250,7 @@ void init_task (void *arg){
   timers_init();
   ble_module_init();
   application_timers_start();
+  ic_uart_init();
   vTaskDelete(NULL);
   taskYIELD();
 }
