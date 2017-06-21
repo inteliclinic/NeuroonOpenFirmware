@@ -79,7 +79,6 @@
 #include "ic_bluetooth.h"
 #include "ic_driver_uart.h"
 #include "ic_driver_button.h"
-#include "ic_clock_controller.h"
 
 #include "ic_config.h"
 
@@ -244,7 +243,6 @@ void init_task (void *arg){
   ble_module_init();
   application_timers_start();
   neuroon_exti_init();
-  clock_controller_init();
   vTaskDelete(NULL);
   taskYIELD();
 }
