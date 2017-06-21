@@ -3,6 +3,7 @@ TARGETS          := neuroon2
 OUTPUT_DIRECTORY := _build
 
 SDK_ROOT := sdk
+NUC_ROOT := nuc
 PROJ_DIR := .
 
 $(OUTPUT_DIRECTORY)/neuroon2.out: \
@@ -36,7 +37,18 @@ SRC_FILES += \
   $(PROJ_DIR)/src/ic_bluetooth.c \
   $(PROJ_DIR)/src/ic_driver_uart.c \
   $(PROJ_DIR)/src/ic_driver_button.c \
-  $(PROJ_DIR)/src/ic_clock_controller.c \
+  $(NUC_ROOT)/src/ic_characteristics.c \
+  $(NUC_ROOT)/src/ic_crc8.c \
+  $(NUC_ROOT)/src/ic_device.c \
+  $(NUC_ROOT)/src/ic_dfu.c \
+  $(NUC_ROOT)/src/ic_emergency_alarm.c \
+  $(NUC_ROOT)/src/ic_frame_constructor.c \
+  $(NUC_ROOT)/src/ic_frame_handle.c \
+  $(NUC_ROOT)/src/ic_nuc.c \
+  $(NUC_ROOT)/src/ic_pulseoximeter.c \
+  $(NUC_ROOT)/src/ic_response.c \
+  $(NUC_ROOT)/src/ic_status.c \
+  $(NUC_ROOT)/src/ic_version.c \
   $(SDK_ROOT)/external/freertos/source/croutine.c \
   $(SDK_ROOT)/external/freertos/source/event_groups.c \
   $(SDK_ROOT)/external/freertos/source/portable/MemMang/heap_1.c \
@@ -80,6 +92,9 @@ SRC_FILES += \
 INC_FOLDERS += \
   $(PROJ_DIR)/inc \
   $(PROJ_DIR)/src \
+  $(NUC_ROOT)/API \
+  $(NUC_ROOT)/API/include \
+  $(NUC_ROOT)/src \
   $(SDK_ROOT)/components/drivers_nrf/comp \
   $(SDK_ROOT)/components/drivers_nrf/twi_master \
   $(SDK_ROOT)/components/ble/ble_services/ble_ancs_c \
