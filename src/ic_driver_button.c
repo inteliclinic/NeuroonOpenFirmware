@@ -28,7 +28,7 @@
 #include "nrf_log_ctrl.h"
 
 #define EXECUTE_HANDLER(code) do{\
-  if(code!=NULL)code();else NRF_LOG_WARNING("No handler!");\
+  if(code!=NULL)code();else NRF_LOG_INFO("No handler!");\
 }while(0)
 
 static void exti_btn(uint8_t pin, uint8_t button_action);
@@ -36,9 +36,26 @@ static void btn_long_press(TimerHandle_t xTimer);
 
 static TimerHandle_t m_long_btn_press_timer;
 
-static p_btnCode m_pwr_press_handle = 0;
-static p_btnCode m_pwr_release_handle = 0;
-static p_btnCode m_pwr_long_press_handle = 0;
+/*
+ *static void on_pwr_press(){
+ *  printf("%s\n", __func__);
+ *}
+ *
+ *static void on_pwr_release(){
+ *  printf("%s\n", __func__);
+ *}
+ *
+ *static void on_pwr_long_press(){
+ *  printf("%s\n", __func__);
+ *}
+ */
+
+/*static p_btnCode m_pwr_press_handle = on_pwr_press;*/
+/*static p_btnCode m_pwr_release_handle = on_pwr_release;*/
+/*static p_btnCode m_pwr_long_press_handle = on_pwr_long_press;*/
+static p_btnCode m_pwr_press_handle = NULL;
+static p_btnCode m_pwr_release_handle = NULL;
+static p_btnCode m_pwr_long_press_handle = NULL;
 static p_btnCode m_usb_connect_handle = 0;
 static p_btnCode m_usb_disconnect_handle = 0;
 static p_btnCode m_acc_rised_handle = 0;

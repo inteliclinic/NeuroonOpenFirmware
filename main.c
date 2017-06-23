@@ -266,6 +266,7 @@ int main(void)
 
     ic_uart_init();
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
+    NRF_LOG_INFO("starting scheduler\n");
     vTaskStartScheduler();
 
     for (;;)
