@@ -4,3 +4,6 @@
 [submodule "nuc"]
 	path = nuc
 	url = git@github.com:inteliclinic/neuroon-unified-communication.git
+[submodule "nRF5_SDK"]
+	path = sdk
+	url = git@github.com:inteliclinic/nRF5_SDK.git
