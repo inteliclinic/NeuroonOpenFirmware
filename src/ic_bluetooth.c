@@ -53,7 +53,7 @@
 
 #define PERIPHERAL_LINK_COUNT           1                                           /**< Number of peripheral links used by the application. When changing this number remember to adjust the RAM settings*/
 
-#define DEVICE_NAME                     "NeuroonOpen_Kazik"                           /**< Name of device. Will be included in the advertising data. */
+#define DEVICE_NAME                     "NeuroonOpen_XYZ"                           /**< Name of device. Will be included in the advertising data. */
 #define MANUFACTURER_NAME               "Inteliclinic"                       /**< Manufacturer. Will be passed to Device Information Service. */
 
 #define APP_ADV_INTERVAL                300                                         /**< The advertising interval (in units of 0.625 ms. This value corresponds to 187.5 ms). */
@@ -78,7 +78,7 @@
 #define SEC_PARAM_MAX_KEY_SIZE          16                                          /**< Maximum encryption key size. */
 
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                            /**< Handle of the current connection. */
-static SemaphoreHandle_t m_ble_event_ready;
+static SemaphoreHandle_t m_ble_event_ready = NULL;
 
 /* YOUR_JOB: Declare all services structure your application is using
    static ble_xx_service_t                     m_xxs;
