@@ -33,10 +33,12 @@ SRC_FILES += \
   $(SDK_ROOT)/components/drivers_nrf/common/nrf_drv_common.c \
   $(SDK_ROOT)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
   $(SDK_ROOT)/components/drivers_nrf/uart/nrf_drv_uart.c \
+  sdk/components/drivers_nrf/spi_master/nrf_drv_spi.c \
   $(PROJ_DIR)/main.c \
   $(PROJ_DIR)/src/ic_bluetooth.c \
   $(PROJ_DIR)/src/ic_driver_uart.c \
   $(PROJ_DIR)/src/ic_driver_button.c \
+  $(PROJ_DIR)/src/ic_driver_spi.c \
   $(NUC_ROOT)/src/ic_characteristics.c \
   $(NUC_ROOT)/src/ic_crc8.c \
   $(NUC_ROOT)/src/ic_device.c \
