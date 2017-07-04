@@ -164,9 +164,7 @@ void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
 
 void init_task (void *arg){
   UNUSED_PARAMETER(arg);
-  timers_init();
   ble_module_init();
-  application_timers_start();
   neuroon_exti_init();
   vTaskDelete(NULL);
   taskYIELD();
