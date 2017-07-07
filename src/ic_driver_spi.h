@@ -13,7 +13,7 @@
 #include "nrf_drv_spi.h"
 
 #define SPI_REGISTER(name, SS_PIN, code)\
-  static const nrf_drv_spi_t spi_instance_##name = NRF_DRV_SPI_INSTANCE(0);\
+  static const nrf_drv_spi_t spi_instance_##name = NRF_DRV_SPI_INSTANCE(IC_SPI_INSTANCE);\
   void name##_spi_IRQ_handle(nrf_drv_spi_evt_t const * p_event){UNUSED_PARAMETER(p_event); code;};\
   ic_spi_init(&spi_instance_##name, SS_PIN, name##_spi_IRQ_handle);
 
