@@ -2108,14 +2108,14 @@
 // <e> SPI0_ENABLED - Enable SPI0 instance
 //==========================================================
 #ifndef SPI0_ENABLED
-#define SPI0_ENABLED 1
+#define SPI0_ENABLED 0
 #endif
 #if  SPI0_ENABLED
 // <q> SPI0_USE_EASY_DMA  - Use EasyDMA
 
 
 #ifndef SPI0_USE_EASY_DMA
-#define SPI0_USE_EASY_DMA 1
+#define SPI0_USE_EASY_DMA 0
 #endif
 
 // <o> SPI0_DEFAULT_FREQUENCY  - SPI frequency
@@ -2138,14 +2138,14 @@
 // <e> SPI1_ENABLED - Enable SPI1 instance
 //==========================================================
 #ifndef SPI1_ENABLED
-#define SPI1_ENABLED 0
+#define SPI1_ENABLED 1
 #endif
 #if  SPI1_ENABLED
 // <q> SPI1_USE_EASY_DMA  - Use EasyDMA
 
 
 #ifndef SPI1_USE_EASY_DMA
-#define SPI1_USE_EASY_DMA 0
+#define SPI1_USE_EASY_DMA 1
 #endif
 
 // <o> SPI1_DEFAULT_FREQUENCY  - SPI frequency
