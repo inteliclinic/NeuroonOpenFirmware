@@ -64,23 +64,24 @@
  *  @{
  */
 
-#define IC_SPI_BUFFER        10
-#define IC_SPI_RX_BUF_SIZE   256
-#define IC_SPI_TX_BUF_SIZE   16
+#define IC_SPI_INSTANCE     1
+
+#define IC_SPI_BUFFER       10
+#define IC_SPI_RX_BUF_SIZE  256
+#define IC_SPI_TX_BUF_SIZE  16
 
 #define IC_UART_IRQ_PRIORITY  APP_IRQ_PRIORITY_LOWEST
 
-#define IC_SPI_FLASH_SS_PIN   13
-#define IC_SPI_MISO_PIN       22
-#define IC_SPI_MOSI_PIN       23
-#define IC_SPI_SCK_PIN        6
+#define IC_SPI_FLASH_SS_PIN 13
+#define IC_SPI_MISO_PIN     22
+#define IC_SPI_MOSI_PIN     23
+#define IC_SPI_SCK_PIN      6
 #define IC_UART_FLOW_CONTROL  APP_UART_FLOW_CONTROL_DISABLED
 #define IC_UART_BAUD_RATE     UART_BAUDRATE_BAUDRATE_Baud921600
 
-
-#define GPIO_SCLK_PIN					6
-#define GPIO_MISO_PIN					22
-#define GPIO_MOSI_PIN					23
+#define GPIO_SCLK_PIN       6
+#define GPIO_MISO_PIN       22
+#define GPIO_MOSI_PIN       23
 
 /** @} */
 #endif /* !IC_CONFIG_H */
