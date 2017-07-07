@@ -14,6 +14,12 @@
 
 #define OSTIMER_WAIT_FOR_QUEUE  2 /**< Number of ticks to wait for the timer queue to be ready */
 
+#define IC_IRQ_PRIORITY_HIGHEST APP_IRQ_PRIORITY_HIGHEST
+#define IC_IRQ_PRIORITY_HIGH    APP_IRQ_PRIORITY_HIGH
+#define IC_IRQ_PRIORITY_MID     APP_IRQ_PRIORITY_MID
+#define IC_IRQ_PRIORITY_LOW     APP_IRQ_PRIORITY_LOW
+#define IC_IRQ_PRIORITY_LOWEST  APP_IRQ_PRIORITY_LOWEST
+
 /*
  *
  * UART
@@ -47,7 +53,7 @@
  *  @{
  */
 
-#define IC_BUTTON_LONG_PRESS_OFFSET 1000
+#define IC_BUTTON_LONG_PRESS_OFFSET 1500
 
 #define IC_BUTTON_PWR_BUTTON_PIN    12
 #define IC_BUTTON_USB_CONNECT_PIN   11
@@ -76,12 +82,28 @@
 #define IC_SPI_MISO_PIN     22
 #define IC_SPI_MOSI_PIN     23
 #define IC_SPI_SCK_PIN      6
-#define IC_UART_FLOW_CONTROL  APP_UART_FLOW_CONTROL_DISABLED
-#define IC_UART_BAUD_RATE     UART_BAUDRATE_BAUDRATE_Baud921600
 
-#define GPIO_SCLK_PIN       6
-#define GPIO_MISO_PIN       22
-#define GPIO_MOSI_PIN       23
+/** @} */
+
+/*
+ *
+ * TWI
+ *
+ */
+/** @defgroup IC_TWI
+ *  @{
+ */
+#define IC_TWI_100KHZ_FREQUENCY 0x01980000ul
+#define IC_TWI_200KHZ_FREQUENCY 0x04000000ul
+#define IC_TWI_400KHZ_FREQUENCY 0x06680000ul
+
+#define IC_TWI_INSTANCE         0
+
+#define IC_TWI_SDA_PIN          28
+#define IC_TWI_SCL_PIN          29
+#define IC_TWI_IRQ_PRIORITY     IC_IRQ_PRIORITY_HIGH
+#define IC_TWI_FREQUENCY        IC_TWI_400KHZ_FREQUENCY
+
 
 /** @} */
 #endif /* !IC_CONFIG_H */
