@@ -79,6 +79,7 @@
 #include "ic_bluetooth.h"
 #include "ic_driver_uart.h"
 #include "ic_driver_button.h"
+#include "ic_driver_twi.h"
 
 #include "ic_config.h"
 
@@ -162,6 +163,28 @@ void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
 #endif // DEBUG
 }
 
+ALLOCK_SEMAPHORE(twi_test_semphr);
+
+static void on_pwr_press(){
+  GIVE_SEMAPHORE(twi_test_semphr, NULL);
+}
+
+void twi_test_task(void *arg){
+  UNUSED_PARAMETER(arg);
+
+  TWI_REGISTER(twi_test, ({
+        printf("sent data\n\r");
+            })
+        );
+
+  INIT_SEMAPHORE_BINARY(twi_test_semphr);
+  TAKE_SEMAPHORE(twi_test_semphr, portMAX_DELAY, NULL);
+  ic_btn_pwr_press_handle_init(on_pwr_press);
+  for(;;){
+    TAKE_SEMAPHORE(twi_test_semphr, portMAX_DELAY, NULL);
+  }
+}
+
 void init_task (void *arg){
   UNUSED_PARAMETER(arg);
   ble_module_init();
@@ -181,6 +204,10 @@ int main(void)
 
     err_code = nrf_drv_clock_init();
     APP_ERROR_CHECK(err_code);
+
+    if(pdPASS != xTaskCreate(init_task, "INIT", 256, NULL, 4, &m_init_thread)){
+      APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+    }
 
     if(pdPASS != xTaskCreate(init_task, "INIT", 256, NULL, 4, &m_init_thread)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);

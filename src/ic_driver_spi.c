@@ -21,5 +21,6 @@ void ic_spi_init(const nrf_drv_spi_t *const instance, uint8_t pin, void(*func)()
     spi_config.miso_pin = IC_SPI_MISO_PIN;
     spi_config.mosi_pin = IC_SPI_MOSI_PIN;
     spi_config.sck_pin  = IC_SPI_SCK_PIN;
+
     APP_ERROR_CHECK(nrf_drv_spi_init(instance, &spi_config, func));
 }

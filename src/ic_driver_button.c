@@ -106,7 +106,7 @@ void ic_btn_acc_fall_handle_init(p_btnCode code){
 }
 
 void neuroon_exti_init(void){
-  __auto_type err_code = app_button_init(m_buttons,sizeof(m_buttons)/sizeof(m_buttons[0]) , 20);
+  __auto_type err_code = app_button_init(m_buttons,sizeof(m_buttons)/sizeof(m_buttons[0]) , 6);
   APP_ERROR_CHECK(err_code);
   err_code = app_button_enable();
   APP_ERROR_CHECK(err_code);

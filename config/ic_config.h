@@ -106,4 +106,36 @@
 
 
 /** @} */
+
+/*
+ *
+ * SHORTCUTS
+ *
+ */
+
+#include "core_cm0.h"
+
+static inline int isr_context(){
+  return (SCB->ICSR & SCB_ICSR_VECTACTIVE_Msk) != 0;
+}
+
+#ifdef SEMAPHORE_H
+
+#define ALLOCK_SEMAPHORE(name) \
+  SemaphoreHandle_t name = NULL;\
+
+#define INIT_SEMAPHORE_BINARY(name)\
+  name = xSemaphoreCreateBinary()
+
+#define TAKE_SEMAPHORE(name, time_ms, p_higher_priority_task_woken)\
+  isr_context()?xSemaphoreTakeFromISR(name,p_higher_priority_task_woken):\
+  xSemaphoreTake(name, time_ms)
+
+#define GIVE_SEMAPHORE(name, p_higher_priority_task_woken)\
+  isr_context()?xSemaphoreGiveFromISR(name,p_higher_priority_task_woken):\
+  xSemaphoreGive(name)
+
+#endif /* SEMAPHORE_H */
+
+
 #endif /* !IC_CONFIG_H */
