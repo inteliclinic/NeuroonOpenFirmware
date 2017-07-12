@@ -117,9 +117,6 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
     app_error_handler(DEAD_BEEF, line_num, p_file_name);
 }
 
-
-
-
 /**@brief Function for the Power manager.
  */
 static void power_manage(void)
@@ -204,10 +201,6 @@ int main(void)
 
     err_code = nrf_drv_clock_init();
     APP_ERROR_CHECK(err_code);
-
-    if(pdPASS != xTaskCreate(init_task, "INIT", 256, NULL, 4, &m_init_thread)){
-      APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
-    }
 
     if(pdPASS != xTaskCreate(init_task, "INIT", 256, NULL, 4, &m_init_thread)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
