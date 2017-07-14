@@ -18,7 +18,7 @@
   void name##_spi_IRQ_handle(nrf_drv_spi_evt_t const * p_event){UNUSED_PARAMETER(p_event); code;}
 
 #define SPI_INIT(name)\
-  ic_spi_init(name##_spi_instance, name##_ss_pin, name##_spi_IRQ_handle)
+  ic_spi_init(&name##_spi_instance, name##_ss_pin, name##_spi_IRQ_handle)
 
 #define SPI_SEND_DATA(name, in_buffer, out_buffer, len)\
   nrf_drv_spi_transfer(&name##_spi_instance,\
