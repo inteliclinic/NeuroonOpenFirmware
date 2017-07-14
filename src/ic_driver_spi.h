@@ -22,10 +22,10 @@
 
 #define SPI_SEND_DATA(name, in_buffer, out_buffer, len)\
   nrf_drv_spi_transfer(&name##_spi_instance,\
-      (uint8_t *)in_buffer, (uint8_t)len, (uint8_t *)out_buffer, (uint8_t)len);
+      (uint8_t *)in_buffer, (uint8_t)len, (uint8_t *)out_buffer, (uint8_t)len)
 
 #define SPI_UNINIT(name)\
-  nrf_drv_spi_uninit(&name##_spi_instance);
+  nrf_drv_spi_uninit(&name##_spi_instance)
 
 void ic_spi_init(const nrf_drv_spi_t *const instance, uint8_t pin, void(*callback)());
 
