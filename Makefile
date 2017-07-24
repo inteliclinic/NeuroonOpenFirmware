@@ -33,12 +33,14 @@ SRC_FILES += \
   $(SDK_ROOT)/components/drivers_nrf/common/nrf_drv_common.c \
   $(SDK_ROOT)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
   $(SDK_ROOT)/components/drivers_nrf/uart/nrf_drv_uart.c \
-  sdk/components/drivers_nrf/spi_master/nrf_drv_spi.c \
+  $(SDK_ROOT)/components/drivers_nrf/spi_master/nrf_drv_spi.c \
+  $(SDK_ROOT)/components/drivers_nrf/twi_master/nrf_drv_twi.c \
   $(PROJ_DIR)/main.c \
   $(PROJ_DIR)/src/ic_bluetooth.c \
   $(PROJ_DIR)/src/ic_driver_uart.c \
   $(PROJ_DIR)/src/ic_driver_button.c \
   $(PROJ_DIR)/src/ic_driver_spi.c \
+  $(PROJ_DIR)/src/ic_driver_twi.c\
   $(NUC_ROOT)/src/ic_characteristics.c \
   $(NUC_ROOT)/src/ic_crc8.c \
   $(NUC_ROOT)/src/ic_device.c \
@@ -53,7 +55,7 @@ SRC_FILES += \
   $(NUC_ROOT)/src/ic_version.c \
   $(SDK_ROOT)/external/freertos/source/croutine.c \
   $(SDK_ROOT)/external/freertos/source/event_groups.c \
-  $(SDK_ROOT)/external/freertos/source/portable/MemMang/heap_1.c \
+  $(SDK_ROOT)/external/freertos/source/portable/MemMang/heap_4.c \
   $(SDK_ROOT)/external/freertos/source/list.c \
   $(SDK_ROOT)/external/freertos/portable/GCC/nrf51/port.c \
   $(SDK_ROOT)/external/freertos/portable/CMSIS/nrf51/port_cmsis.c \
@@ -98,7 +100,6 @@ INC_FOLDERS += \
   $(NUC_ROOT)/API/include \
   $(NUC_ROOT)/src \
   $(SDK_ROOT)/components/drivers_nrf/comp \
-  $(SDK_ROOT)/components/drivers_nrf/twi_master \
   $(SDK_ROOT)/components/ble/ble_services/ble_ancs_c \
   $(SDK_ROOT)/components/ble/ble_services/ble_ias_c \
   $(SDK_ROOT)/components/softdevice/s130/headers \
@@ -174,6 +175,7 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/drivers_nrf/qdec \
   $(SDK_ROOT)/components/ble/ble_services/ble_cts_c \
   $(SDK_ROOT)/components/drivers_nrf/spi_master \
+  $(SDK_ROOT)/components/drivers_nrf/twi_master \
   $(SDK_ROOT)/components/ble/ble_services/ble_nus \
   $(SDK_ROOT)/components/ble/ble_services/ble_hids \
   $(SDK_ROOT)/components/drivers_nrf/pdm \
@@ -217,7 +219,7 @@ CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -DNRF51
 CFLAGS += -DS130
 CFLAGS += -DBLE_STACK_SUPPORT_REQD
-#CFLAGS += -DSWI_DISABLE0
+CFLAGS += -DSWI_DISABLE0
 CFLAGS += -DNRF51822
 CFLAGS += -DNRF_SD_BLE_API_VERSION=2
 CFLAGS += -mcpu=cortex-m0
@@ -226,8 +228,9 @@ CFLAGS += -Wall -Werror -O3 -g3
 CFLAGS += -mfloat-abi=soft
 # keep every function in separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
-CFLAGS += -fno-builtin --short-enums 
+CFLAGS += -fno-builtin --short-enums
 CFLAGS += -DDEBUG
+#CFLAGS += -DDEBUG_NRF
 
 # C++ flags common to all targets
 CXXFLAGS += \
@@ -244,6 +247,7 @@ ASMFLAGS += -DNRF_SD_BLE_API_VERSION=2
 ASMFLAGS += -D__STACK_SIZE=6144
 ASMFLAGS += -D__HEAP_SIZE=1024
 ASMFLAGS += -DDEBUG
+#ASMFLAGS += -DDEBUG_NRF
 
 # Linker flags
 LDFLAGS += -mthumb -mabi=aapcs -L $(TEMPLATE_PATH) -T$(LINKER_SCRIPT)

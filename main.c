@@ -79,6 +79,7 @@
 #include "ic_bluetooth.h"
 #include "ic_driver_uart.h"
 #include "ic_driver_button.h"
+#include "ic_driver_twi.h"
 
 #include "ic_config.h"
 
@@ -116,9 +117,6 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
     app_error_handler(DEAD_BEEF, line_num, p_file_name);
 }
 
-
-
-
 /**@brief Function for the Power manager.
  */
 static void power_manage(void)
@@ -144,15 +142,14 @@ static void power_manage(void)
 void vApplicationIdleHook( void )
 {
   NRF_LOG_FLUSH();
-  power_manage();
+  /*power_manage();*/
 }
 
 void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
 {
   __auto_type _err = (error_info_t *)info;
 
-  NRF_LOG_ERROR("{%s}[%d](%s)\r\n", (uint32_t)_err->p_file_name, _err->line_num,
-      (uint32_t)ERR_TO_STR(_err->err_code));
+  NRF_LOG_ERROR("{%s}[%d]\r\n", (uint32_t)_err->p_file_name, _err->line_num);
   NRF_LOG_FINAL_FLUSH();
   // On assert, the system can only recover with a reset.
 #ifndef DEBUG
@@ -162,12 +159,18 @@ void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
 #endif // DEBUG
 }
 
+ALLOCK_SEMAPHORE(twi_test_semphr);
+
 void init_task (void *arg){
   UNUSED_PARAMETER(arg);
   ble_module_init();
   neuroon_exti_init();
   vTaskDelete(NULL);
   taskYIELD();
+}
+
+void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName){
+  NRF_LOG_INFO("Stack overflowed: %s\n\r", (uint32_t)pcTaskName);
 }
 
 
