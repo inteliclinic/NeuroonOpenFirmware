@@ -24,6 +24,8 @@
 
 void uart_receive_handler(uint8_t character);
 
+static bool m_initialized;
+
 //static ble_nus_t m_nus; /**< Structure to identify the Nordic UART Service. */
 //
 void __attribute__((weak)) uart_receive_handler(uint8_t character){
@@ -106,6 +108,8 @@ void ic_uart_init(void)
       IC_UART_IRQ_PRIORITY,
       err_code);
   APP_ERROR_CHECK(err_code);
+
+  m_initialized = true;
 
 }
 /**@snippet [UART Initialization] */

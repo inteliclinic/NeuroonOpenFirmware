@@ -37,15 +37,15 @@ static void btn_long_press(TimerHandle_t xTimer);
 static TimerHandle_t m_long_btn_press_timer;
 
 static void on_pwr_press(){
-  printf("{%s}\n\r", __func__);
+  NRF_LOG_INFO("{%s}\n\r", (uint32_t)__func__);
 }
 
 static void on_pwr_release(){
-  printf("{%s}\n\r", __func__);
+  NRF_LOG_INFO("{%s}\n\r", (uint32_t)__func__);
 }
 
 static void on_pwr_long_press(){
-  printf("{%s}\n\r", __func__);
+  NRF_LOG_INFO("{%s}\n\r", (uint32_t)__func__);
 }
 
 static p_btnCode m_pwr_press_handle = on_pwr_press;
@@ -120,28 +120,18 @@ static void btn_long_press(TimerHandle_t xTimer){
 }
 
 void exti_btn(uint8_t pin, uint8_t button_action){
-  __auto_type _HigherPriorityTaskWoken = pdFALSE;
   switch(pin&0xFF){
     case IC_BUTTON_PWR_BUTTON_PIN:
       if (button_action == APP_BUTTON_PUSH){
         EXECUTE_HANDLER(m_pwr_press_handle);
-        if(pdFALSE == xTimerStartFromISR(m_long_btn_press_timer, &_HigherPriorityTaskWoken)){
-          NRF_LOG_ERROR("xTimerStart Error!\n");
-          NRF_LOG_FINAL_FLUSH();
-        }
+        xTimerStart(m_long_btn_press_timer, 0);
       }
       else{
         EXECUTE_HANDLER(m_pwr_release_handle);
         if(xTimerIsTimerActive(m_long_btn_press_timer)!=pdFALSE){
-          if(pdFALSE == xTimerStopFromISR(m_long_btn_press_timer, &_HigherPriorityTaskWoken)){
-            NRF_LOG_ERROR("xTimerStop Error!\n");
-            NRF_LOG_FINAL_FLUSH();
-          }
+          xTimerStop(m_long_btn_press_timer, 0);
         }
         else{
-          /*
-           *printf("Well... Timer is dead\n\r");
-           */
         }
       }
       /*if(button_action == APP_BUTTON_PUSH){*/

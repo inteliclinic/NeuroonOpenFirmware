@@ -142,15 +142,14 @@ static void power_manage(void)
 void vApplicationIdleHook( void )
 {
   NRF_LOG_FLUSH();
-  power_manage();
+  /*power_manage();*/
 }
 
 void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
 {
   __auto_type _err = (error_info_t *)info;
 
-  NRF_LOG_ERROR("{%s}[%d](%s)\r\n", (uint32_t)_err->p_file_name, _err->line_num,
-      (uint32_t)ERR_TO_STR(_err->err_code));
+  NRF_LOG_ERROR("{%s}[%d]\r\n", (uint32_t)_err->p_file_name, _err->line_num);
   NRF_LOG_FINAL_FLUSH();
   // On assert, the system can only recover with a reset.
 #ifndef DEBUG
@@ -162,32 +161,16 @@ void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
 
 ALLOCK_SEMAPHORE(twi_test_semphr);
 
-static void on_pwr_press(){
-  GIVE_SEMAPHORE(twi_test_semphr, NULL);
-}
-
-void twi_test_task(void *arg){
-  UNUSED_PARAMETER(arg);
-
-  TWI_REGISTER(twi_test, ({
-        printf("sent data\n\r");
-            })
-        );
-
-  INIT_SEMAPHORE_BINARY(twi_test_semphr);
-  TAKE_SEMAPHORE(twi_test_semphr, portMAX_DELAY, NULL);
-  ic_btn_pwr_press_handle_init(on_pwr_press);
-  for(;;){
-    TAKE_SEMAPHORE(twi_test_semphr, portMAX_DELAY, NULL);
-  }
-}
-
 void init_task (void *arg){
   UNUSED_PARAMETER(arg);
   ble_module_init();
   neuroon_exti_init();
   vTaskDelete(NULL);
   taskYIELD();
+}
+
+void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName){
+  NRF_LOG_INFO("Stack overflowed: %s\n\r", (uint32_t)pcTaskName);
 }
 
 

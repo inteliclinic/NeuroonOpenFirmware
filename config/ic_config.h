@@ -11,6 +11,7 @@
 #define IC_CONFIG_H
 
 #include "nrf.h"
+#include "app_util_platform.h"
 
 #define OSTIMER_WAIT_FOR_QUEUE  2 /**< Number of ticks to wait for the timer queue to be ready */
 
