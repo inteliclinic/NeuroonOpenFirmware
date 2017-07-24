@@ -79,7 +79,6 @@
 #include "ic_bluetooth.h"
 #include "ic_driver_uart.h"
 #include "ic_driver_button.h"
-#include "ic_driver_twi.h"
 
 #include "ic_config.h"
 
@@ -158,8 +157,6 @@ void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
   app_error_save_and_stop(id, pc, info);
 #endif // DEBUG
 }
-
-ALLOCK_SEMAPHORE(twi_test_semphr);
 
 void init_task (void *arg){
   UNUSED_PARAMETER(arg);
