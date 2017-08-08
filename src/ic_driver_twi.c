@@ -95,11 +95,6 @@ ic_return_val_e ic_twi_send(const ic_twi_instance_s *const instance, uint8_t add
   }
 }
 
-/*void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info){*/
-  /*NRF_LOG_ERROR("%s\n\r", (uint32_t)ERR_TO_STR(((error_info_t *)info)->err_code));*/
-  /*NRF_LOG_FINAL_FLUSH();*/
-/*}*/
-
 ic_return_val_e ic_twi_read(const ic_twi_instance_s *const instance, uint8_t address,
     uint8_t reg_addr, uint8_t *in_buffer, size_t len, ic_twi_event_cb callback){
 
