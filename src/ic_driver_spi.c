@@ -64,14 +64,19 @@ ic_return_val_e ic_spi_send(const ic_spi_instance_s *const instance, uint8_t *in
   ASSERT(in_buffer!=NULL);
   ASSERT(out_buffer!=NULL);
 
+  if(m_curren_state.callback != NULL && m_curren_state.callback != (void *)0xDEADBEEF)
+    return IC_BUSY;
+
+  m_curren_state.callback = callback == NULL ? (void *)0xDEADBEEF : callback;
+
   __auto_type _ret_val = nrf_drv_spi_transfer(instance->nrf_spi_instance, in_buffer, in_len,
       out_buffer, out_len);
 
   switch(_ret_val){
     case NRF_SUCCESS:
-      m_curren_state.callback = callback == NULL ? (void *)0xDEADBEEF : callback;
       return IC_SUCCESS;
     case NRF_ERROR_BUSY:
+      m_curren_state.callback = (void *)0xDEADBEEF;
       return IC_BUSY;
     default:
       return IC_ERROR;
