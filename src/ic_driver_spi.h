@@ -32,7 +32,7 @@ void ic_spi_cs_high(ic_spi_instance_s *instance);
 void ic_spi_cs_low(ic_spi_instance_s *instance);
 
 #define SPI_REGISTER(name)\
-  static nrf_drv_spi_t name##_spi_instance = NRF_DRV_SPI_INSTANCE(IC_SPI_INSTANCE)
+  static ic_spi_instance_s name##_spi_instance;
 
 #define SPI_INIT(name, ss_pin)\
   ic_spi_init(&name##_spi_instance, ss_pin)
