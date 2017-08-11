@@ -62,10 +62,8 @@
 /*#include "boards.h"*/
 #include "softdevice_handler.h"
 #include "app_timer.h"
-#include "FreeRTOS.h"
-#include "task.h"
-#include "timers.h"
-#include "semphr.h"
+#include "app_scheduler.h"
+#include "app_timer_appsh.h"
 
 /*#include "bsp.h"*/
 /*#include "bsp_btn_ble.h"*/
@@ -96,8 +94,6 @@
 
 #define DEAD_BEEF                       0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
-static TaskHandle_t m_init_thread;
-/*uint32_t m_app_ticks_per_100ms =0; [> EXTERN!!! <]*/
 
 
 /**@brief Callback function for asserts in the SoftDevice.
@@ -118,11 +114,13 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
 
 /**@brief Function for the Power manager.
  */
-static void power_manage(void)
-{
-  __auto_type err_code = sd_app_evt_wait();
-  APP_ERROR_CHECK(err_code);
-}
+/*
+ *static void power_manage(void)
+ *{
+ *  __auto_type err_code = sd_app_evt_wait();
+ *  APP_ERROR_CHECK(err_code);
+ *}
+ */
 
 /*
  *static void logger_thread(void * arg)
@@ -162,40 +160,56 @@ void init_task (void *arg){
   UNUSED_PARAMETER(arg);
   ble_module_init();
   neuroon_exti_init();
-  vTaskDelete(NULL);
-  taskYIELD();
 }
 
 void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName){
   NRF_LOG_INFO("Stack overflowed: %s\n\r", (uint32_t)pcTaskName);
 }
 
+void timer_start(){
+  __auto_type err_code = app_timer_start(m_test_timer,
+      256, NULL);
+
+  err_code = app_timer_start(m_twi_timer,
+      1280, NULL);
+
+  APP_ERROR_CHECK(err_code);
+}
+#define SCHED_MAX_EVENT_DATA_SIZE      MAX(APP_TIMER_SCHED_EVT_SIZE, \
+                                           BLE_STACK_HANDLER_SCHED_EVT_SIZE)       /**< Maximum size of scheduler events. */
+#define SCHED_QUEUE_SIZE               20                                          /**< Maximum number of events in the scheduler queue. More is needed in case of Serialization. */
+static uint32_t app_timer_cnt_get_prescaled(){
+  return APP_TIMER_TICKS(app_timer_cnt_get(), APP_TIMER_PRESCALER)>>5;
+}
 
 /**@brief Function for application main entry.
  */
 int main(void)
 {
     // Initialize.
-    __auto_type err_code = NRF_LOG_INIT(xTaskGetTickCount);
+    __auto_type err_code = NRF_LOG_INIT(app_timer_cnt_get_prescaled);
     APP_ERROR_CHECK(err_code);
 
     err_code = nrf_drv_clock_init();
     APP_ERROR_CHECK(err_code);
 
-    if(pdPASS != xTaskCreate(init_task, "INIT", 256, NULL, 4, &m_init_thread)){
-      APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
-    }
+    nrf_drv_clock_lfclk_request(NULL);
 
     ic_uart_init();
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
     NRF_LOG_INFO("starting scheduler\n");
-    vTaskStartScheduler();
+    APP_SCHED_INIT(SCHED_MAX_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
+
+    timer_init();
+    ble_module_init();
 
     for (;;)
     {
-      APP_ERROR_HANDLER(NRF_ERROR_FORBIDDEN);
-      power_manage();
+      /*APP_ERROR_HANDLER(NRF_ERROR_FORBIDDEN);*/
+      app_sched_execute();
+      /*power_manage();*/
+      NRF_LOG_FLUSH();
     }
 }
 

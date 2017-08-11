@@ -12,11 +12,6 @@
 #include "nordic_common.h"
 #include "nrf.h"
 
-#include "FreeRTOS.h"
-#include "task.h"
-#include "timers.h"
-#include "semphr.h"
-
 #include <string.h>
 
 #include "app_error.h"
@@ -32,9 +27,9 @@
 }while(0)
 
 static void exti_btn(uint8_t pin, uint8_t button_action);
-static void btn_long_press(TimerHandle_t xTimer);
-
-static TimerHandle_t m_long_btn_press_timer;
+/*
+ *static void btn_long_press();
+ */
 
 static void on_pwr_press(){
   NRF_LOG_INFO("{%s}\n\r", (uint32_t)__func__);
@@ -110,29 +105,36 @@ void neuroon_exti_init(void){
   APP_ERROR_CHECK(err_code);
   err_code = app_button_enable();
   APP_ERROR_CHECK(err_code);
-  m_long_btn_press_timer = xTimerCreate("BTNT", IC_BUTTON_LONG_PRESS_OFFSET, pdFALSE, NULL,
-      btn_long_press);
+  /*
+   *m_long_btn_press_timer = xTimerCreate("BTNT", IC_BUTTON_LONG_PRESS_OFFSET, pdFALSE, NULL,
+   *    btn_long_press);
+   */
 }
 
-static void btn_long_press(TimerHandle_t xTimer){
-  UNUSED_VARIABLE(xTimer);
-  EXECUTE_HANDLER(m_pwr_long_press_handle);
-}
+/*
+ *static void btn_long_press(){
+ *  EXECUTE_HANDLER(m_pwr_long_press_handle);
+ *}
+ */
 
 void exti_btn(uint8_t pin, uint8_t button_action){
   switch(pin&0xFF){
     case IC_BUTTON_PWR_BUTTON_PIN:
       if (button_action == APP_BUTTON_PUSH){
         EXECUTE_HANDLER(m_pwr_press_handle);
-        xTimerStart(m_long_btn_press_timer, 0);
+        /*
+         *xTimerStart(m_long_btn_press_timer, 0);
+         */
       }
       else{
         EXECUTE_HANDLER(m_pwr_release_handle);
-        if(xTimerIsTimerActive(m_long_btn_press_timer)!=pdFALSE){
-          xTimerStop(m_long_btn_press_timer, 0);
-        }
-        else{
-        }
+        /*
+         *if(xTimerIsTimerActive(m_long_btn_press_timer)!=pdFALSE){
+         *  xTimerStop(m_long_btn_press_timer, 0);
+         *}
+         *else{
+         *}
+         */
       }
       /*if(button_action == APP_BUTTON_PUSH){*/
         /*if(m_pwr_press_handle != 0) ((p_btnCode)m_pwr_press_handle)();*/
