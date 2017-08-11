@@ -199,6 +199,7 @@ int main(void)
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
     NRF_LOG_INFO("starting scheduler\n");
+    APP_TIMER_APPSH_INIT(APP_TIMER_PRESCALER, APP_TIMER_OP_QUEUE_SIZE, true);
     APP_SCHED_INIT(SCHED_MAX_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
 
     timer_init();
