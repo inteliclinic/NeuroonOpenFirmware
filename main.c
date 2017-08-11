@@ -94,6 +94,10 @@
 
 #define DEAD_BEEF                       0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
+#define SCHED_MAX_EVENT_DATA_SIZE      MAX(APP_TIMER_SCHED_EVT_SIZE, \
+                                           BLE_STACK_HANDLER_SCHED_EVT_SIZE)       /**< Maximum size of scheduler events. */
+#define SCHED_QUEUE_SIZE               20                                          /**< Maximum number of events in the scheduler queue. More is needed in case of Serialization. */
+
 
 
 /**@brief Callback function for asserts in the SoftDevice.
@@ -162,32 +166,12 @@ void init_task (void *arg){
   neuroon_exti_init();
 }
 
-void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName){
-  NRF_LOG_INFO("Stack overflowed: %s\n\r", (uint32_t)pcTaskName);
-}
-
-void timer_start(){
-  __auto_type err_code = app_timer_start(m_test_timer,
-      256, NULL);
-
-  err_code = app_timer_start(m_twi_timer,
-      1280, NULL);
-
-  APP_ERROR_CHECK(err_code);
-}
-#define SCHED_MAX_EVENT_DATA_SIZE      MAX(APP_TIMER_SCHED_EVT_SIZE, \
-                                           BLE_STACK_HANDLER_SCHED_EVT_SIZE)       /**< Maximum size of scheduler events. */
-#define SCHED_QUEUE_SIZE               20                                          /**< Maximum number of events in the scheduler queue. More is needed in case of Serialization. */
-static uint32_t app_timer_cnt_get_prescaled(){
-  return APP_TIMER_TICKS(app_timer_cnt_get(), APP_TIMER_PRESCALER)>>5;
-}
-
 /**@brief Function for application main entry.
  */
 int main(void)
 {
     // Initialize.
-    __auto_type err_code = NRF_LOG_INIT(app_timer_cnt_get_prescaled);
+    __auto_type err_code = NRF_LOG_INIT(app_timer_cnt_get);
     APP_ERROR_CHECK(err_code);
 
     err_code = nrf_drv_clock_init();
@@ -202,7 +186,6 @@ int main(void)
     APP_TIMER_APPSH_INIT(APP_TIMER_PRESCALER, APP_TIMER_OP_QUEUE_SIZE, true);
     APP_SCHED_INIT(SCHED_MAX_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
 
-    timer_init();
     ble_module_init();
 
     for (;;)
