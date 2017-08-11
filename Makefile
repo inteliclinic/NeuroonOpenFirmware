@@ -16,7 +16,8 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/button/app_button.c \
   $(SDK_ROOT)/components/libraries/util/app_error.c \
   $(SDK_ROOT)/components/libraries/util/app_error_weak.c \
-  $(SDK_ROOT)/components/libraries/timer/app_timer_freertos.c \
+  $(SDK_ROOT)/components/libraries/timer/app_timer.c \
+  $(SDK_ROOT)/components/libraries/timer/app_timer_appsh.c \
   $(SDK_ROOT)/components/libraries/fifo/app_fifo.c \
   $(SDK_ROOT)/components/libraries/util/app_util_platform.c \
   $(SDK_ROOT)/components/libraries/uart/app_uart_fifo.c \
@@ -29,6 +30,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/util/sdk_errors.c \
   $(SDK_ROOT)/components/libraries/util/sdk_mapped_flags.c \
   $(SDK_ROOT)/components/libraries/sensorsim/sensorsim.c \
+  $(SDK_ROOT)/components/libraries/scheduler/app_scheduler.c \
   $(SDK_ROOT)/components/drivers_nrf/clock/nrf_drv_clock.c \
   $(SDK_ROOT)/components/drivers_nrf/common/nrf_drv_common.c \
   $(SDK_ROOT)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
@@ -53,16 +55,6 @@ SRC_FILES += \
   $(NUC_ROOT)/src/ic_response.c \
   $(NUC_ROOT)/src/ic_status.c \
   $(NUC_ROOT)/src/ic_version.c \
-  $(SDK_ROOT)/external/freertos/source/croutine.c \
-  $(SDK_ROOT)/external/freertos/source/event_groups.c \
-  $(SDK_ROOT)/external/freertos/source/portable/MemMang/heap_4.c \
-  $(SDK_ROOT)/external/freertos/source/list.c \
-  $(SDK_ROOT)/external/freertos/portable/GCC/nrf51/port.c \
-  $(SDK_ROOT)/external/freertos/portable/CMSIS/nrf51/port_cmsis.c \
-  $(SDK_ROOT)/external/freertos/portable/CMSIS/nrf51/port_cmsis_systick.c \
-  $(SDK_ROOT)/external/freertos/source/queue.c \
-  $(SDK_ROOT)/external/freertos/source/tasks.c \
-  $(SDK_ROOT)/external/freertos/source/timers.c \
   $(SDK_ROOT)/external/segger_rtt/RTT_Syscalls_GCC.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
@@ -133,9 +125,6 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/ble/ble_services/ble_ans_c \
   $(SDK_ROOT)/components/libraries/slip \
   $(SDK_ROOT)/components/libraries/mem_manager \
-  $(SDK_ROOT)/external/freertos/source/include/ \
-  $(SDK_ROOT)/external/freertos/portable/GCC/nrf51/ \
-  $(SDK_ROOT)/external/freertos/portable/CMSIS/nrf51 \
   $(SDK_ROOT)/external/segger_rtt \
   $(SDK_ROOT)/components/libraries/csense_drv \
   $(SDK_ROOT)/components/drivers_nrf/hal \
@@ -211,9 +200,8 @@ LIB_FILES += \
 
 # C flags common to all targets
 #CFLAGS += -DBOARD_CUSTOM
-CFLAGS += -D__STACK_SIZE=6144
-CFLAGS += -D__HEAP_SIZE=1024
-CFLAGS += -DFREERTOS
+CFLAGS += -D__STACK_SIZE=16384
+CFLAGS += -D__HEAP_SIZE=2048
 CFLAGS += -std=gnu11
 CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -DNRF51
@@ -224,7 +212,7 @@ CFLAGS += -DNRF51822
 CFLAGS += -DNRF_SD_BLE_API_VERSION=2
 CFLAGS += -mcpu=cortex-m0
 CFLAGS += -mthumb -mabi=aapcs
-CFLAGS += -Wall -Werror -O3 -g3
+CFLAGS += -Wall -Werror -O3 -g0
 CFLAGS += -mfloat-abi=soft
 # keep every function in separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
@@ -244,8 +232,8 @@ ASMFLAGS += -DBLE_STACK_SUPPORT_REQD
 ASMFLAGS += -DSWI_DISABLE0
 ASMFLAGS += -DNRF51822
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=2
-ASMFLAGS += -D__STACK_SIZE=6144
-ASMFLAGS += -D__HEAP_SIZE=1024
+ASMFLAGS += -D__STACK_SIZE=16384
+ASMFLAGS += -D__HEAP_SIZE=2048
 ASMFLAGS += -DDEBUG
 #ASMFLAGS += -DDEBUG_NRF
 
