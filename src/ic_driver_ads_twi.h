@@ -1,13 +1,12 @@
-/**
- * @file    ic_driver_flash.c
- * @Author  Paweł Kaźmierzewski <p.kazmierzewski@inteliclinic.com>
- * @date    June, 2017
- * @brief   Brief description
+/*
+ * ic_driver_ads_twi.h
  *
- * Description
+ *  Created on: 17 sie 2017
+ *      Author: iza
  */
 
-#include "ic_driver_flash.h"
+#ifndef SRC_IC_DRIVER_ADS_TWI_H_
+#define SRC_IC_DRIVER_ADS_TWI_H_
 
 /**SLAVE ADDRESS*/
 #define ADS_TWI_ADDRESS						0b1001000
@@ -102,3 +101,7 @@
 #define ADS_COMP_QUE_01						0b01	// 	01 : Assert after two conversions
 #define ADS_COMP_QUE_10						0b10	//	10 : Assert after four conversions
 #define ADS_COMP_QUE_11						0b11	//	11 : 11 : Disable comparator and set ALERT/RDY pin to high-impedance (default)
+
+
+
+#endif /* SRC_IC_DRIVER_ADS_TWI_H_ */
