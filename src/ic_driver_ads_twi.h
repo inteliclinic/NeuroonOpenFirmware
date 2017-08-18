@@ -10,12 +10,21 @@
 
 /**SLAVE ADDRESS*/
 #define ADS_TWI_ADDRESS						0b1001000
+
+#define ADS_ADDR_RES_POS 					2		//Reserved - always write 0h
+
+
 /**Register address pointer*/
 #define ADS_ADDR_POS 						0
-#define ADS_ADDR_CONV_REG 					0b00
-#define ADS_ADDR_CONF_REG					0b01
-#define ADS_ADDR_LO_REG						0b10
-#define ADS_ADDR_HI_REG						0b11
+#define ADS_ADDR_CONV_REG 					0b00	//00 : Conversion register
+#define ADS_ADDR_CONF_REG					0b01	//01 : Config register
+#define ADS_ADDR_LO_REG						0b10	//10 : Lo_thresh register
+#define ADS_ADDR_HI_REG						0b11	//11 : Hi_thresh register
+
+
+/** Conversion Register*/
+#define ADS_REG_FIELD_POS					0		//16-bit conversion result
+
 
 
 /** Operational status or single-shot conversion start
@@ -28,6 +37,7 @@
 #define ADS_OS_W0							0b0		//When writing 0 : No effect
 #define ADS_OS_W1							0b1     //When writing 1 : Start a single conversion (when in power-down state)
 
+#define ADS_SINGLE_SHOT_CONV				0x80
 /** Input multiplexer configuration (ADS1115 only)
 *These bits configure the input multiplexer.*/
 #define ADS_MUX_POS							12
@@ -102,6 +112,24 @@
 #define ADS_COMP_QUE_10						0b10	//	10 : Assert after four conversions
 #define ADS_COMP_QUE_11						0b11	//	11 : 11 : Disable comparator and set ALERT/RDY pin to high-impedance (default)
 
+
+/**Lo_thresh and Hi_thresh
+ * Register Field Descriptions*/
+#define ADS_LO_THRESH						0x8000	//Low threshold value
+#define ADS_HI_THRESH						0x7FFF	//High threshold value
+
+
+#define QUAN_FRAME							2		//number of frames
+
+
+
+
+typedef enum {
+				TRUE  = 1,
+				FALSE = 0
+}bool;
+
+bool ads_init(void);
 
 
 #endif /* SRC_IC_DRIVER_ADS_TWI_H_ */

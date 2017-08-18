@@ -1,104 +1,44 @@
 /**
  * @file    ic_driver_flash.c
- * @Author  Paweł Kaźmierzewski <p.kazmierzewski@inteliclinic.com>
+ * @Author  iza
  * @date    June, 2017
  * @brief   Brief description
  *
  * Description
  */
-
-#include "ic_driver_flash.h"
-
-/**SLAVE ADDRESS*/
-#define ADS_TWI_ADDRESS						0b1001000
-/**Register address pointer*/
-#define ADS_ADDR_POS 						0
-#define ADS_ADDR_CONV_REG 					0b00
-#define ADS_ADDR_CONF_REG					0b01
-#define ADS_ADDR_LO_REG						0b10
-#define ADS_ADDR_HI_REG						0b11
+#include <stdint.h>
+#include <stddef.h>
+#include "ic_driver_ads_twi.h"
+#include "ic_driver_twi.h"
 
 
-/** Operational status or single-shot conversion start
-*This bit determines the operational status of the device.
-*OS can only be written when in power-down state and has no effect when
-*a conversion is ongoing*/
-#define ADS_OS_POS							15
-#define ADS_OS_R0							0b0		//when reading 0 : Device is currently performing  a conversion
-#define ADS_OS_R1							0b1 	//when reading 1 : Device is not currently performing a conversion
-#define ADS_OS_W0							0b0		//When writing 0 : No effect
-#define ADS_OS_W1							0b1     //When writing 1 : Start a single conversion (when in power-down state)
+uint8_t config_frame[QUAN_FRAME];
+uint8_t conversion_read_frame[QUAN_FRAME];
 
-/** Input multiplexer configuration (ADS1115 only)
-*These bits configure the input multiplexer.*/
-#define ADS_MUX_POS							12
-#define ADS_MUX_P0_N1						0b000	//000 : AINP = AIN0 and AINN = AIN1 (default)
-#define ADS_MUX_P0_N3						0b001 	//001 : AINP = AIN0 and AINN = AIN3
-#define ADS_MUX_P1_N3						0b010	//010 : AINP = AIN1 and AINN = AIN3
-#define ADS_MUX_P2_N3						0b011	//011 : AINP = AIN2 and AINN = AIN3
-#define ADS_MUX_P0_NGND						0b100	//100 : AINP = AIN0 and AINN = GND
-#define ADS_MUX_P1_NGND						0b101	//101 : AINP = AIN1 and AINN = GND
-#define ADS_MUX_P2_NGND						0b110	//110 : AINP = AIN2 and AINN = GND
-#define ADS_MUX_P3_NGND						0b111	//111 : AINP = AIN3 and AINN = GND
 
-/**Programmable gain amplifier configuration
-*These bits set the FSR of the programmable gain amplifier.*/
-#define ADS_PGA_POS							9
-#define ADS_PGA_FSR_6						0b000	//000 : FSR = ±6.144V
-#define ADS_PGA_FSR_4						0b001	//001 : FSR = ±4.096V
-#define ADS_PGA_FSR_2						0b010	//010 : FSR = ±2.048V (default)
-#define ADS_PGA_FSR_1						0b011	//011 : FSR = ±1.024V
-#define ADS_PGA_FSR_00_512					0b100	//100 : FSR = ±0.512V
-#define ADS_PGA_FSR_01_256					0b101	//101 : FSR = ±0.256V
-#define ADS_PGA_FSR_02_256					0b110	//110 : FSR = ±0.256V
-#define ADS_PGA_FSR_02_256					0b111	//111 : FSR = ±0.256V
+int main(void){
+TWI_REGISTER (ADS);
+TWI_INIT(ADS);
 
-/** Device operating mode
-*This bit controls the operating mode.*/
-#define ADS_MODE_POS						8
-#define ADS_MODE_0							0b0		//	0 : Continuous-conversion mode
-#define ADS_MODE_1							0b1		//	1 : Single-shot mode or power-down state (default)
+bool ads_init(){
+				bool check_init = FALSE;
+				uint16_t check_value = 0;
+				uint8_t check_frame[QUAN_FRAME] = {0};
 
-/** Data rate
-*These bits control the data rate setting*/
-#define ADS_DR_POS							5
-#define ADS_DR_SPS_8						0b000	//000 : 8   SPS
-#define ADS_DR_SPS_16						0b001	//001 : 16  SPS
-#define ADS_DR_SPS_32						0b010	//010 : 32  SPS
-#define ADS_DR_SPS_64						0b011	//011 : 64  SPS
-#define ADS_DR_SPS_128						0b100	//100 : 128 SPS
-#define ADS_DR_SPS_250						0b101	//101 : 250 SPS
-#define ADS_DR_SPS_475						0b110	//110 : 475 SPS
-#define ADS_DR_SPS_860						0b111	//111 : 860 SPS
+				/**Check communication I2C*/
+				TWI_READ_DATA(ADS, ADS_TWI_ADDRESS, ADS_LO_THRESH, uint8_t *data, uint32_t data_length, callback);
+				while (QUAN_FRAME != 0){
+										check_value += check_frame[QUAN_FRAME];
+										QUAN_FRAME--;
+										}
+				if(check_value == ADS_LO_THRESH) 	check_init = TRUE; //ADS_LO_THRESH value = 8000h
+				else								check_init = FALSE;
+				config_frame[0] = ADS_SINGLE_SHOT_CONV | ADS_PGA_FSR_02_256;
+				config_frame[1] = 		ADS_DR_SPS_860 | ADS_COMP_QUE_11;
+				TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, uint8_t *data, uint32_t data_length, callback);
+				return check_init;
+				}
 
-/** Comparator mode
-*This bit configures the comparator operating mode.*/
-#define ADS_COMP_MODE_POS					4
-#define ADS_COMP_MODE_0						0b0 	//  0 :  Traditional comparator (default)
-#define ADS_COMP_MODE_1						0b1		//  1 : Window comparator
 
-/** Comparator polarity
-*This bit controls the polarity of the ALERT/RDY pin.*/
-#define ADS_COMP_POL_POS					3
-#define ADS_COMP_POL_0						0b0 	//  0 : Active low (default)
-#define ADS_COMP_POL_1						0b1		//  1 : Active high
-
-/** Latching comparator
-*This bit controls whether the ALERT/RDY pin latches after being asserted or clears
-*after conversions are within the margin of the upper and lower threshold values.*/
-#define ADS_COMP_LAT_POS					3
-#define ADS_COMP_LAT_0						0b0 	//  0 : Nonlatching comparator . The ALERT/RDY pin does not latch when asserted (default)
-#define ADS_COMP_LAT_1						0b1		//  1 : Latching comparator. The asserted ALERT/RDY pin remains latched until conversion
-													//		data are read by the master or an appropriate SMBus alert response is sent by the master.
-													//		The device responds with its address, and it is the lowest address currently asserting the ALERT/RDY bus line.
-/** Comparator queue and disable
-*These bits perform two functions.
-*When set to 11, the comparator is disabled and the ALERT/RDY pin is set to a high-impedance state.
-*When set to any other value, the ALERT/RDY pin and the comparator function are enabled,
-*and the set value determines the number of successive conversions exceeding  the upper or lower
-*threshold required before asserting  the ALERT/RDY pin. */
-#define ADS_COMP_QUE_POS					3
-#define ADS_COMP_QUE_00						0b00 	//  00 : Assert after one conversion
-#define ADS_COMP_QUE_01						0b01	// 	01 : Assert after two conversions
-#define ADS_COMP_QUE_10						0b10	//	10 : Assert after four conversions
-#define ADS_COMP_QUE_11						0b11	//	11 : 11 : Disable comparator and set ALERT/RDY pin to high-impedance (default)
+}
+}
