@@ -80,6 +80,9 @@
 #include "ic_driver_uart.h"
 #include "ic_driver_button.h"
 
+#include "ic_driver_ads_twi.h"
+#include "ic_driver_twi.h"
+
 #include "ic_config.h"
 
 #include "ic_easy_ltc_driver.h"
