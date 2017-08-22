@@ -132,5 +132,6 @@ int16_t ads_get_value();
 bool ads_change_gain(uint16_t new_gain);
 bool ads_change_data_rate(uint16_t rate_code);
 void callback_twi(void *context);
+uint8_t conv_16_to_8(uint16_t *data, size_t len );
 
 #endif /* SRC_IC_DRIVER_ADS_TWI_H_ */

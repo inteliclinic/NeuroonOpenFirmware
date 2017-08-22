@@ -12,6 +12,18 @@
 #include "ic_driver_ads_twi.h"
 #include "ic_driver_twi.h"
 #include <stdio.h>
+//
+//struct {
+//	uint16_t COMP_QUE	: 2;
+//	uint16_t COMP_LAT : 1;
+//	uint16_t COMP_POL : 1;
+//	uint16_t COMP_MDE : 1;
+//	uint16_t DR				: 3;
+//	uint16_t MODE			: 1;
+//	uint16_t PGA			: 3;
+//	uint16_t MUX			: 3;
+//	uint16_t OS				: 1;
+//}conf_reg;
 
 uint16_t config_frame;
 uint16_t convertion_read_frame[QUAN_FRAME];
@@ -33,35 +45,43 @@ void callback_twi(void *context){
 	return split_frame;
 }*/
 
-static ads_send_data(uint16_t data, reg_addr){
-	uint8_t frame[1] = ((uint16_t)config_frame >> 8)& 0b11111111;
-	uint8_t frame[2] =  (uint16_t)config_frame & 0b11111111;
-	if(callback_twi != 0){
+/**uint8_t conv_16_to_8(uint16_t *data, size_t len ){
+ static uint8_t frame[2] = {0};
+	frame[0] = ((uint8_t)(config_frame >> 8)) & 0b11111111;
+	frame[1] = ((uint8_t)config_frame) & 0b11111111;
 
-
-	}
+return ;
 }
+*/
+TWI_REGISTER(ADS);
 
-bool ads_init(){
-				bool check_init = false;
-				uint16_t check_value = 0;
-				uint16_t check_frame[QUAN_FRAME] = {0};
+/**
+ * @fn ads_init ()
+ * @brief initialization device
+ * @return true if initialization correct
+ */
 
-				/**Check communication I2C*/
-				TWI_READ_DATA(ADS, ADS_TWI_ADDRESS, ADS_LO_THRESH, check_frame, ADS_REG_SIZE, callback_twi);
-				while (QUAN_FRAME != 0){
-										check_value |= check_frame[QUAN_FRAME];
-										QUAN_FRAME--;
-										}
-				if(check_value == ADS_LO_THRESH) 	check_init = true; //ADS_LO_THRESH value = 8000h
-				else								check_init = false;
-				config_frame = ((ADS_SINGLE_SHOT_CONV << ADS_OS_POS) |
-								   (ADS_PGA_1 << ADS_PGA_POS) 			|
-								   (ADS_DR_860 << ADS_DR_POS) 		|
-								   (ADS_COMP_QUE_DIS << ADS_COMP_QUE_POS));
-				TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, *data, ADS_REG_SIZE, callback_twi);
-				return check_init;
-				}
+bool ads_init (){
+	bool check_init = false;
+	uint16_t check_value = 0;
+	uint16_t check_frame = 0;
+//	int quan_frame = QUAN_FRAME;
+	TWI_INIT(ADS);
+
+	/**Check communication I2C*/
+	TWI_READ_DATA(ADS, ADS_TWI_ADDRESS, ADS_ADDR_LO_REG, (uint8_t *)&check_frame, ADS_REG_SIZE, callback_twi);
+
+	check_value |= check_frame;
+
+	if(check_value == ADS_ADDR_LO_REG) 	check_init = true; //ADS_LO_THRESH value = 8000h
+	else	check_init = false;
+	config_frame = ((ADS_SINGLE_SHOT_CONV << ADS_OS_POS)|
+									(ADS_PGA_1 << ADS_PGA_POS) 					|
+									(ADS_DR_860 << ADS_DR_POS) 					|
+									(ADS_COMP_QUE_DIS << ADS_COMP_QUE_POS));
+	TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, (uint8_t *)&config_frame, sizeof(config_frame), callback_twi);
+	return check_init;
+	}
 
 void ads_deinit(){
 			 	 return;
@@ -70,7 +90,7 @@ void ads_deinit(){
 void ads_power_down(){
 				config_frame = (ADS_MODE_POW_D << ADS_MODE_POS) |
 								  (0b00000000 << 0);
-				TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, data, ADS_REG_SIZE, callback_twi);
+				TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, (uint8_t *)&config_frame, ADS_REG_SIZE, callback_twi);
 }
 
 void ads_power_up(void){
@@ -78,7 +98,7 @@ void ads_power_up(void){
 									   (ADS_PGA_4 << ADS_PGA_POS)			|
 									   (ADS_DR_250 << ADS_DR_POS)		|
 									   (ADS_COMP_QUE_DIS << ADS_COMP_QUE_POS));
-				TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, data, len, callback_twi);
+				TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, (uint8_t *)&config_frame, sizeof(config_frame), callback_twi);
 
 }
 /** get conversion value
@@ -86,10 +106,10 @@ void ads_power_up(void){
  */
 int16_t ads_get_value(){
 		int16_t convertion_read = 0;
-		TWI_READ_DATA(ADS, ADS_TWI_ADDRESS, ADS_ADDR_CONV_REG, conversion_read_frame, ADS_REG_SIZE, callback_twi);
+		TWI_READ_DATA(ADS, ADS_TWI_ADDRESS, ADS_ADDR_CONV_REG, (uint8_t *)&convertion_read_frame, ADS_REG_SIZE, callback_twi);
 
 		//convertion_read_frame[0] =
-		convertion_read = convertion_read_frame;
+	//	convertion_read = convertion_read_frame;
 
 		return convertion_read;
 }
@@ -122,12 +142,13 @@ bool ads_change_gain(uint16_t new_gain){
 	}
 	config_frame = ((ADS_SINGLE_SHOT_CONV << ADS_OS_POS) |
 					  (new_gain_value << ADS_PGA_POS));
-	check_write_config = TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, data, ADS_REG_SIZE, callback_twi);
+	check_write_config = TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, (uint8_t *)&config_frame, ADS_REG_SIZE, callback_twi);
 
 	if (check_write_config == 1)
 		error_write = false;
-	else
+	else {
 		error_write = true;
+	}
 	return error_write;
 }
 
@@ -166,7 +187,7 @@ bool ads_change_data_rate(uint16_t rate_code)
 	}
 	config_frame = ((ADS_COMP_QUE_DIS << ADS_COMP_QUE_POS) |
 					   (new_rate_value << ADS_DR_POS));
-	check_write_config = TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, data, ADS_REG_SIZE, callback_twi);
+	check_write_config = TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, (uint8_t *)&config_frame, ADS_REG_SIZE, callback_twi);
 
 	if (check_write_config == 1)
 			error_write = false;

@@ -176,5 +176,5 @@ ic_return_val_e ic_twi_read(
     size_t len,
     ic_twi_event_cb callback);
 
-/** @} */
+
 #endif /* !IC_DRIVER_TWI_H */
