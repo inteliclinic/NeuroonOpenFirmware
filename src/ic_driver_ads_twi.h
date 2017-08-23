@@ -98,27 +98,28 @@
 #define ADS_COMP_LAT_POS					3
 #define ADS_COMP_LAT_0						0b0 	//0 : Nonlatching comparator . The ALERT/RDY pin does not latch when asserted (default)
 #define ADS_COMP_LAT_1						0b1		//1 : Latching comparator. The asserted ALERT/RDY pin remains latched until conversion
-													//		data are read by the master or an appropriate SMBus alert response is sent by the master.
-													//		The device responds with its address, and it is the lowest address currently asserting the ALERT/RDY bus line.
+																				//		data are read by the master or an appropriate SMBus alert response is sent by the master.
+																				//		The device responds with its address, and it is the lowest address currently asserting the ALERT/RDY bus line.
+
 /** Comparator queue and disable
 *These bits perform two functions.
 *When set to 11, the comparator is disabled and the ALERT/RDY pin is set to a high-impedance state.
 *When set to any other value, the ALERT/RDY pin and the comparator function are enabled,
 *and the set value determines the number of successive conversions exceeding  the upper or lower
 *threshold required before asserting  the ALERT/RDY pin. */
-#define ADS_COMP_QUE_POS			3
-#define ADS_COMP_QUE_00				0b00 	//00 : Assert after one conversion
-#define ADS_COMP_QUE_01				0b01	//01 : Assert after two conversions
-#define ADS_COMP_QUE_10				0b10	//10 : Assert after four conversions
-#define ADS_COMP_QUE_DIS			0b11	//11 : 11 : Disable comparator and set ALERT/RDY pin to high-impedance (default)
+#define ADS_COMP_QUE_POS				3
+#define ADS_COMP_QUE_00					0b00 	//00 : Assert after one conversion
+#define ADS_COMP_QUE_01					0b01	//01 : Assert after two conversions
+#define ADS_COMP_QUE_10					0b10	//10 : Assert after four conversions
+#define ADS_COMP_QUE_DIS				0b11	//11 : 11 : Disable comparator and set ALERT/RDY pin to high-impedance (default)
 
 
 /**Lo_thresh and Hi_thresh
  * Register Field Descriptions*/
-#define ADS_LO_THRESH					0x8000//Low threshold value 0b1000000000000000
-#define ADS_HI_THRESH					0x7FFF//High threshold value
+#define ADS_LO_THRESH						0x8000//Low threshold value 0b1000000000000000
+#define ADS_HI_THRESH						0x7FFF//High threshold value
 
-#define ADS_REG_SIZE					2
+#define ADS_REG_SIZE						2
 
 
 
@@ -126,9 +127,12 @@ bool ads_init(void);
 void ads_deinit();
 void ads_power_down();
 void ads_power_up(void);
+void callback_twi(void *context);
+
 int16_t ads_get_value();
+
 bool ads_change_gain(uint16_t new_gain);
 bool ads_change_data_rate(uint16_t rate_code);
-void callback_twi(void *context);
+
 
 #endif /* SRC_IC_DRIVER_ADS_TWI_H_ */

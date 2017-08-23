@@ -28,14 +28,14 @@
 //static ic_return_val_e ret_val; //przyrownywac do twi_send data
 
 uint16_t config_frame;
-uint16_t convertion_read_frame[QUAN_FRAME];
+uint16_t conversion_read_frame;
 
 typedef void (*twi_cb)(void);
 
 void callback_twi(void *context){
 	printf("TWI callback\r\n");
-}
 
+}
 /**uint8_t conv_16_to_8(uint16_t *data, size_t len ){
  static uint8_t frame[2] = {0};
 	frame[0] = ((uint8_t)(config_frame >> 8)) & 0b11111111;
@@ -43,20 +43,19 @@ void callback_twi(void *context){
 return ;
 }
 */
-/**
- * @brief
- */
 
 TWI_REGISTER(ADS);
 
 /**
  * @fn ads_init ()
  * @brief Examine communication I2C, initialization device
- * @param[out] check_init
- * @return  check_init true if initialization correct. In other cases deinitialize
+ *
+ * @param[out]	error_write	fail to read/write.
+ *
+ * @return  if returned @ref error_write true it means that initialization succeded. In other cases
+ * initialization attempt failed.
  */
-
-bool ads_init (){
+bool ads_init (void){
 	bool error_write = false;
 	uint16_t check_value = 0;
 	uint16_t check_frame = 0;
@@ -80,16 +79,23 @@ bool ads_init (){
 	return error_write;
 }
 
-void ads_deinit(){
+void ads_deinit(void){
   return;
 }
-
-void ads_power_down(){
-	config_frame = (ADS_MODE_POW_D << ADS_MODE_POS) |
-								 (0b00000000 << 0);
+/**
+ * @fn ads_power_down ()
+ * @brief ADS will be turned OFF
+ */
+void ads_power_down(void){
+	config_frame = (ADS_MODE_POW_D << ADS_MODE_POS) | (0b00000000 << 0);
 	TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, (uint8_t *)&config_frame, ADS_REG_SIZE, callback_twi);
 }
 
+
+/**
+ * @fn ads_power_up ()
+ * @brief ADS will be turned ON
+ */
 void ads_power_up(void){
   config_frame = (((ADS_SINGLE_SHOT_CONV << ADS_OS_POS)	|
 						(ADS_PGA_4 << ADS_PGA_POS)									|
@@ -98,19 +104,23 @@ void ads_power_up(void){
 						(1111111011111111<<ADS_MODE_POS)); // ADS_MODE_CONT
   TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, (uint8_t *)&config_frame, sizeof(config_frame), callback_twi);
 }
-/** get conversion value
- * return conversion value
+/**
+ *@fn ads_get_value ()
+ *@brief Get conversion value
+ *@return conversion value
  */
-int16_t ads_get_value(){
-  int16_t convertion_read = 0;
-  TWI_READ_DATA(ADS, ADS_TWI_ADDRESS, ADS_ADDR_CONV_REG, (uint8_t *)&convertion_read_frame, ADS_REG_SIZE, callback_twi);
-	convertion_read = convertion_read_frame;
-  return convertion_read;
+int16_t ads_get_value(void){
+  int16_t conversion_read = 0;
+  TWI_READ_DATA(ADS, ADS_TWI_ADDRESS, ADS_ADDR_CONV_REG, (uint8_t *)&conversion_read_frame, ADS_REG_SIZE, callback_twi);
+	conversion_read = conversion_read_frame;
+  return conversion_read;
 }
 /**@@fn ads_change_gain ()
- * @brief 												Function set programmable gain amplifier (PGA)
- * @param[in] 	new_gain					new gain value
- * @return  		true if change correct
+ * @brief 			Amplifier will be set with provided gain
+ *
+ * @param[in] 	new_gain	0,1,2,4,8,16 gain value. Different values will return false.
+ * @return  		if returned @ref error_write true it means that gain change succeded. Else, if returned false
+ * 							it means that gain value is not valid.
  */
 bool ads_change_gain(uint16_t new_gain){
 	uint16_t new_gain_value = 0;
@@ -152,8 +162,11 @@ bool ads_change_gain(uint16_t new_gain){
 
 /**@@fn ads_change_data_rate ()
  * @brief Function change data rate value
- * @param[in] rate_code 	new data rate value
- * @return  		true if change correct
+ *
+ * @param[in] rate_code 	1-6 value of data rate. Different values will return false.
+ *
+ * @return  	if returned @ref error_write true it means that data rate succeded. Else, if returned false
+ * 						it means that data rate value is not valid.
  */
 bool ads_change_data_rate(uint16_t rate_code)
 {
@@ -192,10 +205,12 @@ bool ads_change_data_rate(uint16_t rate_code)
 					   (new_rate_value << ADS_DR_POS));
 	check_write_config = TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, (uint8_t *)&config_frame, ADS_REG_SIZE, callback_twi);
 
-	if (check_write_config == 1)
-			error_write = false;
-	else {
+	if (!callback_twi()) {
+			printf("TWI is busy");
 			error_write = true;
+	}
+	else {
+			error_write = false;
 	}
 	return error_write;
 }
