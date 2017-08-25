@@ -2996,7 +2996,7 @@
 
 
 #ifndef APP_TWI_ENABLED
-#define APP_TWI_ENABLED 0
+#define APP_TWI_ENABLED 1
 #endif
 
 // <e> APP_UART_ENABLED - app_uart - UART driver

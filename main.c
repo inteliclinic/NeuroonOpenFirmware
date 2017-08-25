@@ -82,6 +82,8 @@
 
 #include "ic_config.h"
 
+#include "ic_driver_twi.h"
+
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE         4                                           /**< Size of timer operation queues. */
 
@@ -98,6 +100,7 @@
 
 static TaskHandle_t m_init_thread;
 /*uint32_t m_app_ticks_per_100ms =0; [> EXTERN!!! <]*/
+TWI_REGISTER(ltc_dummy);
 
 
 /**@brief Callback function for asserts in the SoftDevice.
@@ -187,6 +190,9 @@ int main(void)
     }
 
     ic_uart_init();
+
+    TWI_INIT(ltc_dummy);
+
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
     NRF_LOG_INFO("starting scheduler\n");
