@@ -15,6 +15,7 @@
 #include <string.h>
 
 #include "app_error.h"
+#include "app_timer.h"
 
 #include "ic_config.h"
 
@@ -26,10 +27,10 @@
   if(code!=NULL)code();else NRF_LOG_INFO("No handler!");\
 }while(0)
 
+APP_TIMER_DEF(m_long_btn_press_timer);
+
 static void exti_btn(uint8_t pin, uint8_t button_action);
-/*
- *static void btn_long_press();
- */
+static void btn_long_press(void *p_context);
 
 static void on_pwr_press(){
   NRF_LOG_INFO("{%s}\n\r", (uint32_t)__func__);
@@ -105,29 +106,24 @@ void neuroon_exti_init(void){
   APP_ERROR_CHECK(err_code);
   err_code = app_button_enable();
   APP_ERROR_CHECK(err_code);
-  /*
-   *m_long_btn_press_timer = xTimerCreate("BTNT", IC_BUTTON_LONG_PRESS_OFFSET, pdFALSE, NULL,
-   *    btn_long_press);
-   */
+  err_code = app_timer_create(&m_long_btn_press_timer, APP_TIMER_MODE_SINGLE_SHOT, btn_long_press);
 }
 
-/*
- *static void btn_long_press(){
- *  EXECUTE_HANDLER(m_pwr_long_press_handle);
- *}
- */
+static void btn_long_press(void *p_context){
+  UNUSED_PARAMETER(p_context);
+  EXECUTE_HANDLER(m_pwr_long_press_handle);
+}
 
 void exti_btn(uint8_t pin, uint8_t button_action){
   switch(pin&0xFF){
     case IC_BUTTON_PWR_BUTTON_PIN:
       if (button_action == APP_BUTTON_PUSH){
         EXECUTE_HANDLER(m_pwr_press_handle);
-        /*
-         *xTimerStart(m_long_btn_press_timer, 0);
-         */
+        app_timer_start(m_long_btn_press_timer, APP_TIMER_TICKS(1500, 0), NULL);
       }
       else{
         EXECUTE_HANDLER(m_pwr_release_handle);
+        app_timer_stop(m_long_btn_press_timer);
         /*
          *if(xTimerIsTimerActive(m_long_btn_press_timer)!=pdFALSE){
          *  xTimerStop(m_long_btn_press_timer, 0);

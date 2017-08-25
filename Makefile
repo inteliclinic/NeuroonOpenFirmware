@@ -31,6 +31,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/util/sdk_mapped_flags.c \
   $(SDK_ROOT)/components/libraries/sensorsim/sensorsim.c \
   $(SDK_ROOT)/components/libraries/scheduler/app_scheduler.c \
+  $(SDK_ROOT)/components/libraries/twi/app_twi.c \
   $(SDK_ROOT)/components/drivers_nrf/clock/nrf_drv_clock.c \
   $(SDK_ROOT)/components/drivers_nrf/common/nrf_drv_common.c \
   $(SDK_ROOT)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
@@ -201,7 +202,7 @@ LIB_FILES += \
 # C flags common to all targets
 #CFLAGS += -DBOARD_CUSTOM
 CFLAGS += -D__STACK_SIZE=16384
-CFLAGS += -D__HEAP_SIZE=2048
+CFLAGS += -D__HEAP_SIZE=-
 CFLAGS += -std=gnu11
 CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -DNRF51
@@ -233,7 +234,7 @@ ASMFLAGS += -DSWI_DISABLE0
 ASMFLAGS += -DNRF51822
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=2
 ASMFLAGS += -D__STACK_SIZE=16384
-ASMFLAGS += -D__HEAP_SIZE=2048
+ASMFLAGS += -D__HEAP_SIZE=0
 ASMFLAGS += -DDEBUG
 #ASMFLAGS += -DDEBUG_NRF
 

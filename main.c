@@ -80,6 +80,8 @@
 
 #include "ic_config.h"
 
+#include "ic_driver_twi.h"
+
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE         4                                           /**< Size of timer operation queues. */
 
@@ -98,7 +100,8 @@
                                            BLE_STACK_HANDLER_SCHED_EVT_SIZE)       /**< Maximum size of scheduler events. */
 #define SCHED_QUEUE_SIZE               20                                          /**< Maximum number of events in the scheduler queue. More is needed in case of Serialization. */
 
-
+TWI_REGISTER(m_twi_handle);
+APP_TIMER_DEF(m_ltc_timer);
 
 /**@brief Callback function for asserts in the SoftDevice.
  *
@@ -166,6 +169,22 @@ void init_task (void *arg){
   neuroon_exti_init();
 }
 
+/*static void twi_finished_cb(void *p_context){*/
+  /*UNUSED_PARAMETER(p_context);*/
+/*}*/
+
+static void ltc_timer_to(void *p_context){
+  static uint8_t _send_buf[2] = {0x1, 30};
+  static int8_t _inc = 1;
+  UNUSED_PARAMETER(p_context);
+
+  TWI_SEND_DATA(m_twi_handle, 0x1C, _send_buf, sizeof(_send_buf), NULL);
+  _send_buf[1] += _inc;
+  if (_send_buf[1]>62 || _send_buf[1]<1){
+    _inc *= -1;
+  }
+}
+
 /**@brief Function for application main entry.
  */
 int main(void)
@@ -179,14 +198,27 @@ int main(void)
 
     nrf_drv_clock_lfclk_request(NULL);
 
+    nrf_gpio_cfg_output(15);
+    nrf_gpio_pin_set(15);
+    nrf_gpio_cfg_output(16);
+    nrf_gpio_pin_set(16);
+    nrf_gpio_cfg_output(25);
+    nrf_gpio_pin_set(25);
+
+    #ifdef DEBUG
     ic_uart_init();
+    #endif
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
-    NRF_LOG_INFO("starting scheduler\n");
     APP_TIMER_APPSH_INIT(APP_TIMER_PRESCALER, APP_TIMER_OP_QUEUE_SIZE, true);
+    NRF_LOG_INFO("starting scheduler\n");
     APP_SCHED_INIT(SCHED_MAX_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
 
+    neuroon_exti_init();
     ble_module_init();
+    TWI_INIT(m_twi_handle);
+    app_timer_create(&m_ltc_timer, APP_TIMER_MODE_REPEATED, ltc_timer_to);
+    app_timer_start(m_ltc_timer, APP_TIMER_TICKS(4, 0), NULL);
 
     for (;;)
     {

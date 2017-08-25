@@ -11,6 +11,7 @@
 #define IC_DRIVER_TWI_H
 #include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "ic_common_types.h"
 
