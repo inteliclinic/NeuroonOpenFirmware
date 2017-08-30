@@ -648,6 +648,6 @@ void ble_module_init(void){
     APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
 
   // Start execution.
-  if (pdPASS != xTaskCreate(ble_stack_thread, "BLE", 512, NULL, 2, NULL))
+  if (pdPASS != xTaskCreate(ble_stack_thread, "BLE", 512, NULL, 4, NULL))
     APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
 }
