@@ -14,6 +14,8 @@
 #include "app_uart.h"
 #include "ic_config.h"
 //#include "ble_nus.h"
+#include "FreeRTOS.h"
+#include "task.h"
 #include <stdio.h>
 
 #define NRF_LOG_MODULE_NAME "UART"

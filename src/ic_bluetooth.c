@@ -20,8 +20,10 @@
 
 #include "softdevice_handler.h"
 #include "app_timer.h"
-#include "app_scheduler.h"
-#include "app_timer_appsh.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "timers.h"
+#include "semphr.h"
 
 #include "fstorage.h"
 #include "fds.h"
@@ -76,6 +78,7 @@
 #define SEC_PARAM_MAX_KEY_SIZE          16                                          /**< Maximum encryption key size. */
 
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                            /**< Handle of the current connection. */
+static SemaphoreHandle_t m_ble_event_ready = NULL;
 
 /* YOUR_JOB: Declare all services structure your application is using
    static ble_xx_service_t                     m_xxs;
@@ -86,7 +89,6 @@ static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                        
 static ble_uuid_t m_adv_uuids[] = {{BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}}; /**< Universally unique service identifiers. */
 
 static void advertising_start(void);
-static uint32_t ble_stack_thread(void);
 
 /**@brief Function for handling Peer Manager events.
  *
@@ -480,23 +482,17 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
        ble_yys_on_ble_evt(&m_yys, p_ble_evt);
      */
 }
-#if 0
+
 static uint32_t ble_new_event_handler(void)
 {
-  /*
-   *BaseType_t yield_req = pdFALSE;
-   */
+    BaseType_t yield_req = pdFALSE;
 
-  // The returned value may be safely ignored, if error is returned it only means that
-  // the semaphore is already given (raised).
-  /*
-   *UNUSED_VARIABLE(xSemaphoreGiveFromISR(m_ble_event_ready, &yield_req));
-   *portYIELD_FROM_ISR(yield_req);
-   */
-  app_sched_event_put(NULL, 0, ble_stack_thread);
-  return NRF_SUCCESS;
+    // The returned value may be safely ignored, if error is returned it only means that
+    // the semaphore is already given (raised).
+    UNUSED_VARIABLE(xSemaphoreGiveFromISR(m_ble_event_ready, &yield_req));
+    portYIELD_FROM_ISR(yield_req);
+    return NRF_SUCCESS;
 }
-#endif
 
 /**@brief Function for initializing the BLE stack.
  *
@@ -512,7 +508,7 @@ static void ble_stack_init(void)
       .xtal_accuracy = NRF_CLOCK_LF_XTAL_ACCURACY_20_PPM};
 
     // Initialize the SoftDevice handler module.
-    SOFTDEVICE_HANDLER_INIT(&clock_lf_cfg, ble_stack_thread);
+    SOFTDEVICE_HANDLER_INIT(&clock_lf_cfg, ble_new_event_handler);
 
     ble_enable_params_t ble_enable_params;
     err_code = softdevice_enable_get_default_config(CENTRAL_LINK_COUNT,
@@ -614,18 +610,11 @@ static void advertising_start(void)
     APP_ERROR_CHECK(err_code);
 }
 
-static uint32_t ble_stack_thread(void)
+static void ble_stack_thread(void * arg)
 {
-  NRF_LOG_INFO("I'm %s\n", (uint32_t)__func__);
+  UNUSED_PARAMETER(arg);
 
-  // This function gets events from the SoftDevice and processes them by calling the function
-  // registered by softdevice_ble_evt_handler_set during stack initialization.
-  // In this code ble_evt_dispatch would be called for every event found.
-  intern_softdevice_events_execute();
-  return NRF_SUCCESS;
-}
-
-void ble_module_init(void){
+  // Initialize.
   ble_stack_init();
   peer_manager_init(false);
   gap_params_init();
@@ -635,4 +624,30 @@ void ble_module_init(void){
 
   __auto_type err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
   APP_ERROR_CHECK(err_code);
+
+
+  while (1)
+  {
+    /* Wait for event from SoftDevice */
+    while (pdFALSE == xSemaphoreTake(m_ble_event_ready, portMAX_DELAY))
+    {
+      // Just wait again in the case when INCLUDE_vTaskSuspend is not enabled
+    }
+    NRF_LOG_INFO("I'm %s\n", (uint32_t)__func__);
+
+    // This function gets events from the SoftDevice and processes them by calling the function
+    // registered by softdevice_ble_evt_handler_set during stack initialization.
+    // In this code ble_evt_dispatch would be called for every event found.
+    intern_softdevice_events_execute();
+  }
+}
+
+void ble_module_init(void){
+  m_ble_event_ready = xSemaphoreCreateBinary();
+  if (NULL == m_ble_event_ready)
+    APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+
+  // Start execution.
+  if (pdPASS != xTaskCreate(ble_stack_thread, "BLE", 512, NULL, 2, NULL))
+    APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
 }

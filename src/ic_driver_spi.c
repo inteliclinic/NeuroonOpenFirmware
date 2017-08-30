@@ -48,11 +48,10 @@ ic_return_val_e ic_spi_init(ic_spi_instance_s *instance, uint8_t pin){
 
   if(m_curren_state.spi_instance_cnt++ == 0){
     nrf_drv_spi_config_t _spi_config = NRF_DRV_SPI_DEFAULT_CONFIG;
-    _spi_config.ss_pin        = NRF_DRV_SPI_PIN_NOT_USED;
-    _spi_config.miso_pin      = IC_SPI_MISO_PIN;
-    _spi_config.mosi_pin      = IC_SPI_MOSI_PIN;
-    _spi_config.sck_pin       = IC_SPI_SCK_PIN;
-    _spi_config.irq_priority  = IC_SPI_IRQ_PRIORITY;
+    _spi_config.ss_pin    = NRF_DRV_SPI_PIN_NOT_USED;
+    _spi_config.miso_pin  = IC_SPI_MISO_PIN;
+    _spi_config.mosi_pin  = IC_SPI_MOSI_PIN;
+    _spi_config.sck_pin   = IC_SPI_SCK_PIN;
     APP_ERROR_CHECK(nrf_drv_spi_init(&m_curren_state.nrf_drv_instance, &_spi_config, spi_event_handler));
   }
 
