@@ -82,9 +82,6 @@
 
 #include "ic_config.h"
 
-#include "ic_easy_ltc_driver.h"
-
-
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE         4                                           /**< Size of timer operation queues. */
 
@@ -100,8 +97,6 @@
 #define DEAD_BEEF                       0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
 static TaskHandle_t m_init_thread;
-/*uint32_t m_app_ticks_per_100ms =0; [> EXTERN!!! <]*/
-
 
 /**@brief Callback function for asserts in the SoftDevice.
  *
@@ -127,20 +122,6 @@ static void power_manage(void)
   APP_ERROR_CHECK(err_code);
 }
 
-/*
- *static void logger_thread(void * arg)
- *{
- *    UNUSED_PARAMETER(arg);
- *
- *    while(1)
- *    {
- *        NRF_LOG_FLUSH();
- *
- *        vTaskDelay(32000); // Suspend myself
- *    }
- *}
- */
-
 void vApplicationIdleHook( void )
 {
   NRF_LOG_FLUSH();
@@ -165,8 +146,6 @@ void init_task (void *arg){
   UNUSED_PARAMETER(arg);
   ble_module_init();
   neuroon_exti_init();
-  ic_ez_ltc_module_init();
-  ic_ez_ltc_glow();
   vTaskDelete(NULL);
   taskYIELD();
 }
@@ -183,24 +162,12 @@ int main(void)
     __auto_type err_code = NRF_LOG_INIT(xTaskGetTickCount);
     APP_ERROR_CHECK(err_code);
 
-    /*
-     *nrf_gpio_cfg_output(15);
-     *nrf_gpio_pin_set(15);
-     *nrf_gpio_cfg_output(16);
-     *nrf_gpio_pin_set(16);
-     */
-    nrf_gpio_cfg_output(25);
-    nrf_gpio_pin_set(25);
-
     err_code = nrf_drv_clock_init();
     APP_ERROR_CHECK(err_code);
 
     if(pdPASS != xTaskCreate(init_task, "INIT", 256, NULL, 4, &m_init_thread)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
-
-    /*ic_uart_init();*/
-
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
     NRF_LOG_INFO("starting scheduler\n");
