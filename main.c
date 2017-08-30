@@ -97,8 +97,6 @@
 #define DEAD_BEEF                       0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
 static TaskHandle_t m_init_thread;
-/*uint32_t m_app_ticks_per_100ms =0; [> EXTERN!!! <]*/
-
 
 /**@brief Callback function for asserts in the SoftDevice.
  *
@@ -124,24 +122,10 @@ static void power_manage(void)
   APP_ERROR_CHECK(err_code);
 }
 
-/*
- *static void logger_thread(void * arg)
- *{
- *    UNUSED_PARAMETER(arg);
- *
- *    while(1)
- *    {
- *        NRF_LOG_FLUSH();
- *
- *        vTaskDelay(32000); // Suspend myself
- *    }
- *}
- */
-
 void vApplicationIdleHook( void )
 {
   NRF_LOG_FLUSH();
-  /*power_manage();*/
+  power_manage();
 }
 
 void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
@@ -170,7 +154,6 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName){
   NRF_LOG_INFO("Stack overflowed: %s\n\r", (uint32_t)pcTaskName);
 }
 
-
 /**@brief Function for application main entry.
  */
 int main(void)
@@ -185,8 +168,6 @@ int main(void)
     if(pdPASS != xTaskCreate(init_task, "INIT", 256, NULL, 4, &m_init_thread)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
-
-    ic_uart_init();
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
     NRF_LOG_INFO("starting scheduler\n");

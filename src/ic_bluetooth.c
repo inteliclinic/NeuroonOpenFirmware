@@ -53,11 +53,11 @@
 
 #define PERIPHERAL_LINK_COUNT           1                                           /**< Number of peripheral links used by the application. When changing this number remember to adjust the RAM settings*/
 
-#define DEVICE_NAME                     "NeuroonOpen_XYZ"                           /**< Name of device. Will be included in the advertising data. */
-#define MANUFACTURER_NAME               "Inteliclinic"                       /**< Manufacturer. Will be passed to Device Information Service. */
+#define DEVICE_NAME                     "NeuroonOpen"                               /**< Name of device. Will be included in the advertising data. */
+#define MANUFACTURER_NAME               "Inteliclinic"                              /**< Manufacturer. Will be passed to Device Information Service. */
 
 #define APP_ADV_INTERVAL                300                                         /**< The advertising interval (in units of 0.625 ms. This value corresponds to 187.5 ms). */
-#define APP_ADV_TIMEOUT_IN_SECONDS      0                                         /**< The advertising timeout in units of seconds. */
+#define APP_ADV_TIMEOUT_IN_SECONDS      0                                           /**< The advertising timeout in units of seconds. */
 
 #define MIN_CONN_INTERVAL               MSEC_TO_UNITS(100, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.1 seconds). */
 #define MAX_CONN_INTERVAL               MSEC_TO_UNITS(200, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (0.2 second). */
@@ -648,6 +648,6 @@ void ble_module_init(void){
     APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
 
   // Start execution.
-  if (pdPASS != xTaskCreate(ble_stack_thread, "BLE", 512, NULL, 2, NULL))
+  if (pdPASS != xTaskCreate(ble_stack_thread, "BLE", 512, NULL, 4, NULL))
     APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
 }

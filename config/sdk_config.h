@@ -2996,7 +2996,7 @@
 
 
 #ifndef APP_TWI_ENABLED
-#define APP_TWI_ENABLED 0
+#define APP_TWI_ENABLED 1
 #endif
 
 // <e> APP_UART_ENABLED - app_uart - UART driver
@@ -3480,6 +3480,7 @@
 //==========================================================
 #ifndef NRF_LOG_ENABLED
 #define NRF_LOG_ENABLED 1
+
 #endif
 #if  NRF_LOG_ENABLED
 // <e> NRF_LOG_USES_COLORS - If enabled then ANSI escape code for colors is prefixed to every string
