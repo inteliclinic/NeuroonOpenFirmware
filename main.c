@@ -82,7 +82,8 @@
 
 #include "ic_config.h"
 
-#include "ic_driver_twi.h"
+#include "ic_easy_ltc_driver.h"
+
 
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE         4                                           /**< Size of timer operation queues. */
@@ -100,7 +101,6 @@
 
 static TaskHandle_t m_init_thread;
 /*uint32_t m_app_ticks_per_100ms =0; [> EXTERN!!! <]*/
-TWI_REGISTER(ltc_dummy);
 
 
 /**@brief Callback function for asserts in the SoftDevice.
@@ -144,7 +144,7 @@ static void power_manage(void)
 void vApplicationIdleHook( void )
 {
   NRF_LOG_FLUSH();
-  /*power_manage();*/
+  power_manage();
 }
 
 void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
@@ -165,6 +165,8 @@ void init_task (void *arg){
   UNUSED_PARAMETER(arg);
   ble_module_init();
   neuroon_exti_init();
+  ic_ez_ltc_module_init();
+  ic_ez_ltc_glow();
   vTaskDelete(NULL);
   taskYIELD();
 }
@@ -172,7 +174,6 @@ void init_task (void *arg){
 void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName){
   NRF_LOG_INFO("Stack overflowed: %s\n\r", (uint32_t)pcTaskName);
 }
-
 
 /**@brief Function for application main entry.
  */
@@ -182,6 +183,15 @@ int main(void)
     __auto_type err_code = NRF_LOG_INIT(xTaskGetTickCount);
     APP_ERROR_CHECK(err_code);
 
+    /*
+     *nrf_gpio_cfg_output(15);
+     *nrf_gpio_pin_set(15);
+     *nrf_gpio_cfg_output(16);
+     *nrf_gpio_pin_set(16);
+     */
+    nrf_gpio_cfg_output(25);
+    nrf_gpio_pin_set(25);
+
     err_code = nrf_drv_clock_init();
     APP_ERROR_CHECK(err_code);
 
@@ -189,9 +199,7 @@ int main(void)
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
 
-    ic_uart_init();
-
-    TWI_INIT(ltc_dummy);
+    /*ic_uart_init();*/
 
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/

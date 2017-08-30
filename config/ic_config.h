@@ -107,14 +107,27 @@
 
 #define IC_TWI_PENDIG_TRANSACTIONS  5
 
-
 /** @} */
+
+/*
+ *
+ * LTC
+ *
+ */
+
 
 /*
  *
  * SHORTCUTS
  *
  */
+/** @defgroup IC_TWI
+ *  @{
+ */
+
+  IC_LTC_POWER_PIN    25
+
+/** @} */
 
 #include "core_cm0.h"
 

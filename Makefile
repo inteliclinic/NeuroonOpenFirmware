@@ -42,6 +42,7 @@ SRC_FILES += \
   $(PROJ_DIR)/src/ic_driver_button.c \
   $(PROJ_DIR)/src/ic_driver_spi.c \
   $(PROJ_DIR)/src/ic_driver_twi.c\
+  $(PROJ_DIR)/src/ic_easy_ltc_driver.c \
   $(NUC_ROOT)/src/ic_characteristics.c \
   $(NUC_ROOT)/src/ic_crc8.c \
   $(NUC_ROOT)/src/ic_device.c \
@@ -225,12 +226,12 @@ CFLAGS += -DNRF51822
 CFLAGS += -DNRF_SD_BLE_API_VERSION=2
 CFLAGS += -mcpu=cortex-m0
 CFLAGS += -mthumb -mabi=aapcs
-CFLAGS += -Wall -Werror -O3 -g3
+CFLAGS += -Wall -Werror -O3 -g0
 CFLAGS += -mfloat-abi=soft
 # keep every function in separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin --short-enums
-CFLAGS += -DDEBUG
+#CFLAGS += -DDEBUG
 #CFLAGS += -DDEBUG_NRF
 
 # C++ flags common to all targets
@@ -247,7 +248,7 @@ ASMFLAGS += -DNRF51822
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=2
 ASMFLAGS += -D__STACK_SIZE=6144
 ASMFLAGS += -D__HEAP_SIZE=1024
-ASMFLAGS += -DDEBUG
+#ASMFLAGS += -DDEBUG
 #ASMFLAGS += -DDEBUG_NRF
 
 # Linker flags
