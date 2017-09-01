@@ -42,6 +42,8 @@ SRC_FILES += \
   $(PROJ_DIR)/src/ic_driver_button.c \
   $(PROJ_DIR)/src/ic_driver_spi.c \
   $(PROJ_DIR)/src/ic_driver_twi.c\
+  $(PROJ_DIR)/src/ic_easy_ltc_driver.c\
+  $(PROJ_DIR)/src/ic_driver_rtc.c\
   $(NUC_ROOT)/src/ic_characteristics.c \
   $(NUC_ROOT)/src/ic_crc8.c \
   $(NUC_ROOT)/src/ic_device.c \

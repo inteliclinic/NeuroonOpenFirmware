@@ -143,13 +143,29 @@ static inline int isr_context(){
 #define INIT_SEMAPHORE_BINARY(name)\
   name = xSemaphoreCreateBinary()
 
-#define TAKE_SEMAPHORE(name, time_ms, p_higher_priority_task_woken)\
-  isr_context()?xSemaphoreTakeFromISR(name,p_higher_priority_task_woken):\
-  xSemaphoreTake(name, time_ms)
+#define TAKE_SEMAPHORE(name, time_ms)                             \
+  do{                                                             \
+    if(isr_context()){                                            \
+      __auto_type higher_priority_task_woken = pdFALSE;           \
+      xSemaphoreTakeFromISR(name, &higher_priority_task_woken);   \
+      portYIELD_FROM_ISR(higher_priority_task_woken);             \
+    }                                                             \
+    else{                                                         \
+      xSemaphoreTake(name, time_ms);                              \
+    }                                                             \
+  }while(0)
 
-#define GIVE_SEMAPHORE(name, p_higher_priority_task_woken)\
-  isr_context()?xSemaphoreGiveFromISR(name,p_higher_priority_task_woken):\
-  xSemaphoreGive(name)
+#define GIVE_SEMAPHORE(name)                                      \
+  do{                                                             \
+    if(isr_context()){                                            \
+      __auto_type higher_priority_task_woken = pdFALSE;           \
+      xSemaphoreGiveFromISR(name, &higher_priority_task_woken);   \
+      portYIELD_FROM_ISR(higher_priority_task_woken);             \
+    }                                                             \
+    else{                                                         \
+      xSemaphoreGive(name);                                       \
+    }                                                             \
+  }while(0)
 
 #endif /* SEMAPHORE_H */
 
