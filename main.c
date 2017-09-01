@@ -82,8 +82,6 @@
 
 #include "ic_config.h"
 
-#include "ic_easy_ltc_driver.h"
-
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE         4                                           /**< Size of timer operation queues. */
 
@@ -144,22 +142,10 @@ void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
 #endif // DEBUG
 }
 
-static void pin_toggle(void *arg){
-  for(;;){
-    nrf_gpio_pin_toggle(IC_UART_TX_PIN);
-    vTaskDelay(10);
-  }
-}
-
 void init_task (void *arg){
   UNUSED_PARAMETER(arg);
   ble_module_init();
   neuroon_exti_init();
-  ic_ez_ltc_module_init();
-  /*ic_ez_ltc_glow();*/
-  if(pdPASS != xTaskCreate(pin_toggle, "PIN", 128, NULL, 4, NULL)){
-    APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
-  }
   vTaskDelete(NULL);
   taskYIELD();
 }
@@ -176,10 +162,6 @@ int main(void)
     __auto_type err_code = NRF_LOG_INIT(xTaskGetTickCount);
     APP_ERROR_CHECK(err_code);
 
-    nrf_gpio_cfg_output(IC_UART_TX_PIN);
-
-    nrf_gpio_cfg_output(25);
-    nrf_gpio_pin_set(25);
     err_code = nrf_drv_clock_init();
     APP_ERROR_CHECK(err_code);
 
