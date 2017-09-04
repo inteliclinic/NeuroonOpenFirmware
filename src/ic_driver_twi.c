@@ -47,10 +47,10 @@ static struct{
 };
 
 /**
- * @brief
+ * @brief TWI IRQ handler
  *
- * @param result
- * @param p_context
+ * @param result    message from driver @ref NRF_ERRORS_BASE
+ * @param p_context user data passed by driver
  */
 static void m_twi_event_handler(uint32_t result, void *p_context){
 
@@ -68,17 +68,18 @@ static void m_twi_event_handler(uint32_t result, void *p_context){
 }
 
 /**
- * @brief 
+ * @brief Transaction function
  *
- * @param instance
- * @param address
- * @param reg_addr
- * @param buffer
- * @param len
- * @param callback
- * @param read
+ * @param instance  Externally allocated device instance.
+ * @param address   Devices TWI address.
+ * @param reg_addr  Target register for read purpose.
+ * @param buffer    Preallocated transfer buffer.
+ * @param len       Length buffer.
+ * @param callback  IRQ handler code.
+ * @param read      if true - read trnsaction. Otherwise - write.
  *
- * @return 
+ * @return  IC_SUCCESS, when everything went ok. IC_BUSY when previously started device transaction
+ * wasnt handled yet
  */
 static ic_return_val_e m_ic_twi_transaction(
     ic_twi_instance_s *const instance,
