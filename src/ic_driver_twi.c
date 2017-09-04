@@ -20,29 +20,39 @@
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 
-#define IC_TWI_TRANSFER(_name, _operation, _p_data, _length, _flags)\
-    _name.p_data    = (uint8_t *)(_p_data); \
-    _name.length    = _length;              \
-    _name.operation = _operation;           \
+// Helper macro. Not intended to be used directly
+#define IC_TWI_TRANSFER(_name, _operation, _p_data, _length, _flags)                              \
+    _name.p_data    = (uint8_t *)(_p_data);                                                       \
+    _name.length    = _length;                                                                    \
+    _name.operation = _operation;                                                                 \
     _name.flags     = _flags
 
-#define IC_TWI_WRITE(name, address, p_data, length, flags) \
+// Macro covering Nordics APP_TWI_WRITE
+#define IC_TWI_WRITE(name, address, p_data, length, flags)                                        \
     IC_TWI_TRANSFER(name, APP_TWI_WRITE_OP(address), p_data, length, flags)
 
-#define IC_TWI_READ(name, address, p_data, length, flags) \
+// Macro covering Nordics APP_TWI_READ
+#define IC_TWI_READ(name, address, p_data, length, flags)                                         \
     IC_TWI_TRANSFER(name, APP_TWI_READ_OP(address), p_data, length, flags)
 
 static struct{
   app_twi_t nrf_drv_instance;
   uint8_t twi_instance_cnt;
   ic_twi_event_cb callback;
-}m_curren_state = {
-                    .nrf_drv_instance = APP_TWI_INSTANCE(IC_TWI_INSTANCE),
-                    .twi_instance_cnt = 0,
-                    .callback          = NULL
-                  };
+}m_curren_state =
+{
+  .nrf_drv_instance = APP_TWI_INSTANCE(IC_TWI_INSTANCE),
+  .twi_instance_cnt = 0,
+  .callback         = NULL
+};
 
-static void twi_event_handler(uint32_t result, void *p_context){
+/**
+ * @brief TWI IRQ handler
+ *
+ * @param result    message from driver @ref NRF_ERRORS_BASE
+ * @param p_context user data passed by driver
+ */
+static void m_twi_event_handler(uint32_t result, void *p_context){
 
   ic_twi_instance_s *_instance = NULL;
 
@@ -57,37 +67,29 @@ static void twi_event_handler(uint32_t result, void *p_context){
     }
 }
 
-ic_return_val_e ic_twi_init(ic_twi_instance_s * instance){
-
-  ASSERT(instance!=NULL);
-
-  instance->nrf_twi_instance = (void *)&m_curren_state.nrf_drv_instance;
-  instance->active = false;
-
-  instance->transaction.callback = twi_event_handler;
-  instance->transaction.p_transfers = instance->transfers;
-  instance->transaction.p_user_data = instance;
-
-  if(m_curren_state.twi_instance_cnt++ == 0){
-    nrf_drv_twi_config_t _twi_config = NRF_DRV_TWI_DEFAULT_CONFIG;
-    _twi_config.sda                 = IC_TWI_SDA_PIN;
-    _twi_config.scl                 = IC_TWI_SCL_PIN;
-    _twi_config.interrupt_priority  = IC_TWI_IRQ_PRIORITY;
-    _twi_config.frequency           = (nrf_twi_frequency_t)IC_TWI_FREQUENCY;
-    _twi_config.clear_bus_init      = true;
-    _twi_config.hold_bus_uninit     = true;
-
-    uint32_t err_code;
-
-    APP_TWI_INIT(&m_curren_state.nrf_drv_instance, &_twi_config, IC_TWI_PENDIG_TRANSACTIONS, err_code);
-    APP_ERROR_CHECK(err_code);
-  }
-
-  return IC_SUCCESS;
-}
-
-static ic_return_val_e ic_twi_transaction(ic_twi_instance_s *const instance, uint8_t address,
-    uint8_t reg_addr, uint8_t *buffer, size_t len, ic_twi_event_cb callback, bool read){
+/**
+ * @brief Transaction function
+ *
+ * @param instance  Externally allocated device instance.
+ * @param address   Devices TWI address.
+ * @param reg_addr  Target register for read purpose.
+ * @param buffer    Preallocated transfer buffer.
+ * @param len       Length buffer.
+ * @param callback  IRQ handler code.
+ * @param read      if true - read trnsaction. Otherwise - write.
+ *
+ * @return  IC_SUCCESS, when everything went ok. IC_BUSY when previously started device transaction
+ * wasnt handled yet
+ */
+static ic_return_val_e m_ic_twi_transaction(
+    ic_twi_instance_s *const instance,
+    uint8_t address,
+    uint8_t reg_addr,
+    uint8_t *buffer,
+    size_t len,
+    ic_twi_event_cb callback,
+    bool read)
+{
 
   ASSERT(instance!=NULL);
   ASSERT(buffer!=NULL);
@@ -123,16 +125,91 @@ static ic_return_val_e ic_twi_transaction(ic_twi_instance_s *const instance, uin
   }
 }
 
-ic_return_val_e ic_twi_send(ic_twi_instance_s * const instance, uint8_t address,
-    uint8_t *buffer, size_t len, ic_twi_event_cb callback){
+////////////////////////////////////////////////////////////////////////////////////////////////////
+ic_return_val_e ic_twi_init(ic_twi_instance_s * instance){
 
-  return ic_twi_transaction(instance, address, 0x00, buffer, len, callback, false);
+  ASSERT(instance!=NULL);
+
+  instance->nrf_twi_instance = (void *)&m_curren_state.nrf_drv_instance;
+  instance->active = false;
+
+  instance->transaction.callback = m_twi_event_handler;
+  instance->transaction.p_transfers = instance->transfers;
+  instance->transaction.p_user_data = instance;
+
+  if(m_curren_state.twi_instance_cnt++ == 0){
+    nrf_drv_twi_config_t _twi_config = NRF_DRV_TWI_DEFAULT_CONFIG;
+    _twi_config.sda                 = IC_TWI_SDA_PIN;
+    _twi_config.scl                 = IC_TWI_SCL_PIN;
+    _twi_config.interrupt_priority  = IC_TWI_IRQ_PRIORITY;
+    _twi_config.frequency           = (nrf_twi_frequency_t)IC_TWI_FREQUENCY;
+    _twi_config.clear_bus_init      = true;
+    _twi_config.hold_bus_uninit     = true;
+
+    uint32_t err_code;
+
+    APP_TWI_INIT(
+        &m_curren_state.nrf_drv_instance,
+        &_twi_config,
+        IC_TWI_PENDIG_TRANSACTIONS,
+        err_code);
+    APP_ERROR_CHECK(err_code);
+  }
+
+  return IC_SUCCESS;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+ic_return_val_e ic_twi_uninit(ic_twi_instance_s *instance){
+  instance->nrf_twi_instance = NULL;
+  instance->active = false;
+
+  instance->transaction.callback = NULL;
+  instance->transaction.p_transfers = NULL;
+  instance->transaction.p_user_data = NULL;
+
+  if (--m_curren_state.twi_instance_cnt == 0){
+    app_twi_uninit(&m_curren_state.nrf_drv_instance);
+  }
+
+  return IC_SUCCESS;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+ic_return_val_e ic_twi_send(
+    ic_twi_instance_s * const instance,
+    uint8_t *buffer,
+    size_t len,
+    ic_twi_event_cb callback)
+{
+
+  return m_ic_twi_transaction(
+      instance,                 // ic_twi_instance_s *const instance,
+      instance->device_address, // uint8_t address,
+      0x00,                     // uint8_t reg_addr,
+      buffer,                   // uint8_t *buffer,
+      len,                      // size_t len,
+      callback,                 // ic_twi_event_cb callback,
+      false);                   // bool read
 
 }
 
-ic_return_val_e ic_twi_read(ic_twi_instance_s *const instance, uint8_t address,
-    uint8_t reg_addr, uint8_t *buffer, size_t len, ic_twi_event_cb callback){
+////////////////////////////////////////////////////////////////////////////////////////////////////
+ic_return_val_e ic_twi_read(
+    ic_twi_instance_s *const instance,
+    uint8_t reg_addr,
+    uint8_t *buffer,
+    size_t len,
+    ic_twi_event_cb callback)
+{
 
-  return ic_twi_transaction(instance, address, reg_addr, buffer, len, callback, true);
+  return m_ic_twi_transaction(
+      instance,                 // ic_twi_instance_s *const instance,
+      instance->device_address, // uint8_t address,
+      reg_addr,                 // uint8_t reg_addr,
+      buffer,                   // uint8_t *buffer,
+      len,                      // size_t len,
+      callback,                 // ic_twi_event_cb callback,
+      true);                    // bool read
 
 }
