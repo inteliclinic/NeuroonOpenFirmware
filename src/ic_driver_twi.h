@@ -53,7 +53,7 @@ typedef struct{
  *
  */
 #define TWI_REGISTER(name, address)                                                               \
-  static ic_twi_instance_s name##_twi_instance = {.device_address};
+  static ic_twi_instance_s name##_twi_instance = {.device_address = address};
 
 /**
  * @brief   Macro simplifying usage of @ref ic_twi_init.
