@@ -112,9 +112,24 @@ static ic_return_val_e m_ic_twi_transaction(
     instance->transaction.number_of_transfers = 1;
   }
 
+  uint32_t _ret_val;
+
+  if (callback == NULL){
+    _ret_val = app_twi_perform(
+        &m_curren_state.nrf_drv_instance,
+        instance->transaction.p_transfers,
+        instance->transaction.number_of_transfers,
+        NULL);
+  }
+  else{
+    _ret_val = app_twi_schedule(
+        &m_curren_state.nrf_drv_instance,
+        &instance->transaction);
+  }
+
   instance->callback = callback;
 
-  switch (app_twi_schedule(&m_curren_state.nrf_drv_instance, &instance->transaction)){
+  switch (_ret_val){
     case NRF_SUCCESS:
       m_curren_state.callback = callback;
       return IC_SUCCESS;
