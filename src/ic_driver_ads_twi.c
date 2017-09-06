@@ -27,7 +27,21 @@
 //}conf_reg;
 //static ic_return_val_e ret_val; //przyrownywac do twi_send data
 
-uint16_t config_frame;
+union{
+  struct{
+    uint16_t comp_que   : 2;
+    uint16_t comp_lat   : 1;
+    uint16_t comp_pol   : 1;
+    uint16_t comp_mode  : 1;
+    uint16_t dr         : 3;
+    uint16_t mode       : 1;
+    uint16_t pga        : 3;
+    uint16_t mux        : 3;
+    uint16_t os         : 1;
+  }bit_map;
+  uint16_t  data;
+}m_config_frame;
+
 uint16_t conversion_read_frame;
 
 typedef void (*twi_cb)(void);
@@ -36,15 +50,8 @@ void callback_twi(void *context){
 	printf("TWI callback\r\n");
 
 }
-/**uint8_t conv_16_to_8(uint16_t *data, size_t len ){
- static uint8_t frame[2] = {0};
-	frame[0] = ((uint8_t)(config_frame >> 8)) & 0b11111111;
-	frame[1] = ((uint8_t)config_frame) & 0b11111111;
-return ;
-}
-*/
 
-TWI_REGISTER(ADS);
+TWI_REGISTER(ADS, ADS_TWI_ADDRESS);
 
 /**
  * @fn ads_init ()
@@ -56,39 +63,47 @@ TWI_REGISTER(ADS);
  * initialization attempt failed.
  */
 bool ads_init (void){
-	bool error_write = false;
-	uint16_t check_value = 0;
-	uint16_t check_frame = 0;
-	TWI_INIT(ADS);
+  bool error_write = false;
+  uint16_t check_value = 0;
+  uint16_t check_frame = 0;
+  TWI_INIT(ADS);
 
-	/**Check communication I2C*/
-	TWI_READ_DATA(ADS, ADS_TWI_ADDRESS, ADS_ADDR_LO_REG, (uint8_t *)&check_frame, ADS_REG_SIZE, callback_twi);
-	check_value |= check_frame;
-	if  (check_value == ADS_LO_THRESH) {
-		error_write = true; //ADS_LO_THRESH value = 8000h
-	}
-	else {
-		error_write = false;
-	}
-	config_frame = (((ADS_SINGLE_SHOT_CONV << ADS_OS_POS)		|
-									(ADS_PGA_1 << ADS_PGA_POS) 							|
-									(ADS_DR_860 << ADS_DR_POS) 							|
-									(ADS_COMP_QUE_DIS << ADS_COMP_QUE_POS))	&
-									(1111111011111111<<ADS_MODE_POS)); 			// ADS_MODE_CONT);
-	TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, (uint8_t *)&config_frame, sizeof(config_frame), callback_twi);
-	return error_write;
+  /**Check communication I2C*/
+  TWI_READ_DATA(ADS, ADS_ADDR_LO_REG, (uint8_t *)&check_frame, ADS_REG_SIZE, NULL);
+  check_value |= check_frame;
+  if  (check_value == ADS_LO_THRESH) {
+    error_write = true; //ADS_LO_THRESH value = 8000h
+  }
+  else {
+    error_write = false;
+  }
+  m_config_frame.data = 0x00;
+  m_config_frame.bit_map.os       = ADS_SINGLE_SHOT_CONV;
+  m_config_frame.bit_map.pga      = ADS_PGA_1;
+  m_config_frame.bit_map.dr       = ADS_DR_128;
+  m_config_frame.bit_map.comp_que = ADS_COMP_QUE_DIS;
+  m_config_frame.bit_map.mode     = ADS_MODE_CONT;
+
+  /*config_frame = ((*/
+        /*(ADS_SINGLE_SHOT_CONV << ADS_OS_POS)  |*/
+        /*(ADS_PGA_1 << ADS_PGA_POS)            |*/
+        /*(ADS_DR_860 << ADS_DR_POS)            |*/
+        /*(ADS_COMP_QUE_DIS << ADS_COMP_QUE_POS))	& (0b1111111011111111<<ADS_MODE_POS));// ADS_MODE_CONT);*/
+  TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, (uint8_t *)&config_frame, sizeof(config_frame), callback_twi);
+  return error_write;
 }
 
 void ads_deinit(void){
   return;
 }
+
 /**
  * @fn ads_power_down ()
  * @brief ADS will be turned OFF
  */
 void ads_power_down(void){
-	config_frame = (ADS_MODE_POW_D << ADS_MODE_POS) | (0b00000000 << 0);
-	TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, (uint8_t *)&config_frame, ADS_REG_SIZE, callback_twi);
+  config_frame = (ADS_MODE_POW_D << ADS_MODE_POS) | (0b00000000 << 0);
+  TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, (uint8_t *)&config_frame, ADS_REG_SIZE, callback_twi);
 }
 
 
@@ -97,11 +112,12 @@ void ads_power_down(void){
  * @brief ADS will be turned ON
  */
 void ads_power_up(void){
-  config_frame = (((ADS_SINGLE_SHOT_CONV << ADS_OS_POS)	|
-						(ADS_PGA_4 << ADS_PGA_POS)									|
-						(ADS_DR_250 << ADS_DR_POS)									|
-						(ADS_COMP_QUE_DIS << ADS_COMP_QUE_POS))			&
-						(1111111011111111<<ADS_MODE_POS)); // ADS_MODE_CONT
+  config_frame = ((
+        (ADS_SINGLE_SHOT_CONV << ADS_OS_POS)	|
+        (ADS_PGA_2 << ADS_PGA_POS)  |
+        (ADS_DR_250 << ADS_DR_POS)  |
+        (ADS_COMP_QUE_DIS << ADS_COMP_QUE_POS)
+        )&(1111111011111111<<ADS_MODE_POS)); // ADS_MODE_CONT
   TWI_SEND_DATA(ADS, ADS_TWI_ADDRESS, (uint8_t *)&config_frame, sizeof(config_frame), callback_twi);
 }
 /**
