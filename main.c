@@ -82,6 +82,8 @@
 
 #include "ic_config.h"
 
+#include "ic_easy_ltc_driver.h"
+
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE         4                                           /**< Size of timer operation queues. */
 
@@ -146,6 +148,8 @@ void init_task (void *arg){
   UNUSED_PARAMETER(arg);
   ble_module_init();
   neuroon_exti_init();
+  ic_ez_ltc_module_init();
+  ic_ez_ltc_glow();
   vTaskDelete(NULL);
   taskYIELD();
 }
@@ -168,6 +172,9 @@ int main(void)
     if(pdPASS != xTaskCreate(init_task, "INIT", 256, NULL, 4, &m_init_thread)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
+
+    nrf_gpio_cfg_output(IC_LTC_POWER_PIN);
+    nrf_gpio_pin_set(IC_LTC_POWER_PIN);
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
     NRF_LOG_INFO("starting scheduler\n");

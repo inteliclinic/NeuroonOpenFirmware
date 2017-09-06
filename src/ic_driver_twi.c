@@ -100,8 +100,6 @@ static ic_return_val_e m_ic_twi_transaction(
     return IC_BUSY;
   }
 
-  instance->active = true;
-
   if(read){
     IC_TWI_WRITE(instance->transfers[0], address, &reg_addr, 1, APP_TWI_NO_STOP);
     IC_TWI_READ(instance->transfers[1], address, buffer, len, 0x00);
@@ -114,8 +112,19 @@ static ic_return_val_e m_ic_twi_transaction(
 
   instance->callback = callback;
 
-  switch (app_twi_schedule(&m_curren_state.nrf_drv_instance, &instance->transaction)){
+  uint32_t _ret_val = callback == NULL ?
+    app_twi_perform(
+        &m_curren_state.nrf_drv_instance,
+        instance->transaction.p_transfers,
+        instance->transaction.number_of_transfers,
+        NULL) :
+    app_twi_schedule(
+        &m_curren_state.nrf_drv_instance,
+        &instance->transaction);
+
+  switch (_ret_val){
     case NRF_SUCCESS:
+      if(callback != NULL) instance->active = true;
       m_curren_state.callback = callback;
       return IC_SUCCESS;
     case NRF_ERROR_BUSY:
