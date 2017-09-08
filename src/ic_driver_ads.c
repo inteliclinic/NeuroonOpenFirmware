@@ -17,19 +17,6 @@
 #define NRF_LOG_MODULE_NAME "ADS"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
-//
-//struct {
-//	uint16_t COMP_QUE	: 2;
-//	uint16_t COMP_LAT : 1;
-//	uint16_t COMP_POL : 1;
-//	uint16_t COMP_MDE : 1;
-//	uint16_t DR				: 3;
-//	uint16_t MODE			: 1;
-//	uint16_t PGA			: 3;
-//	uint16_t MUX			: 3;
-//	uint16_t OS				: 1;
-//}conf_reg;
-//static ic_return_val_e ret_val; //przyrownywac do twi_send data
 
 struct __attribute__((packed)){
   const uint8_t conf_reg;
@@ -124,20 +111,12 @@ void ads_power_up(void){
   m_config_frame.payload.bit_map.comp_que = ADS_COMP_QUE_DIS;
   m_config_frame.payload.bit_map.mode     = ADS_MODE_CONT;
 
-  uint8_t config_frame[2];
-  config_frame[0] = 0x80 | 0x06;  //ADS_SINGLE_SHOT_CONV | ADS_GAIN_4;
-  config_frame[1] = 0xE0 | 0x03;  //ADS_DATA_RATE_860 | ADS_COMP_QUE_DIS;
-
-  NRF_LOG_INFO("0x%X, 0x%X\n", m_config_frame.payload.data, *(uint16_t *)config_frame);
-
   TWI_SEND_DATA(ADS, (uint8_t *)&m_config_frame, sizeof(m_config_frame), NULL);
 }
 
 static volatile void (*m_user_read_callback)(int16_t);
 
 static void m_read_value_cb(ic_return_val_e ret_val){
-  /*static int16_t val = 0;*/
-  /*NRF_LOG_INFO("%d\n", m_conversion_read_frame);*/
   if(m_user_read_callback != NULL){
     m_user_read_callback(SWAP_2_BYTES(m_conversion_read_frame));
     m_user_read_callback = NULL;

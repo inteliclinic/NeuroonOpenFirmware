@@ -19,20 +19,7 @@
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 
-/*
- *static TaskHandle_t m_ads_service_task_handle;
- */
 static TimerHandle_t m_ads_service_timer_handle;
-
-/*ALLOCK_SEMAPHORE(ads_service_lock);*/
-
-/*
- *static void ads_service_main_task(void *args){
- *  for(;;){
- *
- *  }
- *}
- */
 
 void read_callback(int16_t eeg){
   NRF_LOG_INFO("eeg: %d\n", eeg);
@@ -63,21 +50,6 @@ ic_return_val_e ic_ads_service_init(void){
 
   ic_ads_init();
 
-  /*
-   *if(pdPASS != xTaskCreate(
-   *      ads_service_main_task,
-   *      "ADS_SERVICE",
-   *      256,
-   *      NULL,
-   *      4,
-   *      &m_ads_service_task_handle
-   *      ) //xTaskCreate
-   *  ) //if
-   *{
-   *  APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
-   *}
-   */
-
   m_ads_service_timer_handle = xTimerCreate(
       "ADS_TIMER",
       8,
@@ -85,12 +57,6 @@ ic_return_val_e ic_ads_service_init(void){
       NULL,
       ads_timer_callback);
 
-  /*
-   *INIT_SEMAPHORE_BINARY(ads_service_lock);
-   *TAKE_SEMAPHORE(ads_service_lock, 0);
-   */
-
-  xTimerStart(m_ads_service_timer_handle, 3);
-
+  xTimerStart(m_ads_service_timer_handle, 0);
   return IC_SUCCESS;
 }
