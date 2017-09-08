@@ -41,8 +41,8 @@ static struct{
 
 TWI_REGISTER(ez_ltc_twi, 0x1C);
 
-static void ez_ltc_twi_finished(void *args){
-  UNUSED_PARAMETER(args);
+static void ez_ltc_twi_finished(ic_return_val_e ret_val){
+  UNUSED_PARAMETER(ret_val);
   GIVE_SEMAPHORE(ez_ltc_lock);
 }
 
