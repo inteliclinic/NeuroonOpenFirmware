@@ -135,7 +135,7 @@ void ads_power_up(void){
 
 static volatile void (*m_user_read_callback)(int16_t);
 
-static void m_read_value_cb(void *context){
+static void m_read_value_cb(ic_return_val_e ret_val){
   /*static int16_t val = 0;*/
   /*NRF_LOG_INFO("%d\n", m_conversion_read_frame);*/
   if(m_user_read_callback != NULL){
@@ -160,13 +160,22 @@ ic_return_val_e ads_get_value(void (*p_read_callback)(int16_t), bool force){
   else
     return IC_BUSY;
 
-  return TWI_READ_DATA(
-      ADS,
-      ADS_ADDR_CONV_REG,
-      (uint8_t *)&m_conversion_read_frame,
-      ADS_REG_SIZE,
-      m_read_value_cb
-      );
+  return          // TODO: Do it prettier
+    force ?
+    TWI_READ_DATA_FORCED(
+        ADS,
+        ADS_ADDR_CONV_REG,
+        (uint8_t *)&m_conversion_read_frame,
+        ADS_REG_SIZE,
+        m_read_value_cb
+        ) :
+    TWI_READ_DATA(
+        ADS,
+        ADS_ADDR_CONV_REG,
+        (uint8_t *)&m_conversion_read_frame,
+        ADS_REG_SIZE,
+        m_read_value_cb
+        );
 }
 
 /**@@fn ads_change_gain ()

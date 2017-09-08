@@ -26,7 +26,7 @@
  *
  * @return void
  */
-typedef void (*ic_twi_event_cb)(void *context);
+typedef void (*ic_twi_event_cb)(ic_return_val_e);
 
 /**
  * @brief Struct holding TWI instance information.
@@ -92,10 +92,29 @@ typedef struct{
     in_buffer,                                                                                    \
     len,                                                                                          \
     callback)                                                                                     \
-  ic_twi_send(&name##_twi_instance, in_buffer, len, callback)
+  ic_twi_send(&name##_twi_instance, in_buffer, len, callback, false)
 
 /**
- * @brief
+ * @brief   Macro simplifying @ref ic_twi_send
+ *
+ * Forced version of @ref TWI_SEND_DATA. Lets user write data even when bus is busy
+ *
+ * @param name      Name of instace.
+ * @param in_buffer Prealocated buffer provided by user.
+ * @param len       Length of buffer.
+ * @param callback  Code with IRQ handler. Can be NULL.
+ *
+ * @return  @ref ic_twi_send.
+ */
+#define TWI_SEND_DATA_FORCED(                                                                            \
+    name,                                                                                         \
+    in_buffer,                                                                                    \
+    len,                                                                                          \
+    callback)                                                                                     \
+  ic_twi_send(&name##_twi_instance, in_buffer, len, callback, true)
+
+/**
+ * @brief   Macro simplifying @ref ic_twi_read
  *
  * @param name      Name of instance.
  * @param reg_addr  Target register address.
@@ -111,7 +130,28 @@ typedef struct{
     in_buffer,                                                                                    \
     len,                                                                                          \
     callback)                                                                                     \
-  ic_twi_read(&name##_twi_instance, reg_addr, in_buffer, len, callback)
+  ic_twi_read(&name##_twi_instance, reg_addr, in_buffer, len, callback, false)
+
+/**
+ * @brief   Macro simplifying @ref ic_twi_read
+ *
+ * Forced version of @ref TWI_READ_DATA. Lets user read data even when bus is busy
+ *
+ * @param name      Name of instance.
+ * @param reg_addr  Target register address.
+ * @param in_buffer Prealocated buffer provided by user.
+ * @param len       Length of buffer.
+ * @param callback  code with IRQ handler. Can be NULL.
+ *
+ * @return  @ref ic_twi_read
+ */
+#define TWI_READ_DATA_FORCED(                                                                            \
+    name,                                                                                         \
+    reg_addr,                                                                                     \
+    in_buffer,                                                                                    \
+    len,                                                                                          \
+    callback)                                                                                     \
+  ic_twi_read(&name##_twi_instance, reg_addr, in_buffer, len, callback, true)
 
 /**
  * @brief TWI instance initialization function.
@@ -153,7 +193,8 @@ ic_return_val_e ic_twi_send(
     ic_twi_instance_s * const instance,
     uint8_t *in_buffer,
     size_t len,
-    ic_twi_event_cb callback);
+    ic_twi_event_cb callback,
+    bool force);
 
 /**
  * @brief Start reading data transaction.
@@ -174,7 +215,8 @@ ic_return_val_e ic_twi_read(
     uint8_t reg_addr,
     uint8_t *in_buffer,
     size_t len,
-    ic_twi_event_cb callback);
+    ic_twi_event_cb callback,
+    bool force);
 
 
 #endif /* !IC_DRIVER_TWI_H */
