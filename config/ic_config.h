@@ -12,6 +12,7 @@
 
 #include "nrf.h"
 #include "app_util_platform.h"
+#include "ic_common_types.h"
 
 #define OSTIMER_WAIT_FOR_QUEUE  2 /**< Number of ticks to wait for the timer queue to be ready */
 
@@ -166,6 +167,8 @@ static inline int isr_context(){
       xSemaphoreGive(name);                                       \
     }                                                             \
   }while(0)
+
+
 
 #endif /* SEMAPHORE_H */
 

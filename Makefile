@@ -1,12 +1,12 @@
-PROJECT_NAME     := neuroon2.0
-TARGETS          := neuroon2
-OUTPUT_DIRECTORY := _build
+PROJECT_NAME     	:= neuroon2.0
+TARGET          	:= neuroonOpen
+OUTPUT_DIRECTORY	:= _build
 
 SDK_ROOT := sdk
 NUC_ROOT := nuc
 PROJ_DIR := .
 
-$(OUTPUT_DIRECTORY)/neuroon2.out: \
+$(OUTPUT_DIRECTORY)/$(TARGET).out: \
   LINKER_SCRIPT  := linker_script.ld
 
 # Source files common to all targets
@@ -213,8 +213,8 @@ LIB_FILES += \
 
 # C flags common to all targets
 #CFLAGS += -DBOARD_CUSTOM
-CFLAGS += -D__STACK_SIZE=6144
-CFLAGS += -D__HEAP_SIZE=1024
+CFLAGS += -D__STACK_SIZE=7168
+CFLAGS += -D__HEAP_SIZE=0
 CFLAGS += -DFREERTOS
 CFLAGS += -std=gnu11
 CFLAGS += -DSOFTDEVICE_PRESENT
@@ -246,9 +246,9 @@ ASMFLAGS += -DBLE_STACK_SUPPORT_REQD
 ASMFLAGS += -DSWI_DISABLE0
 ASMFLAGS += -DNRF51822
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=2
-ASMFLAGS += -D__STACK_SIZE=6144
-ASMFLAGS += -D__HEAP_SIZE=1024
-#ASMFLAGS += -DDEBUG
+ASMFLAGS += -D__STACK_SIZE=7168
+ASMFLAGS += -D__HEAP_SIZE=0
+ASMFLAGS += -DDEBUG
 #ASMFLAGS += -DDEBUG_NRF
 
 # Linker flags
@@ -260,28 +260,28 @@ LDFLAGS += -Wl,--gc-sections
 LDFLAGS += --specs=nano.specs -lc -lnosys
 
 
-.PHONY: $(TARGETS) default all clean help flash flash_softdevice
+.PHONY: $(TARGET) default all clean help flash flash_softdevice
 
 # Default target - first one defined
-default: neuroon2
+default: $(TARGET)
 
 # Print all targets that can be built
 help:
-	@echo following targets are available:
-	@echo 	neuroon2
+	@echo 	following targets are available:
+	@echo 	$(TARGET)
 
 TEMPLATE_PATH := $(SDK_ROOT)/components/toolchain/gcc
 
 include $(SDK_ROOT)/components/toolchain/gcc/Makefile.common
 
-$(foreach target, $(TARGETS), $(call define_target, $(target)))
+$(foreach target, $(TARGET), $(call define_target, $(target)))
 
-bin: $(OUTPUT_DIRECTORY)/neuroon2.out
-	@$(OBJCOPY) -O binary "$(BIN_DIR)/$<" "$(OUTPUT_DIRECTORY)/neuroon2.bin"
+bin: $(OUTPUT_DIRECTORY)/$TARGET.out
+	@$(OBJCOPY) -O binary "$(BIN_DIR)/$<" "$(OUTPUT_DIRECTORY)/$(TARGET).bin"
 
 
 # Flash the program
-flash: $(OUTPUT_DIRECTORY)/neuroon2.hex
+flash: $(OUTPUT_DIRECTORY)/$(TARGET).hex
 	@echo Flashing: $<
 	nrfjprog --program $< -f nrf51 --sectorerase
 	nrfjprog --reset -f nrf51
@@ -289,7 +289,7 @@ flash: $(OUTPUT_DIRECTORY)/neuroon2.hex
 # Flash softdevice
 flash_softdevice:
 	@echo Flashing: s130_nrf51_2.0.1_softdevice.hex
-	nrfjprog --program $(SDK_ROOT)/components/softdevice/s130/hex/s130_nrf51_2.0.1_softdevice.hex -f nrf51 --sectorerase 
+	nrfjprog --program $(SDK_ROOT)/components/softdevice/s130/hex/s130_nrf51_2.0.1_softdevice.hex -f nrf51 --sectorerase
 	nrfjprog --reset -f nrf51
 
 erase:

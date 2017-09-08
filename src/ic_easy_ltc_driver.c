@@ -87,13 +87,13 @@ void ez_ltc_main_task(void *args){
             send_value_to_LTC();
           }
         }
-        vTaskDelay(4);
+        vTaskDelay(50);
         continue;
       case EZ_LTC_OFF:
         if (m_ltc_state.current_val != 0){
           m_in_buffer[1] = --m_ltc_state.current_val;
           send_value_to_LTC();
-          vTaskDelay(4);
+          vTaskDelay(50);
           continue;
         }
         else {
@@ -103,7 +103,7 @@ void ez_ltc_main_task(void *args){
         if (m_ltc_state.current_val != 63){
           m_in_buffer[1] = ++m_ltc_state.current_val;
           send_value_to_LTC();
-          vTaskDelay(4);
+          vTaskDelay(50);
           continue;
         }
         else {

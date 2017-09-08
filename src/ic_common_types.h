@@ -13,7 +13,8 @@
 typedef enum{
   IC_SUCCESS = 0x00,
   IC_BUSY,
-  IC_ERROR,
+  IC_WARNING,
+  IC_ERROR
 }ic_return_val_e;
 
 #endif /* !IC_COMMON_TYPES_H */

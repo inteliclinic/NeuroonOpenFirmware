@@ -35,15 +35,16 @@
 #define IC_TWI_READ(name, address, p_data, length, flags)                                         \
     IC_TWI_TRANSFER(name, APP_TWI_READ_OP(address), p_data, length, flags)
 
+/**
+ * @brief 
+ */
 static struct{
   app_twi_t nrf_drv_instance;
   uint8_t twi_instance_cnt;
-  ic_twi_event_cb callback;
 }m_curren_state =
 {
   .nrf_drv_instance = APP_TWI_INSTANCE(IC_TWI_INSTANCE),
   .twi_instance_cnt = 0,
-  .callback         = NULL
 };
 
 /**
@@ -54,17 +55,21 @@ static struct{
  */
 static void m_twi_event_handler(uint32_t result, void *p_context){
 
-  ic_twi_instance_s *_instance = NULL;
+  ic_twi_instance_s *_instance = p_context;
 
-  if (result == NRF_SUCCESS)
-    if(p_context != NULL){
-      _instance = (ic_twi_instance_s *)p_context;
-      _instance->active = false;
-      if(_instance->callback != NULL){
-        _instance->callback(NULL);
-        _instance->callback = NULL;
-      }
+  if(_instance != NULL){
+    _instance->active = false;
+    switch(result){
+      case NRF_SUCCESS:
+        if(_instance->callback != NULL){
+          _instance->callback(NULL);
+        }
+        break;
+      default:
+        NRF_LOG_ERROR("transaction error: %lu\n", result);
     }
+    _instance->callback = NULL;
+  }
 }
 
 /**
@@ -76,7 +81,7 @@ static void m_twi_event_handler(uint32_t result, void *p_context){
  * @param buffer    Preallocated transfer buffer.
  * @param len       Length buffer.
  * @param callback  IRQ handler code.
- * @param read      if true - read trnsaction. Otherwise - write.
+ * @param read      if true - read transaction. Otherwise - write.
  *
  * @return  IC_SUCCESS, when everything went ok. IC_BUSY when previously started device transaction
  * wasnt handled yet
@@ -125,7 +130,6 @@ static ic_return_val_e m_ic_twi_transaction(
   switch (_ret_val){
     case NRF_SUCCESS:
       if(callback != NULL) instance->active = true;
-      m_curren_state.callback = callback;
       return IC_SUCCESS;
     case NRF_ERROR_BUSY:
       return IC_BUSY;
