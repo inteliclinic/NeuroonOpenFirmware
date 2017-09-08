@@ -36,7 +36,7 @@
     IC_TWI_TRANSFER(name, APP_TWI_READ_OP(address), p_data, length, flags)
 
 /**
- * @brief 
+ * @brief
  */
 static struct{
   app_twi_t nrf_drv_instance;
@@ -59,15 +59,10 @@ static void m_twi_event_handler(uint32_t result, void *p_context){
 
   if(_instance != NULL){
     _instance->active = false;
-    switch(result){
-      case NRF_SUCCESS:
-        if(_instance->callback != NULL){
-          _instance->callback(NULL);
-        }
-        break;
-      default:
-        NRF_LOG_ERROR("transaction error: %lu\n", result);
-    }
+
+    if(_instance->callback != NULL)
+      _instance->callback(result == NRF_SUCCESS ? IC_SUCCESS : IC_ERROR);
+
     _instance->callback = NULL;
   }
 }
@@ -93,14 +88,15 @@ static ic_return_val_e m_ic_twi_transaction(
     uint8_t *buffer,
     size_t len,
     ic_twi_event_cb callback,
-    bool read)
+    bool read,
+    bool force)
 {
 
   ASSERT(instance!=NULL);
   ASSERT(buffer!=NULL);
   ASSERT(len<=255);
 
-  if(instance->active == true) {
+  if(instance->active == true && !force) {
     NRF_LOG_INFO("Software busy\n");
     return IC_BUSY;
   }
@@ -193,7 +189,9 @@ ic_return_val_e ic_twi_send(
     ic_twi_instance_s * const instance,
     uint8_t *buffer,
     size_t len,
-    ic_twi_event_cb callback)
+    ic_twi_event_cb callback,
+    bool force)
+
 {
 
   return m_ic_twi_transaction(
@@ -203,7 +201,8 @@ ic_return_val_e ic_twi_send(
       buffer,                   // uint8_t *buffer,
       len,                      // size_t len,
       callback,                 // ic_twi_event_cb callback,
-      false);                   // bool read
+      false,
+      force);                   // bool read
 
 }
 
@@ -213,7 +212,8 @@ ic_return_val_e ic_twi_read(
     uint8_t reg_addr,
     uint8_t *buffer,
     size_t len,
-    ic_twi_event_cb callback)
+    ic_twi_event_cb callback,
+    bool force)
 {
 
   return m_ic_twi_transaction(
@@ -223,6 +223,7 @@ ic_return_val_e ic_twi_read(
       buffer,                   // uint8_t *buffer,
       len,                      // size_t len,
       callback,                 // ic_twi_event_cb callback,
-      true);                    // bool read
+      true,
+      force);                    // bool read
 
 }

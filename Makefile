@@ -42,6 +42,8 @@ SRC_FILES += \
   $(PROJ_DIR)/src/ic_driver_button.c \
   $(PROJ_DIR)/src/ic_driver_spi.c \
   $(PROJ_DIR)/src/ic_driver_twi.c\
+  $(PROJ_DIR)/src/ic_driver_ads.c\
+  $(PROJ_DIR)/src/ic_service_ads.c\
   $(PROJ_DIR)/src/ic_easy_ltc_driver.c\
   $(NUC_ROOT)/src/ic_characteristics.c \
   $(NUC_ROOT)/src/ic_crc8.c \
@@ -248,7 +250,7 @@ ASMFLAGS += -DNRF51822
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=2
 ASMFLAGS += -D__STACK_SIZE=7168
 ASMFLAGS += -D__HEAP_SIZE=0
-ASMFLAGS += -DDEBUG
+#ASMFLAGS += -DDEBUG
 #ASMFLAGS += -DDEBUG_NRF
 
 # Linker flags
