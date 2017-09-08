@@ -1,12 +1,14 @@
-#ifndef SRC_IC_DRIVER_ADS_TWI_H_
-#define SRC_IC_DRIVER_ADS_TWI_H_
-
 /**
  * @file		ic_driver_ads_twi.h
- * @author	Izabela Poirer
+ * @author	        Izabela Poirer
  * @date		August, 2017
  * @brief		ADS1115 driver header
  */
+
+#ifndef IC_DRIVER_ADS_H
+#define IC_DRIVER_ADS_H
+
+#include "ic_config.h"
 
 /**SLAVE ADDRESS*/
 #define ADS_TWI_ADDRESS         0b1001000
@@ -131,16 +133,16 @@
 
 
 
-bool ads_init(void);
+ic_return_val_e ic_ads_init(void);
 void ads_deinit();
 void ads_power_down();
 void ads_power_up(void);
 void callback_twi(void *context);
 
-int16_t ads_get_value();
+ic_return_val_e ads_get_value(void (*p_read_callback)(int16_t), bool force);
 
 bool ads_change_gain(uint16_t new_gain);
 bool ads_change_data_rate(uint16_t rate_code);
 
 
-#endif /* SRC_IC_DRIVER_ADS_TWI_H_ */
+#endif /* IC_DRIVER_ADS_H */
