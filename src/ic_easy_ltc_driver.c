@@ -50,9 +50,22 @@ uint8_t m_in_buffer[] = {16, 63};
 
 static void send_value_to_LTC(void){
   TAKE_SEMAPHORE(ez_ltc_lock, portMAX_DELAY);
-  while(
-      TWI_SEND_DATA(ez_ltc_twi, m_in_buffer, sizeof(m_in_buffer), ez_ltc_twi_finished)
-      !=IC_SUCCESS);
+
+  __auto_type _ret_val =
+    TWI_SEND_DATA(
+        ez_ltc_twi,
+        m_in_buffer,
+        sizeof(m_in_buffer),
+        ez_ltc_twi_finished);
+
+  if(_ret_val != IC_SUCCESS){
+      TWI_SEND_DATA_FORCED(
+        ez_ltc_twi,
+        m_in_buffer,
+        sizeof(m_in_buffer),
+        ez_ltc_twi_finished);
+  }
+
 }
 
 void ez_ltc_main_task(void *args){
@@ -87,13 +100,13 @@ void ez_ltc_main_task(void *args){
             send_value_to_LTC();
           }
         }
-        vTaskDelay(50);
+        vTaskDelay(5);
         continue;
       case EZ_LTC_OFF:
         if (m_ltc_state.current_val != 0){
           m_in_buffer[1] = --m_ltc_state.current_val;
           send_value_to_LTC();
-          vTaskDelay(50);
+          vTaskDelay(5);
           continue;
         }
         else {
@@ -103,7 +116,7 @@ void ez_ltc_main_task(void *args){
         if (m_ltc_state.current_val != 63){
           m_in_buffer[1] = ++m_ltc_state.current_val;
           send_value_to_LTC();
-          vTaskDelay(50);
+          vTaskDelay(5);
           continue;
         }
         else {

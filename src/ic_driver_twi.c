@@ -113,7 +113,7 @@ static ic_return_val_e m_ic_twi_transaction(
 
   instance->callback = callback;
 
-  uint32_t _ret_val = callback == NULL ?
+  __auto_type _ret_val = callback == NULL ?
     app_twi_perform(
         &m_curren_state.nrf_drv_instance,
         instance->transaction.p_transfers,
