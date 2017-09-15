@@ -78,6 +78,10 @@ static ic_spi_instance_s *show_next(){
     NULL;
 }
 
+static void clear_queuue(){
+  memset(&m_instance_queue, 0, sizeof(m_instance_queue));
+}
+
 static void spi_event_handler(nrf_drv_spi_evt_t const *p_event){
   UNUSED_VARIABLE(p_event);
 
@@ -116,6 +120,7 @@ ic_return_val_e ic_spi_init(ic_spi_instance_s *instance, uint8_t pin){
   nrf_gpio_cfg_output(instance->pin);
 
   if(m_current_state.spi_instance_cnt++ == 0){
+    clear_queuue();
     nrf_drv_spi_config_t _spi_config = NRF_DRV_SPI_DEFAULT_CONFIG;
     _spi_config.ss_pin    = NRF_DRV_SPI_PIN_NOT_USED;
     _spi_config.miso_pin  = IC_SPI_MISO_PIN;
@@ -150,7 +155,7 @@ ic_return_val_e ic_spi_send(
     return IC_BUSY;
   else{
     instance->active = true;
-    if(!m_current_state.line_busy){
+    if(m_current_state.line_busy){
       return IC_SUCCESS;
     }
     else{
