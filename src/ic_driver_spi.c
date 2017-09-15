@@ -38,34 +38,44 @@ static struct{
 static struct{
   uint8_t tail;
   uint8_t head;
-  ic_spi_instance_s *instance[MAX_INSTANCES];
+  struct{
+    bool occupied;
+    ic_spi_instance_s instance;
+  }data[MAX_INSTANCES];
 }m_instance_queue;
 
 static bool add_instance_to_queue(ic_spi_instance_s *instance){
 
-  if(m_instance_queue.instance[m_instance_queue.head] != NULL)
+  if(m_instance_queue.data[m_instance_queue.head].occupied == true)
     return false;
 
-  m_instance_queue.instance[m_instance_queue.head++] = instance;
+  memcpy(
+      &m_instance_queue.data[m_instance_queue.head++].instance,
+      instance,
+      sizeof(ic_spi_instance_s));
+
+  m_instance_queue.data[m_instance_queue.head-1].occupied = true;
+
   if(m_instance_queue.head == MAX_INSTANCES) m_instance_queue.head = 0;
 
   return true;
 }
 
-static ic_spi_instance_s *get_instance(void){
+static ic_spi_instance_s *get_instance(){
 
-  if(m_instance_queue.instance[m_instance_queue.tail] == NULL)
+  if(m_instance_queue.data[m_instance_queue.tail].occupied == false)
     return NULL;
 
   m_instance_queue.tail = m_instance_queue.tail == MAX_INSTANCES ? 0 : m_instance_queue.tail;
-  __auto_type _ret_val = m_instance_queue.instance[m_instance_queue.tail];
-  m_instance_queue.instance[m_instance_queue.tail++] = NULL;
+  m_instance_queue.data[m_instance_queue.tail].occupied = false;
 
-  return _ret_val;
+  return &m_instance_queue.data[m_instance_queue.tail].instance;
 }
 
 static ic_spi_instance_s *show_next(){
-  return m_instance_queue.instance[m_instance_queue.tail];
+  return m_instance_queue.data[m_instance_queue.tail].occupied == true ?
+    &m_instance_queue.data[m_instance_queue.tail].instance :
+    NULL;
 }
 
 static void spi_event_handler(nrf_drv_spi_evt_t const *p_event){
