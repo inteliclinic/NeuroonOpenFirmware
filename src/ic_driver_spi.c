@@ -50,11 +50,11 @@ static bool add_instance_to_queue(ic_spi_instance_s *instance){
     return false;
 
   memcpy(
-      &m_instance_queue.data[m_instance_queue.head++].instance,
+      &m_instance_queue.data[m_instance_queue.head].instance,
       instance,
       sizeof(ic_spi_instance_s));
 
-  m_instance_queue.data[m_instance_queue.head-1].occupied = true;
+  m_instance_queue.data[m_instance_queue.head++].occupied = true;
 
   if(m_instance_queue.head == MAX_INSTANCES) m_instance_queue.head = 0;
 
@@ -63,13 +63,14 @@ static bool add_instance_to_queue(ic_spi_instance_s *instance){
 
 static ic_spi_instance_s *get_instance(){
 
+  m_instance_queue.tail = m_instance_queue.tail == MAX_INSTANCES ? 0 : m_instance_queue.tail;
+
   if(m_instance_queue.data[m_instance_queue.tail].occupied == false)
     return NULL;
 
-  m_instance_queue.tail = m_instance_queue.tail == MAX_INSTANCES ? 0 : m_instance_queue.tail;
   m_instance_queue.data[m_instance_queue.tail].occupied = false;
 
-  return &m_instance_queue.data[m_instance_queue.tail].instance;
+  return &m_instance_queue.data[m_instance_queue.tail++].instance;
 }
 
 static ic_spi_instance_s *show_next(){
@@ -78,7 +79,7 @@ static ic_spi_instance_s *show_next(){
     NULL;
 }
 
-static void clear_queuue(){
+static void clear_queue(){
   memset(&m_instance_queue, 0, sizeof(m_instance_queue));
 }
 
@@ -120,7 +121,7 @@ ic_return_val_e ic_spi_init(ic_spi_instance_s *instance, uint8_t pin){
   nrf_gpio_cfg_output(instance->pin);
 
   if(m_current_state.spi_instance_cnt++ == 0){
-    clear_queuue();
+    clear_queue();
     nrf_drv_spi_config_t _spi_config = NRF_DRV_SPI_DEFAULT_CONFIG;
     _spi_config.ss_pin    = NRF_DRV_SPI_PIN_NOT_USED;
     _spi_config.miso_pin  = IC_SPI_MISO_PIN;
@@ -159,7 +160,6 @@ ic_return_val_e ic_spi_send(
       return IC_SUCCESS;
     }
     else{
-      m_current_state.instance = instance;
       m_current_state.line_busy = true;
       __auto_type _ret_val =
         nrf_drv_spi_transfer(
