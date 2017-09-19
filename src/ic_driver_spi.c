@@ -89,6 +89,9 @@ static void spi_event_handler(nrf_drv_spi_evt_t const *p_event){
   m_current_state.line_busy = false;
 
   __auto_type _instance = get_instance();
+  if(!_instance->transaction_desc.open)
+    ic_spi_cs_high(_instance);
+
   _instance->active = false;
 
   if (_instance->callback != NULL){
@@ -99,6 +102,7 @@ static void spi_event_handler(nrf_drv_spi_evt_t const *p_event){
 
   if (_instance != NULL){
     m_current_state.line_busy = true;
+    ic_spi_cs_low(_instance);
     nrf_drv_spi_transfer(
         &m_current_state.nrf_drv_instance,
         _instance->transaction_desc.in_buffer,
@@ -139,11 +143,13 @@ ic_return_val_e ic_spi_send(
     size_t in_len,
     uint8_t *out_buffer,
     size_t out_len,
-    ic_spi_event_cb callback)
+    ic_spi_event_cb callback,
+    bool open)
 {
   ASSERT(instance!=NULL);
   ASSERT(in_buffer!=NULL);
   ASSERT(out_buffer!=NULL);
+
 
   instance->callback = callback;
 
@@ -151,6 +157,7 @@ ic_return_val_e ic_spi_send(
   instance->transaction_desc.in_buffer = in_buffer;
   instance->transaction_desc.out_len = out_len;
   instance->transaction_desc.out_buffer = out_buffer;
+  instance->transaction_desc.open = open;
 
   if(!add_instance_to_queue(instance))
     return IC_BUSY;
@@ -161,6 +168,7 @@ ic_return_val_e ic_spi_send(
     }
     else{
       m_current_state.line_busy = true;
+      ic_spi_cs_low(instance);
       __auto_type _ret_val =
         nrf_drv_spi_transfer(
             &m_current_state.nrf_drv_instance,
