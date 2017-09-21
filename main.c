@@ -70,6 +70,7 @@
 /*#include "bsp.h"*/
 /*#include "bsp_btn_ble.h"*/
 #include "nrf_gpio.h"
+#include "nrf_drv_gpiote.h"
 #include "nrf_drv_clock.h"
 
 #define NRF_LOG_MODULE_NAME "APP"
@@ -85,9 +86,13 @@
 
 #include "ic_acc_service.h"
 
+#include "ic_afe_service.h"
+
 #include "ic_config.h"
+
 #include "ic_easy_ltc_driver.h"
 
+#include "ic_afe_service.h"
 #include "ic_driver_ltc.h"
 #include "ic_driver_actuators.h"
 #include "ic_service_ltc.h"
@@ -232,6 +237,8 @@ static void power_up_all_systems(void){
  */
 
 
+
+
   /*UNUSED_PARAMETER(arg);*/
   /*int8_t val = 0;*/
   /*for(;;){*/
@@ -346,6 +353,8 @@ static void cleanup_task (void *arg){
 
   ic_bluetooth_disable();
   ic_ads_service_deinit();
+  ic_afe_deinit();
+  ic_acc_module_deinit();
 
   power_down_all_systems();
 
@@ -357,7 +366,7 @@ static void cleanup_task (void *arg){
 #if 1
 TaskHandle_t m_stream1_handle = NULL;
 
-static volatile bool m_send_to_stream1 = false;
+static volatile bool m_send_to_stream1 = true;
 
 static void on_stream1_state_change(bool active){
   NRF_LOG_INFO("{%s}\n",(uint32_t)__func__);
@@ -365,19 +374,39 @@ static void on_stream1_state_change(bool active){
 }
 
 static u_otherDataFrameContainer m_stream1_output_frame;
+static volatile bool m_acc_mesured_complete = false;
 
-static void m_acc_measured(acc_data_s data){
+void m_acc_measured(acc_data_s data){
 
   m_stream1_output_frame.frame.time_stamp = GET_TICK_COUNT();
   m_stream1_output_frame.frame.acc[0] = data.x;
   m_stream1_output_frame.frame.acc[1] = data.y;
   m_stream1_output_frame.frame.acc[2] = data.z;
 
+  m_acc_mesured_complete = true;
   /*NRF_LOG_INFO("x: %d, y: %d, z: %d\n",data.x, data.y, data.z)*/
 
-  if(m_send_to_stream1){
-    RESUME_TASK(m_stream1_handle);
-  }
+//  if(m_send_to_stream1){
+//    RESUME_TASK(m_stream1_handle);
+//  }
+}
+
+void m_afe_measured(led_val_s data){
+
+//  m_stream1_output_frame.frame.time_stamp = xTaskGetTickCount();
+  m_stream1_output_frame.frame.ir_sample = data.diff_led1;
+  m_stream1_output_frame.frame.red_sample = data.diff_led2;
+
+  NRF_LOG_INFO("LED1: %lu, LED2: %lu\n\r",data.diff_led1, data.diff_led2);
+  NRF_LOG_FLUSH();
+
+//  if(m_acc_mesured_complete == true)
+//  {
+//    m_acc_mesured_complete = false;
+//    if(m_send_to_stream1){
+//      RESUME_TASK(m_stream1_handle);
+//    }
+//  }
 }
 
 void stream1_task(void *arg){
@@ -409,6 +438,8 @@ void init_acc_afe(void){
   vTaskSuspend(m_stream1_handle);
 
   ic_acc_module_init(m_acc_measured);
+  ic_afe_init(m_afe_measured);
+  /*NRF_LOG_FLUSH();*/
 }
 
 TaskHandle_t m_stream2_handle = NULL;
@@ -502,7 +533,7 @@ int main(void)
     APP_ERROR_CHECK(err_code);
 
 
-    if(pdPASS != xTaskCreate(init_task, "INIT", 384, NULL, 4, &m_init_task)){
+    if(pdPASS != xTaskCreate(init_task, "INIT", 310, NULL, 4, &m_init_task)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
 
@@ -511,6 +542,7 @@ int main(void)
     }
     vTaskSuspend(m_cleanup_task);
 
+    power_up_all_systems();
 
     NRF_LOG_INFO("Reset reason: %d; Ret val: %d\n", NRF_POWER->RESETREAS, sd_power_reset_reason_clr(0xFFFFFFFF));
 

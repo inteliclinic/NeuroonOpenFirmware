@@ -22,6 +22,8 @@
 
 #include "app_error.h"
 
+#include "ic_afe_service.h"
+
 #define NRF_LOG_MODULE_NAME "BTN"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
@@ -72,11 +74,11 @@ static struct {
     .pull_cfg = GPIO_PIN_CNF_PULL_Pulldown,
     .exti_callback_code = exti_callback
   },
-  {
-    .pin_no = IC_AFE_EXTI_PIN,
-    .pull_cfg = GPIO_PIN_CNF_PULL_Pulldown,
-    .exti_callback_code = exti_callback
-  }
+//  {
+//    .pin_no = IC_AFE_EXTI_PIN,
+//    .pull_cfg = GPIO_PIN_CNF_PULL_Pulldown,
+//    .exti_callback_code = irq_function_handler
+//  }
 };
 
 static app_button_cfg_t m_buttons[] = {
