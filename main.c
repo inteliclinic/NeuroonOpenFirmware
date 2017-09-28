@@ -83,7 +83,6 @@
 #include "ic_service_ads.h"
 
 #include "ic_config.h"
-
 #include "ic_easy_ltc_driver.h"
 
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */

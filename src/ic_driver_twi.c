@@ -97,8 +97,7 @@ static ic_return_val_e m_ic_twi_transaction(
   ASSERT(len<=255);
 
   if(instance->active == true && !force) {
-    NRF_LOG_INFO("Software busy\n");
-    return IC_BUSY;
+    return IC_SOFTWARE_BUSY;
   }
 
   if(read){
@@ -128,7 +127,7 @@ static ic_return_val_e m_ic_twi_transaction(
       if(callback != NULL) instance->active = true;
       return IC_SUCCESS;
     case NRF_ERROR_BUSY:
-      return IC_BUSY;
+      return IC_DRIVER_BUSY;
     default:
       return IC_ERROR;
   }
