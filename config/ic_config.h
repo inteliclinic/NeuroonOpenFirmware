@@ -138,8 +138,7 @@ static inline int isr_context(){
 
 #ifdef SEMAPHORE_H
 
-#define ALLOCK_SEMAPHORE(name) \
-  SemaphoreHandle_t name = NULL;\
+#define ALLOCK_SEMAPHORE(name) static SemaphoreHandle_t name = NULL
 
 #define INIT_SEMAPHORE_BINARY(name)\
   name = xSemaphoreCreateBinary()

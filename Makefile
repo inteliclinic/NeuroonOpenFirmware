@@ -38,6 +38,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/drivers_nrf/twi_master/nrf_drv_twi.c \
   $(PROJ_DIR)/main.c \
   $(PROJ_DIR)/src/ic_bluetooth.c \
+  $(PROJ_DIR)/src/ic_ble_service.c \
   $(PROJ_DIR)/src/ic_driver_uart.c \
   $(PROJ_DIR)/src/ic_driver_button.c \
   $(PROJ_DIR)/src/ic_driver_spi.c \
@@ -148,7 +149,6 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/ble/ble_services/ble_ias \
   $(SDK_ROOT)/components/libraries/usbd/class/hid/mouse \
   $(SDK_ROOT)/components/drivers_nrf/ppi \
-  $(SDK_ROOT)/components/ble/ble_services/ble_dfu \
   $(SDK_ROOT)/components/drivers_nrf/twis_slave \
   $(SDK_ROOT)/components \
   $(SDK_ROOT)/components/libraries/scheduler \
@@ -228,7 +228,7 @@ CFLAGS += -DNRF51822
 CFLAGS += -DNRF_SD_BLE_API_VERSION=2
 CFLAGS += -mcpu=cortex-m0
 CFLAGS += -mthumb -mabi=aapcs
-CFLAGS += -Wall -Werror -O3 -g0
+CFLAGS += -Wall -Werror -O3 #-g0
 CFLAGS += -mfloat-abi=soft
 # keep every function in separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
@@ -278,8 +278,8 @@ include $(SDK_ROOT)/components/toolchain/gcc/Makefile.common
 
 $(foreach target, $(TARGET), $(call define_target, $(target)))
 
-bin: $(OUTPUT_DIRECTORY)/$TARGET.out
-	@$(OBJCOPY) -O binary "$(BIN_DIR)/$<" "$(OUTPUT_DIRECTORY)/$(TARGET).bin"
+bin: $(OUTPUT_DIRECTORY)/$(TARGET).out
+	@$(OBJCOPY) -O binary "$<" "$(OUTPUT_DIRECTORY)/$(TARGET).bin"
 
 
 # Flash the program

@@ -46,7 +46,11 @@ static void ez_ltc_twi_finished(ic_return_val_e ret_val){
   GIVE_SEMAPHORE(ez_ltc_lock);
 }
 
-uint8_t m_in_buffer[] = {16, 63};
+#define CHANGE_TO_RED   m_in_buffer[0] = 2
+#define CHANGE_TO_GREEN m_in_buffer[0] = 1
+#define CHANGE_TO_BLUE  m_in_buffer[0] = 3
+
+uint8_t m_in_buffer[] = {2, 63};
 
 static void send_value_to_LTC(void){
   TAKE_SEMAPHORE(ez_ltc_lock, portMAX_DELAY);
@@ -100,13 +104,13 @@ void ez_ltc_main_task(void *args){
             send_value_to_LTC();
           }
         }
-        vTaskDelay(5);
+        vTaskDelay(20);
         continue;
       case EZ_LTC_OFF:
         if (m_ltc_state.current_val != 0){
           m_in_buffer[1] = --m_ltc_state.current_val;
           send_value_to_LTC();
-          vTaskDelay(5);
+          vTaskDelay(20);
           continue;
         }
         else {
@@ -116,7 +120,7 @@ void ez_ltc_main_task(void *args){
         if (m_ltc_state.current_val != 63){
           m_in_buffer[1] = ++m_ltc_state.current_val;
           send_value_to_LTC();
-          vTaskDelay(5);
+          vTaskDelay(20);
           continue;
         }
         else {
@@ -149,3 +153,38 @@ void ic_ez_ltc_brighten(){
   m_ltc_state.ltc_state = EZ_LTC_ON;
   vTaskResume(m_ez_ltc_task_handle);
 }
+
+static void on_connect(void){
+  m_in_buffer[1] = 0;
+  send_value_to_LTC();
+  CHANGE_TO_BLUE;
+}
+
+static void on_disconnect(void){
+  m_in_buffer[1] = 0;
+  send_value_to_LTC();
+  CHANGE_TO_RED;
+}
+
+void ic_ez_ltc_on_ble_evt(ble_evt_t * p_ble_evt){
+  switch (p_ble_evt->header.evt_id)
+  {
+    case BLE_GAP_EVT_CONNECTED:
+      on_connect();
+      break;
+
+    case BLE_GAP_EVT_DISCONNECTED:
+      on_disconnect();
+      break;
+
+    case BLE_GATTS_EVT_WRITE:
+      /*on_write(p_ble_evt);*/
+      break;
+
+    default:
+      // No implementation needed.
+      break;
+  }
+}
+
+

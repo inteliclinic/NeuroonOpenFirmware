@@ -25,16 +25,21 @@
 #include "timers.h"
 #include "semphr.h"
 
+#include "ic_config.h"
+
 #include "fstorage.h"
 #include "fds.h"
 
 #include "peer_manager.h"
 #include "ble_dis.h"
+#include "ic_ble_service.h"
 
 #include "ble_hci.h"
 #include "ble_advdata.h"
 #include "ble_advertising.h"
 #include "ble_conn_state.h"
+
+#include "ic_easy_ltc_driver.h"
 
 #define NRF_LOG_MODULE_NAME "BLE"
 #define NRF_LOG_LEVEL 5
@@ -59,13 +64,13 @@
 #define APP_ADV_INTERVAL                300                                         /**< The advertising interval (in units of 0.625 ms. This value corresponds to 187.5 ms). */
 #define APP_ADV_TIMEOUT_IN_SECONDS      0                                           /**< The advertising timeout in units of seconds. */
 
-#define MIN_CONN_INTERVAL               MSEC_TO_UNITS(100, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.1 seconds). */
-#define MAX_CONN_INTERVAL               MSEC_TO_UNITS(200, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (0.2 second). */
+#define MIN_CONN_INTERVAL               MSEC_TO_UNITS(8, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.1 seconds). */
+#define MAX_CONN_INTERVAL               MSEC_TO_UNITS(20, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (0.2 second). */
 #define SLAVE_LATENCY                   0                                           /**< Slave latency. */
 #define CONN_SUP_TIMEOUT                MSEC_TO_UNITS(4000, UNIT_10_MS)             /**< Connection supervisory timeout (4 seconds). */
 
-#define FIRST_CONN_PARAMS_UPDATE_DELAY  APP_TIMER_TICKS(5000, 0)  /**< Time from initiating event (connect or start of notification) to first time sd_ble_gap_conn_param_update is called (5 seconds). */ /*[TODO] PARAMETRYZACJA "0" !!!*/
-#define NEXT_CONN_PARAMS_UPDATE_DELAY   APP_TIMER_TICKS(30000, 0) /**< Time between each call to sd_ble_gap_conn_param_update after the first call (30 seconds). */ /*[TODO] PARAMETRYZACJA "0" !!!*/
+#define FIRST_CONN_PARAMS_UPDATE_DELAY  APP_TIMER_TICKS(5000, 31)  /**< Time from initiating event (connect or start of notification) to first time sd_ble_gap_conn_param_update is called (5 seconds). */ /*[TODO] PARAMETRYZACJA "0" !!!*/
+#define NEXT_CONN_PARAMS_UPDATE_DELAY   APP_TIMER_TICKS(30000, 31) /**< Time between each call to sd_ble_gap_conn_param_update after the first call (30 seconds). */ /*[TODO] PARAMETRYZACJA "0" !!!*/
 #define MAX_CONN_PARAMS_UPDATE_COUNT    3                                           /**< Number of attempts before giving up the connection parameter negotiation. */
 
 #define SEC_PARAM_BOND                  1                                           /**< Perform bonding. */
@@ -78,7 +83,10 @@
 #define SEC_PARAM_MAX_KEY_SIZE          16                                          /**< Maximum encryption key size. */
 
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                            /**< Handle of the current connection. */
-static SemaphoreHandle_t m_ble_event_ready = NULL;
+
+ALLOCK_SEMAPHORE(m_ble_event_ready);
+
+/*static SemaphoreHandle_t m_ble_event_ready = NULL;*/
 
 /* YOUR_JOB: Declare all services structure your application is using
    static ble_xx_service_t                     m_xxs;
@@ -229,13 +237,19 @@ static void services_init(void)
   ble_dis_init_t dis_init;
   memset(&dis_init, 0, sizeof(ble_dis_init_t));
   dis_init.manufact_name_str.length = 12;
-  dis_init.manufact_name_str.p_str = (uint8_t *)"Inteliclinic";
+  dis_init.manufact_name_str.p_str = (uint8_t *)MANUFACTURER_NAME;
+  /*dis_init.dis_attr_md*/
 
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&dis_init.dis_attr_md.read_perm);
   BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&dis_init.dis_attr_md.write_perm);
   __auto_type err_code = ble_dis_init(&dis_init);
   APP_ERROR_CHECK(err_code);
 
+  ble_iccs_init_t iccs_init;
+  ble_iccs_init(&iccs_init);
+
+
+  
     /* YOUR_JOB: Add code to initialize the services used by the application.
        uint32_t                           err_code;
        ble_xxs_init_t                     xxs_init;
@@ -477,6 +491,8 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
     ble_conn_params_on_ble_evt(p_ble_evt);
     on_ble_evt(p_ble_evt);
     ble_advertising_on_ble_evt(p_ble_evt);
+    ble_iccs_on_ble_evt(p_ble_evt);
+    ic_ez_ltc_on_ble_evt(p_ble_evt);
     /*YOUR_JOB add calls to _on_ble_evt functions from each service your application is using
        ble_xxs_on_ble_evt(&m_xxs, p_ble_evt);
        ble_yys_on_ble_evt(&m_yys, p_ble_evt);
@@ -485,12 +501,9 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
 
 static uint32_t ble_new_event_handler(void)
 {
-    BaseType_t yield_req = pdFALSE;
-
     // The returned value may be safely ignored, if error is returned it only means that
     // the semaphore is already given (raised).
-    UNUSED_VARIABLE(xSemaphoreGiveFromISR(m_ble_event_ready, &yield_req));
-    portYIELD_FROM_ISR(yield_req);
+    GIVE_SEMAPHORE(m_ble_event_ready);
     return NRF_SUCCESS;
 }
 
@@ -629,11 +642,7 @@ static void ble_stack_thread(void * arg)
   while (1)
   {
     /* Wait for event from SoftDevice */
-    while (pdFALSE == xSemaphoreTake(m_ble_event_ready, portMAX_DELAY))
-    {
-      // Just wait again in the case when INCLUDE_vTaskSuspend is not enabled
-    }
-    NRF_LOG_INFO("I'm %s\n", (uint32_t)__func__);
+    TAKE_SEMAPHORE(m_ble_event_ready, portMAX_DELAY);
 
     // This function gets events from the SoftDevice and processes them by calling the function
     // registered by softdevice_ble_evt_handler_set during stack initialization.
@@ -643,6 +652,7 @@ static void ble_stack_thread(void * arg)
 }
 
 void ble_module_init(void){
+
   m_ble_event_ready = xSemaphoreCreateBinary();
   if (NULL == m_ble_event_ready)
     APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);

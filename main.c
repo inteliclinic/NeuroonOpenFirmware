@@ -148,11 +148,12 @@ void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
 
 void init_task (void *arg){
   UNUSED_PARAMETER(arg);
-  ble_module_init();
   neuroon_exti_init();
   ic_ez_ltc_module_init();
   ic_ez_ltc_glow();
   ic_ads_service_init();
+  ble_module_init();
+  /*ic_ble_test_init();*/
   vTaskDelete(NULL);
   taskYIELD();
 }
@@ -161,7 +162,7 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName){
   NRF_LOG_INFO("Stack overflowed: %s\n\r", (uint32_t)pcTaskName);
 }
 
-static void  power_up_all_systems(void){
+static void power_up_all_systems(void){
   nrf_gpio_cfg_output(15);
   nrf_gpio_pin_set(15);
   nrf_gpio_cfg_output(16);
