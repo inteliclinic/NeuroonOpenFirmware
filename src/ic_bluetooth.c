@@ -17,6 +17,7 @@
 #include "ble_advdata.h"
 #include "ble_advertising.h"
 #include "ble_conn_params.h"
+#include "ble_db_discovery.h"
 
 #include "softdevice_handler.h"
 #include "app_timer.h"
@@ -39,6 +40,8 @@
 #include "ble_advertising.h"
 #include "ble_conn_state.h"
 
+#include "ble_cts_c.h"
+
 #include "ic_easy_ltc_driver.h"
 
 #define NRF_LOG_MODULE_NAME "BLE"
@@ -58,7 +61,7 @@
 
 #define PERIPHERAL_LINK_COUNT           1                                           /**< Number of peripheral links used by the application. When changing this number remember to adjust the RAM settings*/
 
-#define DEVICE_NAME                     "NeuroonOpen"                               /**< Name of device. Will be included in the advertising data. */
+#define DEVICE_NAME                     "HelloKitty"                               /**< Name of device. Will be included in the advertising data. */
 #define MANUFACTURER_NAME               "Inteliclinic"                              /**< Manufacturer. Will be passed to Device Information Service. */
 
 #define APP_ADV_INTERVAL                300                                         /**< The advertising interval (in units of 0.625 ms. This value corresponds to 187.5 ms). */
@@ -84,6 +87,9 @@
 
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                            /**< Handle of the current connection. */
 
+static ble_db_discovery_t m_ble_db_discovery;                                       /**< Structure used to identify the DB Discovery module. */
+static ble_cts_c_t        m_cts;                                                    /**< Instance of Current Time Service. The instance uses this struct to store data related to the service. */
+
 ALLOCK_SEMAPHORE(m_ble_event_ready);
 
 /*static SemaphoreHandle_t m_ble_event_ready = NULL;*/
@@ -94,7 +100,9 @@ ALLOCK_SEMAPHORE(m_ble_event_ready);
  */
 
 // YOUR_JOB: Use UUIDs for service(s) used in your application.
-static ble_uuid_t m_adv_uuids[] = {{BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}}; /**< Universally unique service identifiers. */
+static ble_uuid_t m_adv_uuids[] = {{BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE},
+  {BLE_UUID_CURRENT_TIME_SERVICE, BLE_UUID_TYPE_BLE}};
+/**< Universally unique service identifiers. */
 
 static void advertising_start(void);
 
@@ -229,6 +237,65 @@ static void gap_params_init(void)
     err_code = sd_ble_gap_ppcp_set(&gap_conn_params);
     APP_ERROR_CHECK(err_code);
 }
+/**@brief Function for handling the Current Time Service client events.
+ *
+ * @details This function will be called for all events in the Current Time Service client that
+ *          are passed to the application.
+ *
+ * @param[in] p_evt Event received from the Current Time Service client.
+ */
+static void on_cts_c_evt(ble_cts_c_t * p_cts, ble_cts_c_evt_t * p_evt)
+{
+    uint32_t err_code;
+
+    switch (p_evt->evt_type)
+    {
+        case BLE_CTS_C_EVT_DISCOVERY_COMPLETE:
+            NRF_LOG_INFO("Current Time Service discovered on server.\r\n");
+            err_code = ble_cts_c_handles_assign(&m_cts,
+                                                p_evt->conn_handle,
+                                                &p_evt->params.char_handles);
+            APP_ERROR_CHECK(err_code);
+            break;
+
+        case BLE_CTS_C_EVT_DISCOVERY_FAILED:
+            NRF_LOG_INFO("Current Time Service not found on server. \r\n");
+            // CTS not found in this case we just disconnect. There is no reason to stay
+            // in the connection for this simple app since it all wants is to interact with CT
+            if (p_evt->conn_handle != BLE_CONN_HANDLE_INVALID)
+            {
+                err_code = sd_ble_gap_disconnect(p_evt->conn_handle,
+                                                 BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+                APP_ERROR_CHECK(err_code);
+            }
+            break;
+
+        case BLE_CTS_C_EVT_DISCONN_COMPLETE:
+            NRF_LOG_INFO("Disconnect Complete.\r\n");
+            break;
+
+        case BLE_CTS_C_EVT_CURRENT_TIME:
+            NRF_LOG_INFO("Current Time received.\r\n");
+            /*current_time_print(p_evt);*/
+            break;
+
+        case BLE_CTS_C_EVT_INVALID_TIME:
+            NRF_LOG_INFO("Invalid Time received.\r\n");
+            break;
+
+        default:
+            break;
+    }
+}
+
+/**@brief Function for handling the Current Time Service errors.
+ *
+ * @param[in]  nrf_error  Error code containing information about what went wrong.
+ */
+static void current_time_error_handler(uint32_t nrf_error)
+{
+    APP_ERROR_HANDLER(nrf_error);
+}
 
 /**@brief Function for initializing services that will be used by the application.
  */
@@ -243,6 +310,14 @@ static void services_init(void)
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&dis_init.dis_attr_md.read_perm);
   BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&dis_init.dis_attr_md.write_perm);
   __auto_type err_code = ble_dis_init(&dis_init);
+  APP_ERROR_CHECK(err_code);
+
+  ble_cts_c_init_t _cts_init;
+  memset(&_cts_init, 0, sizeof(ble_cts_c_init_t));
+  _cts_init.evt_handler   = on_cts_c_evt;
+  _cts_init.error_handler = current_time_error_handler;
+
+  err_code = ble_cts_c_init(&m_cts, &_cts_init);
   APP_ERROR_CHECK(err_code);
 
   ble_iccs_init_t iccs_init;
@@ -489,10 +564,12 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
     ble_conn_state_on_ble_evt(p_ble_evt);
     pm_on_ble_evt(p_ble_evt);
     ble_conn_params_on_ble_evt(p_ble_evt);
+    ble_db_discovery_on_ble_evt(&m_ble_db_discovery, p_ble_evt);
     on_ble_evt(p_ble_evt);
     ble_advertising_on_ble_evt(p_ble_evt);
     ble_iccs_on_ble_evt(p_ble_evt);
     ic_ez_ltc_on_ble_evt(p_ble_evt);
+    ble_cts_c_on_ble_evt(&m_cts, p_ble_evt);
     /*YOUR_JOB add calls to _on_ble_evt functions from each service your application is using
        ble_xxs_on_ble_evt(&m_xxs, p_ble_evt);
        ble_yys_on_ble_evt(&m_yys, p_ble_evt);
@@ -623,6 +700,29 @@ static void advertising_start(void)
     APP_ERROR_CHECK(err_code);
 }
 
+/**@brief Function for handling Database Discovery events.
+ *
+ * @details This function is a callback function to handle events from the database discovery module.
+ *          Depending on the UUIDs that are discovered, this function should forward the events
+ *          to their respective service instances.
+ *
+ * @param[in] p_event  Pointer to the database discovery event.
+ */
+static void db_disc_handler(ble_db_discovery_evt_t * p_evt)
+{
+    ble_cts_c_on_db_disc_evt(&m_cts, p_evt);
+}
+
+/**
+ * @brief Database discovery collector initialization.
+ */
+static void db_discovery_init(void)
+{
+    uint32_t err_code = ble_db_discovery_init(db_disc_handler);
+
+    APP_ERROR_CHECK(err_code);
+}
+
 static void ble_stack_thread(void * arg)
 {
   UNUSED_PARAMETER(arg);
@@ -632,6 +732,7 @@ static void ble_stack_thread(void * arg)
   peer_manager_init(false);
   gap_params_init();
   advertising_init();
+  db_discovery_init();
   services_init();
   conn_params_init();
 
@@ -642,7 +743,9 @@ static void ble_stack_thread(void * arg)
   while (1)
   {
     /* Wait for event from SoftDevice */
-    TAKE_SEMAPHORE(m_ble_event_ready, portMAX_DELAY);
+    int dummy;
+    TAKE_SEMAPHORE(m_ble_event_ready, portMAX_DELAY, dummy);
+    UNUSED_PARAMETER(dummy);
 
     // This function gets events from the SoftDevice and processes them by calling the function
     // registered by softdevice_ble_evt_handler_set during stack initialization.
@@ -652,10 +755,7 @@ static void ble_stack_thread(void * arg)
 }
 
 void ble_module_init(void){
-
-  m_ble_event_ready = xSemaphoreCreateBinary();
-  if (NULL == m_ble_event_ready)
-    APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+  INIT_SEMAPHORE_BINARY(m_ble_event_ready);
 
   // Start execution.
   if (pdPASS != xTaskCreate(ble_stack_thread, "BLE", 512, NULL, 4, NULL))
