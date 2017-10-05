@@ -53,7 +53,9 @@ static void ez_ltc_twi_finished(ic_return_val_e ret_val){
 uint8_t m_in_buffer[] = {2, 63};
 
 static void send_value_to_LTC(void){
-  TAKE_SEMAPHORE(ez_ltc_lock, portMAX_DELAY);
+  uint32_t _dummy;
+  TAKE_SEMAPHORE(ez_ltc_lock, portMAX_DELAY, _dummy);
+  UNUSED_PARAMETER(_dummy);
 
   __auto_type _ret_val =
     TWI_SEND_DATA(
@@ -74,8 +76,10 @@ static void send_value_to_LTC(void){
 
 void ez_ltc_main_task(void *args){
   UNUSED_PARAMETER(args);
+  uint32_t _dummy;
   INIT_SEMAPHORE_BINARY(ez_ltc_lock);
-  TAKE_SEMAPHORE(ez_ltc_lock, 0);
+  TAKE_SEMAPHORE(ez_ltc_lock, 0, _dummy);
+  UNUSED_PARAMETER(_dummy);
 
   TWI_SEND_DATA(ez_ltc_twi, m_in_buffer, sizeof(m_in_buffer), ez_ltc_twi_finished);
 
@@ -134,36 +138,38 @@ void ez_ltc_main_task(void *args){
 void ic_ez_ltc_module_init(void){
   TWI_INIT(ez_ltc_twi);
 
-  if(pdPASS != xTaskCreate(ez_ltc_main_task, "EZLTC", 512, NULL, 3, &m_ez_ltc_task_handle)){
+  if(pdPASS != xTaskCreate(ez_ltc_main_task, "EZLTC", 256, NULL, 1, &m_ez_ltc_task_handle)){
     APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
   }
 }
 
 void ic_ez_ltc_glow(){
   m_ltc_state.ltc_state = EZ_LTC_GLOWING;
-  vTaskResume(m_ez_ltc_task_handle);
+  RESUME_TASK(m_ez_ltc_task_handle);
 }
 
 void ic_ez_ltc_fade(){
   m_ltc_state.ltc_state = EZ_LTC_OFF;
-  vTaskResume(m_ez_ltc_task_handle);
+  RESUME_TASK(m_ez_ltc_task_handle);
 }
 
 void ic_ez_ltc_brighten(){
   m_ltc_state.ltc_state = EZ_LTC_ON;
-  vTaskResume(m_ez_ltc_task_handle);
+  RESUME_TASK(m_ez_ltc_task_handle);
 }
 
 static void on_connect(void){
   m_in_buffer[1] = 0;
   send_value_to_LTC();
   CHANGE_TO_BLUE;
+  /*ic_ez_ltc_brighten();*/
 }
 
 static void on_disconnect(void){
   m_in_buffer[1] = 0;
   send_value_to_LTC();
   CHANGE_TO_RED;
+  /*ic_ez_ltc_brighten();*/
 }
 
 void ic_ez_ltc_on_ble_evt(ble_evt_t * p_ble_evt){
