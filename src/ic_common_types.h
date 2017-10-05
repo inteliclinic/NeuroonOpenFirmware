@@ -12,7 +12,10 @@
 
 typedef enum{
   IC_SUCCESS = 0x00,
+  IC_BLE_NOT_CONNECTED,
   IC_BUSY,
+  IC_DRIVER_BUSY,
+  IC_SOFTWARE_BUSY,
   IC_WARNING,
   IC_ERROR
 }ic_return_val_e;

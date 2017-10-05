@@ -38,6 +38,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/drivers_nrf/twi_master/nrf_drv_twi.c \
   $(PROJ_DIR)/main.c \
   $(PROJ_DIR)/src/ic_bluetooth.c \
+  $(PROJ_DIR)/src/ic_ble_service.c \
   $(PROJ_DIR)/src/ic_driver_uart.c \
   $(PROJ_DIR)/src/ic_driver_button.c \
   $(PROJ_DIR)/src/ic_driver_spi.c \
@@ -45,6 +46,7 @@ SRC_FILES += \
   $(PROJ_DIR)/src/ic_driver_ads.c\
   $(PROJ_DIR)/src/ic_service_ads.c\
   $(PROJ_DIR)/src/ic_easy_ltc_driver.c\
+  $(PROJ_DIR)/src/ic_nrf_error.c \
   $(NUC_ROOT)/src/ic_characteristics.c \
   $(NUC_ROOT)/src/ic_crc8.c \
   $(NUC_ROOT)/src/ic_device.c \
@@ -91,6 +93,8 @@ SRC_FILES += \
   $(SDK_ROOT)/components/toolchain/system_nrf51.c \
   $(SDK_ROOT)/components/softdevice/common/softdevice_handler/softdevice_handler.c \
   $(SDK_ROOT)/components/ble/ble_services/ble_dis/ble_dis.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_cts_c/ble_cts_c.c \
+  $(SDK_ROOT)/components/ble/ble_db_discovery/ble_db_discovery.c
   #$(SDK_ROOT)/components/boards/boards.c \
   #$(SDK_ROOT)/components/libraries/bsp/bsp.c \
   #$(SDK_ROOT)/components/libraries/bsp/bsp_btn_ble.c \
@@ -148,7 +152,6 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/ble/ble_services/ble_ias \
   $(SDK_ROOT)/components/libraries/usbd/class/hid/mouse \
   $(SDK_ROOT)/components/drivers_nrf/ppi \
-  $(SDK_ROOT)/components/ble/ble_services/ble_dfu \
   $(SDK_ROOT)/components/drivers_nrf/twis_slave \
   $(SDK_ROOT)/components \
   $(SDK_ROOT)/components/libraries/scheduler \
@@ -206,7 +209,8 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/softdevice/common/softdevice_handler \
   $(SDK_ROOT)/components/ble/ble_services/ble_hrs \
   $(SDK_ROOT)/components/libraries/log/src \
-  $(SDK_ROOT)/components/libraries/fifo/
+  $(SDK_ROOT)/components/libraries/fifo/ \
+  $(SDK_ROOT)/components/ble/ble_db_discovery
   #$(SDK_ROOT)/components/boards \
   #$(SDK_ROOT)/components/libraries/bsp \
 
@@ -215,7 +219,7 @@ LIB_FILES += \
 
 # C flags common to all targets
 #CFLAGS += -DBOARD_CUSTOM
-CFLAGS += -D__STACK_SIZE=7168
+CFLAGS += -D__STACK_SIZE=6114#7168
 CFLAGS += -D__HEAP_SIZE=0
 CFLAGS += -DFREERTOS
 CFLAGS += -std=gnu11
@@ -248,7 +252,7 @@ ASMFLAGS += -DBLE_STACK_SUPPORT_REQD
 ASMFLAGS += -DSWI_DISABLE0
 ASMFLAGS += -DNRF51822
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=2
-ASMFLAGS += -D__STACK_SIZE=7168
+ASMFLAGS += -D__STACK_SIZE=6144#7168
 ASMFLAGS += -D__HEAP_SIZE=0
 #ASMFLAGS += -DDEBUG
 #ASMFLAGS += -DDEBUG_NRF
@@ -278,8 +282,8 @@ include $(SDK_ROOT)/components/toolchain/gcc/Makefile.common
 
 $(foreach target, $(TARGET), $(call define_target, $(target)))
 
-bin: $(OUTPUT_DIRECTORY)/$TARGET.out
-	@$(OBJCOPY) -O binary "$(BIN_DIR)/$<" "$(OUTPUT_DIRECTORY)/$(TARGET).bin"
+bin: $(OUTPUT_DIRECTORY)/$(TARGET).out
+	@$(OBJCOPY) -O binary "$<" "$(OUTPUT_DIRECTORY)/$(TARGET).bin"
 
 
 # Flash the program

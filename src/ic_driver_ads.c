@@ -107,7 +107,7 @@ void ads_power_up(void){
 
   m_config_frame.payload.bit_map.os       = ADS_SINGLE_SHOT_CONV;
   m_config_frame.payload.bit_map.pga      = ADS_PGA_1;
-  m_config_frame.payload.bit_map.dr       = ADS_DR_128;
+  m_config_frame.payload.bit_map.dr       = ADS_DR_860;
   m_config_frame.payload.bit_map.comp_que = ADS_COMP_QUE_DIS;
   m_config_frame.payload.bit_map.mode     = ADS_MODE_CONT;
 
