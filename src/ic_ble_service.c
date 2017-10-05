@@ -13,6 +13,13 @@
 #include "ble_srv_common.h"
 #include "app_error.h"
 
+#define NRF_LOG_MODULE_NAME "ICCS"
+#define NRF_LOG_LEVEL 5
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
+
+#include "ic_config.h"
+
 #ifndef CHAR_MAX_LEN
 #define CHAR_MAX_LEN 20
 #endif //CHAR_MAX_LEN
@@ -28,13 +35,30 @@
 #define UUID_TEST_TOOL_RX_CHARACTERISTIC      0x0402
 #define UUID_CMD_RX_CHARACTERISTIC            0x0501
 
+#define STREAM0 0
+#define STREAM1 1
+#define STREAM2 2
+
+typedef struct {
+  ble_gatts_char_handles_t char_handle;
+  uint16_t uuid;
+  void (*readiness_notify)(bool);
+  bool notification_connected;
+}characteritic_desc_t;
+
 static uint16_t m_service_handle;
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;
 
-static ble_gatts_char_handles_t m_stream0_char_handle;
-static ble_gatts_char_handles_t m_stream1_char_handle;
-static ble_gatts_char_handles_t m_stream2_char_handle;
+/*static characteritic_desc_t m_stream0_char_handle;*/
+/*static characteritic_desc_t m_stream1_char_handle;*/
+/*static characteritic_desc_t m_stream2_char_handle;*/
 
+
+static characteritic_desc_t m_char_list[3] = {
+  {.uuid = BLE_UUID_ICCS_STREAM0_CHARACTERISTIC, .readiness_notify = NULL},
+  {.uuid = BLE_UUID_ICCS_STREAM1_CHARACTERISTIC, .readiness_notify = NULL},
+  {.uuid = BLE_UUID_ICCS_STREAM2_CHARACTERISTIC, .readiness_notify = NULL}
+};
 
 /**@brief Function for adding the Characteristic.
  *
@@ -66,8 +90,8 @@ static uint32_t char_add(uint16_t                        uuid,
     _char_md.char_props.read   = 1;
     _char_md.char_props.notify = 1;
     /*
-     *char_md.char_props.write  = 1;
-     *char_md.char_props.notify = 1;
+     *_char_md.char_props.write  = 1;
+     *_char_md.char_props.notify = 1;
      */
 
     _char_md.p_char_user_desc = NULL;
@@ -96,7 +120,9 @@ static uint32_t char_add(uint16_t                        uuid,
     _attr_char_value.max_len   = char_len;
     _attr_char_value.p_value   = NULL;
 
-    return sd_ble_gatts_characteristic_add(m_service_handle, &_char_md, &_attr_char_value, p_handles);
+    __auto_type _ret_val = sd_ble_gatts_characteristic_add(m_service_handle, &_char_md, &_attr_char_value, p_handles);
+
+    return _ret_val;
 }
 
 uint32_t ble_iccs_init(const ble_iccs_init_t *iccs_init){
@@ -119,103 +145,147 @@ uint32_t ble_iccs_init(const ble_iccs_init_t *iccs_init){
   _iccs_attr_md.read_perm.lv = 1;
   _iccs_attr_md.read_perm.sm = 1;
 
-  _iccs_attr_md.write_perm.lv = 1;
-  _iccs_attr_md.write_perm.sm = 1;
+  /*
+   *_iccs_attr_md.write_perm.lv = 1;
+   *_iccs_attr_md.write_perm.sm = 1;
+   */
 
-  _err_code = char_add(
-      BLE_UUID_ICCS_STREAM0_CHARACTERISTIC,
-      NULL,
-      CHAR_MAX_LEN,
-      &_iccs_attr_md,
-      &m_stream0_char_handle);
-
-  _err_code = char_add(
-      BLE_UUID_ICCS_STREAM1_CHARACTERISTIC,
-      NULL,
-      CHAR_MAX_LEN,
-      &_iccs_attr_md,
-      &m_stream1_char_handle);
-
-  _err_code = char_add(
-      BLE_UUID_ICCS_STREAM2_CHARACTERISTIC,
-      NULL,
-      CHAR_MAX_LEN,
-      &_iccs_attr_md,
-      &m_stream2_char_handle);
+  for(int i=0; i<sizeof(m_char_list)/sizeof(m_char_list[0]); ++i){
+    _err_code = char_add(
+        m_char_list[i].uuid,
+        NULL,
+        CHAR_MAX_LEN,
+        &_iccs_attr_md,
+        &m_char_list[i].char_handle);
+  }
 
   return NRF_SUCCESS;
 }
 
-static uint32_t ble_iccs_send_to_char(
+static ic_return_val_e ble_iccs_send_to_char(
     const uint8_t *data,
     size_t len,
-    ble_gatts_char_handles_t *characteristic_handle)
+    characteritic_desc_t *characteristic_handle,
+    uint32_t *err)
 {
-  uint32_t err_code;
+  __auto_type err_code = IC_SUCCESS;
 
   // Send value if connected and notifying
-  if (m_conn_handle != BLE_CONN_HANDLE_INVALID){
+  if (characteristic_handle->notification_connected){
     uint16_t hvx_len = len>CHAR_MAX_LEN ? CHAR_MAX_LEN : len;
     ble_gatts_hvx_params_t hvx_params;
 
     memset(&hvx_params, 0, sizeof(hvx_params));
 
-    hvx_params.handle = characteristic_handle->value_handle;
+    hvx_params.handle = characteristic_handle->char_handle.value_handle;
     hvx_params.type   = BLE_GATT_HVX_NOTIFICATION;
     hvx_params.offset = 0;
     hvx_params.p_len  = &hvx_len;
     hvx_params.p_data = (uint8_t *)data;
 
-    err_code = sd_ble_gatts_hvx(m_conn_handle, &hvx_params);
-    if ((err_code == NRF_SUCCESS) && (hvx_len != len))
-    {
-      err_code = NRF_ERROR_DATA_SIZE;
-    }
+    __auto_type _sd_err = sd_ble_gatts_hvx(m_conn_handle, &hvx_params);
+
+    if (_sd_err != NRF_SUCCESS)
+      err_code = IC_ERROR;
   }
-  else err_code = NRF_ERROR_INVALID_STATE;
+  else err_code = IC_BLE_NOT_CONNECTED;
 
   return err_code;
 }
 
-uint32_t ble_iccs_send_to_stream0(const uint8_t *data, size_t len){
-  return ble_iccs_send_to_char(data, len, &m_stream0_char_handle);
+static ic_return_val_e ble_iccs_connect_to_stream(
+    void (*p_func)(bool),
+    characteritic_desc_t *char_desc){
+  char_desc->readiness_notify = p_func;
+  return p_func != NULL ? IC_SUCCESS : IC_ERROR;
 }
 
-uint32_t ble_iccs_send_to_stream1(const uint8_t *data, size_t len){
-  return ble_iccs_send_to_char(data, len, &m_stream1_char_handle);
+ic_return_val_e ble_iccs_connect_to_stream0(void (*p_func)(bool)){
+  return ble_iccs_connect_to_stream(p_func, &m_char_list[STREAM0]);
 }
 
-uint32_t ble_iccs_send_to_stream2(const uint8_t *data, size_t len){
-  return ble_iccs_send_to_char(data, len, &m_stream2_char_handle);
+ic_return_val_e ble_iccs_connect_to_stream1(void (*p_func)(bool)){
+  return ble_iccs_connect_to_stream(p_func, &m_char_list[STREAM1]);
+}
+
+ic_return_val_e ble_iccs_connect_to_stream2(void (*p_func)(bool)){
+  return ble_iccs_connect_to_stream(p_func, &m_char_list[STREAM2]);
+}
+
+ic_return_val_e ble_iccs_send_to_stream0(
+    const uint8_t *data,
+    size_t len,
+    uint32_t *err){
+  return ble_iccs_send_to_char(data, len, &m_char_list[0], err);
+}
+
+ic_return_val_e ble_iccs_send_to_stream1(
+    const uint8_t *data,
+    size_t len,
+    uint32_t *err){
+  return ble_iccs_send_to_char(data, len, &m_char_list[1], err);
+}
+
+ic_return_val_e ble_iccs_send_to_stream2(
+    const uint8_t *data,
+    size_t len,
+    uint32_t *err){
+  return ble_iccs_send_to_char(data, len, &m_char_list[2], err);
+}
+
+bool ble_iccs_stream0_ready(){
+  return m_char_list[STREAM0].notification_connected;
+}
+
+bool ble_iccs_stream1_ready(){
+  return m_char_list[STREAM1].notification_connected;
+}
+
+bool ble_iccs_stream2_ready(){
+  return m_char_list[STREAM2].notification_connected;
 }
 
 static void on_connect(ble_evt_t *p_ble_evt){
-    m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
+  m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
 }
 
 static void on_disconnect(ble_evt_t * p_ble_evt){
-    m_conn_handle = BLE_CONN_HANDLE_INVALID;
+  m_conn_handle = BLE_CONN_HANDLE_INVALID;
+}
+
+static void on_write(ble_gatts_evt_write_t * p_write_evt){
+  __auto_type _notify_enabled = p_write_evt->data[0] == 0x01;
+
+  for(int i = 0; i<sizeof(m_char_list)/sizeof(m_char_list[0]); ++i){
+    if(m_char_list[i].char_handle.cccd_handle == p_write_evt->handle){
+      m_char_list[i].notification_connected = _notify_enabled;
+      if(m_char_list[i].readiness_notify != NULL) m_char_list[i].readiness_notify(_notify_enabled);
+      break;
+    }
+  }
 }
 
 void ble_iccs_on_ble_evt(ble_evt_t * p_ble_evt)
 {
-  UNUSED_PARAMETER(p_ble_evt);
-    switch (p_ble_evt->header.evt_id)
-    {
-        case BLE_GAP_EVT_CONNECTED:
-            on_connect(p_ble_evt);
-            break;
+  switch (p_ble_evt->header.evt_id)
+  {
+    case BLE_GAP_EVT_CONNECTED:
+      on_connect(p_ble_evt);
+      break;
 
-        case BLE_GAP_EVT_DISCONNECTED:
-            on_disconnect(p_ble_evt);
-            break;
+    case BLE_GAP_EVT_DISCONNECTED:
+      on_disconnect(p_ble_evt);
+      break;
 
-        case BLE_GATTS_EVT_WRITE:
-            /*on_write(p_ble_evt);*/
-            break;
+    case BLE_GAP_EVT_KEY_PRESSED:
+      break;
+    case BLE_GATTS_EVT_WRITE:
+      on_write(&p_ble_evt->evt.gatts_evt.params.write);
+      break;
 
-        default:
-            // No implementation needed.
-            break;
-    }
+
+    default:
+      // No implementation needed.
+      break;
+  }
 }
