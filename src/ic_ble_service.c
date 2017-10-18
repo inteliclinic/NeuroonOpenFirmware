@@ -24,6 +24,8 @@
 #define CHAR_MAX_LEN 20
 #endif //CHAR_MAX_LEN
 
+#define LAMBDA(c_) ({ c_ _;}) // TODO: only for quick debug
+
 enum char_dir_e{
   CHAR_READ_ENABLE    = 0x01,
   CHAR_WRITE_ENABLE   = 0x02,
@@ -102,56 +104,56 @@ static characteritic_desc_t m_char_stream_list[] = {
  * @return      NRF_SUCCESS on success, otherwise an error code.
  */
 static uint32_t char_add(uint16_t                       uuid,
-                         uint8_t                        *p_char_value,
-                         uint16_t                       char_len,
-                         const ble_srv_security_mode_t  *iccs_attr_md,
-                         ble_gatts_char_handles_t       *p_handles,
-                         uint8_t                        read_write)
+    uint8_t                        *p_char_value,
+    uint16_t                       char_len,
+    ble_gatts_char_handles_t       *p_handles,
+    uint8_t                        read_write)
 {
-    ble_uuid_t          _ble_uuid;
-    ble_gatts_char_md_t _char_md;
-    ble_gatts_attr_t    _attr_char_value;
-    ble_gatts_attr_md_t _attr_md;
-    /*ble_gatts_attr_md_t _cccd_md;*/
+  ble_uuid_t          _ble_uuid;
+  ble_gatts_char_md_t _char_md;
+  ble_gatts_attr_t    _attr_char_value;
+  ble_gatts_attr_md_t _attr_md;
 
-    /*APP_ERROR_CHECK_BOOL(p_char_value != NULL);*/
-    APP_ERROR_CHECK_BOOL(char_len > 0);
+  APP_ERROR_CHECK_BOOL(char_len > 0);
 
-    // The ble_gatts_char_md_t structure uses bit fields. So we reset the memory to zero.
-    memset(&_char_md, 0, sizeof(_char_md));
+  // The ble_gatts_char_md_t structure uses bit fields. So we reset the memory to zero.
+  memset(&_char_md, 0, sizeof(_char_md));
 
-    _char_md.char_props.read   = (read_write&CHAR_READ_ENABLE)>0;
-    _char_md.char_props.notify = (read_write&CHAR_NOTIFY_ENABLE)>0;
-    _char_md.char_props.write  = (read_write&CHAR_WRITE_ENABLE)>0;
+  _char_md.char_props.read   = (read_write&CHAR_READ_ENABLE)>0;
+  _char_md.char_props.notify = (read_write&CHAR_NOTIFY_ENABLE)>0;
+  _char_md.char_props.write  = (read_write&CHAR_WRITE_ENABLE)>0;
 
-    _char_md.p_char_user_desc = NULL;
-    _char_md.p_char_pf        = NULL;
-    _char_md.p_user_desc_md   = NULL;
-    _char_md.p_cccd_md        = NULL; //&_cccd_md;
-    _char_md.p_sccd_md        = NULL;
+  _char_md.p_char_user_desc = NULL;
+  _char_md.p_char_pf        = NULL;
+  _char_md.p_user_desc_md   = NULL;
+  _char_md.p_cccd_md        = NULL; //&_cccd_md;
+  _char_md.p_sccd_md        = NULL;
 
-    BLE_UUID_BLE_ASSIGN(_ble_uuid, uuid);
+  BLE_UUID_BLE_ASSIGN(_ble_uuid, uuid);
 
-    memset(&_attr_md, 0, sizeof(_attr_md));
-    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&_attr_md.write_perm);
-    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&_attr_md.read_perm);
-    _attr_md.vloc       = BLE_GATTS_VLOC_STACK;
-    _attr_md.rd_auth    = 0;
-    _attr_md.wr_auth    = 0;
-    _attr_md.vlen       = 1;
+  memset(&_attr_md, 0, sizeof(_attr_md));
 
-    memset(&_attr_char_value, 0, sizeof(_attr_char_value));
+  if(_char_md.char_props.write) BLE_GAP_CONN_SEC_MODE_SET_OPEN(&_attr_md.write_perm);
+  if(_char_md.char_props.read)  BLE_GAP_CONN_SEC_MODE_SET_OPEN(&_attr_md.read_perm);
 
-    _attr_char_value.p_uuid    = &_ble_uuid;
-    _attr_char_value.p_attr_md = &_attr_md;
-    _attr_char_value.init_len  = 1;
-    _attr_char_value.init_offs = 0;
-    _attr_char_value.max_len   = char_len;
+  _attr_md.vloc       = BLE_GATTS_VLOC_STACK;
+  _attr_md.rd_auth    = 0;
+  _attr_md.wr_auth    = 0;
+  _attr_md.vlen       = 1;
 
-    __auto_type _ret_val = sd_ble_gatts_characteristic_add(m_service_handle, &_char_md, &_attr_char_value, p_handles);
+  memset(&_attr_char_value, 0, sizeof(_attr_char_value));
 
-    return _ret_val;
+  _attr_char_value.p_uuid    = &_ble_uuid;
+  _attr_char_value.p_attr_md = &_attr_md;
+  _attr_char_value.init_len  = 0;
+  _attr_char_value.init_offs = 0;
+  _attr_char_value.max_len   = char_len;
+
+  __auto_type _ret_val = sd_ble_gatts_characteristic_add(m_service_handle, &_char_md, &_attr_char_value, p_handles);
+
+  return _ret_val;
 }
+
 
 uint32_t ble_iccs_init(const ble_iccs_init_t *iccs_init){
   ble_uuid128_t _ble_uuid128 = {.uuid128 = BLE_UUID_ICCS_SERVICE};
@@ -167,23 +169,21 @@ uint32_t ble_iccs_init(const ble_iccs_init_t *iccs_init){
   _err_code = sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY, &_ble_uuid, &m_service_handle);
   if(_err_code != NRF_SUCCESS) return _err_code;
 
-  ble_srv_security_mode_t _iccs_attr_md;
-  memset(&_iccs_attr_md, 0, sizeof(_iccs_attr_md));
-
-  _iccs_attr_md.read_perm.lv = 1;
-  _iccs_attr_md.read_perm.sm = 1;
-  _iccs_attr_md.write_perm.lv = 1;
-  _iccs_attr_md.write_perm.sm = 1;
-
   for(int i=0; i<sizeof(m_char_stream_list)/sizeof(m_char_stream_list[0]); ++i){
     _err_code = char_add(
         m_char_stream_list[i].uuid,
         NULL,
         CHAR_MAX_LEN,
-        &_iccs_attr_md,
         &m_char_stream_list[i].char_handle,
         m_char_stream_list[i].read_write_notify);
   }
+
+  /*
+   *ble_iccs_connect_to_cmd(LAMBDA(void _(uint8_t *b, size_t s){
+   *        NRF_LOG_INFO("data:%s\n", (uint32_t)b);
+   *        NRF_LOG_INFO("size:%d\n", s);
+   *        }));
+   */
 
   return NRF_SUCCESS;
 }
@@ -294,7 +294,6 @@ static void on_write(ble_gatts_evt_write_t * p_write_evt){
       break;
     }
     if(m_char_stream_list[i].char_handle.value_handle == p_write_evt->handle){
-      NRF_LOG_INFO("hello. Callback: 0x%X\n", (uint32_t)m_char_stream_list[i].char_callback.p_func);
       if(m_char_stream_list[i].char_callback.write_handle != NULL){
         m_char_stream_list[i].char_callback.write_handle(p_write_evt->data, p_write_evt->len);
       }
