@@ -46,12 +46,17 @@ enum char_dir_e{
 #define STREAM0 0
 #define STREAM1 1
 #define STREAM2 2
+#define CMD_CHAR 3
 
 typedef struct {
   ble_gatts_char_handles_t char_handle;
   uint16_t uuid;
   uint8_t read_write_notify;
-  void (*readiness_notify)(bool);
+  union{
+    void *p_func;
+    void (*readiness_notify_handle)(bool);
+    void (*write_handle)(uint8_t *, size_t);
+  }char_callback;
   bool notification_connected;
 }characteritic_desc_t;
 
@@ -66,22 +71,22 @@ static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;
 static characteritic_desc_t m_char_stream_list[] = {
   {
     .uuid = BLE_UUID_ICCS_STREAM0_CHARACTERISTIC,
-    .readiness_notify = NULL,
+    .char_callback = {NULL},
     .read_write_notify = CHAR_READ_ENABLE|CHAR_NOTIFY_ENABLE
   },
   {
     .uuid = BLE_UUID_ICCS_STREAM1_CHARACTERISTIC,
-    .readiness_notify = NULL,
+    .char_callback = {NULL},
     .read_write_notify = CHAR_READ_ENABLE|CHAR_NOTIFY_ENABLE
   },
   {
     .uuid = BLE_UUID_ICCS_STREAM2_CHARACTERISTIC,
-    .readiness_notify = NULL,
+    .char_callback = {NULL},
     .read_write_notify = CHAR_READ_ENABLE|CHAR_NOTIFY_ENABLE
   },
   {
-    .uuid = BLE_UUID_ICCS_STREAM2_CHARACTERISTIC,
-    .readiness_notify = NULL,
+    .uuid = BLE_UUID_ICCS_CMD_CHARACTERISTIC,
+    .char_callback = {NULL},
     .read_write_notify = CHAR_WRITE_ENABLE
   }
 };
@@ -107,6 +112,7 @@ static uint32_t char_add(uint16_t                       uuid,
     ble_gatts_char_md_t _char_md;
     ble_gatts_attr_t    _attr_char_value;
     ble_gatts_attr_md_t _attr_md;
+    /*ble_gatts_attr_md_t _cccd_md;*/
 
     /*APP_ERROR_CHECK_BOOL(p_char_value != NULL);*/
     APP_ERROR_CHECK_BOOL(char_len > 0);
@@ -121,28 +127,26 @@ static uint32_t char_add(uint16_t                       uuid,
     _char_md.p_char_user_desc = NULL;
     _char_md.p_char_pf        = NULL;
     _char_md.p_user_desc_md   = NULL;
-    _char_md.p_cccd_md        = NULL;
+    _char_md.p_cccd_md        = NULL; //&_cccd_md;
     _char_md.p_sccd_md        = NULL;
 
     BLE_UUID_BLE_ASSIGN(_ble_uuid, uuid);
 
     memset(&_attr_md, 0, sizeof(_attr_md));
-
-    _attr_md.read_perm  = iccs_attr_md->read_perm;
-    _attr_md.write_perm = iccs_attr_md->write_perm;
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&_attr_md.write_perm);
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&_attr_md.read_perm);
     _attr_md.vloc       = BLE_GATTS_VLOC_STACK;
     _attr_md.rd_auth    = 0;
     _attr_md.wr_auth    = 0;
-    _attr_md.vlen       = 0;
+    _attr_md.vlen       = 1;
 
     memset(&_attr_char_value, 0, sizeof(_attr_char_value));
 
     _attr_char_value.p_uuid    = &_ble_uuid;
     _attr_char_value.p_attr_md = &_attr_md;
-    _attr_char_value.init_len  = 0;
+    _attr_char_value.init_len  = 1;
     _attr_char_value.init_offs = 0;
     _attr_char_value.max_len   = char_len;
-    _attr_char_value.p_value   = NULL;
 
     __auto_type _ret_val = sd_ble_gatts_characteristic_add(m_service_handle, &_char_md, &_attr_char_value, p_handles);
 
@@ -215,23 +219,28 @@ static ic_return_val_e ble_iccs_send_to_char(
   return err_code;
 }
 
-static ic_return_val_e ble_iccs_connect_to_stream(
-    void (*p_func)(bool),
-    characteritic_desc_t *char_desc){
-  char_desc->readiness_notify = p_func;
+static ic_return_val_e ble_iccs_connect_to_char(
+    void *p_func,
+    characteritic_desc_t *char_desc)
+{
+  char_desc->char_callback.p_func = p_func;
   return p_func != NULL ? IC_SUCCESS : IC_ERROR;
 }
 
 ic_return_val_e ble_iccs_connect_to_stream0(void (*p_func)(bool)){
-  return ble_iccs_connect_to_stream(p_func, &m_char_stream_list[STREAM0]);
+  return ble_iccs_connect_to_char(p_func, &m_char_stream_list[STREAM0]);
 }
 
 ic_return_val_e ble_iccs_connect_to_stream1(void (*p_func)(bool)){
-  return ble_iccs_connect_to_stream(p_func, &m_char_stream_list[STREAM1]);
+  return ble_iccs_connect_to_char(p_func, &m_char_stream_list[STREAM1]);
 }
 
 ic_return_val_e ble_iccs_connect_to_stream2(void (*p_func)(bool)){
-  return ble_iccs_connect_to_stream(p_func, &m_char_stream_list[STREAM2]);
+  return ble_iccs_connect_to_char(p_func, &m_char_stream_list[STREAM2]);
+}
+
+ic_return_val_e ble_iccs_connect_to_cmd(void (*p_func)(uint8_t *, size_t)){
+  return ble_iccs_connect_to_char(p_func, &m_char_stream_list[CMD_CHAR]);
 }
 
 ic_return_val_e ble_iccs_send_to_stream0(
@@ -276,12 +285,19 @@ static void on_disconnect(ble_evt_t * p_ble_evt){
 }
 
 static void on_write(ble_gatts_evt_write_t * p_write_evt){
-for(int i = 0; i<sizeof(m_char_stream_list)/sizeof(m_char_stream_list[0]); ++i){
+  for(int i = 0; i<sizeof(m_char_stream_list)/sizeof(m_char_stream_list[0]); ++i){
     if(m_char_stream_list[i].char_handle.cccd_handle == p_write_evt->handle){
       __auto_type _notify_enabled = p_write_evt->data[0] == 0x01;
       m_char_stream_list[i].notification_connected = _notify_enabled;
-      if(m_char_stream_list[i].readiness_notify != NULL) m_char_stream_list[i].readiness_notify(_notify_enabled);
+      if(m_char_stream_list[i].char_callback.readiness_notify_handle != NULL)
+        m_char_stream_list[i].char_callback.readiness_notify_handle(_notify_enabled);
       break;
+    }
+    if(m_char_stream_list[i].char_handle.value_handle == p_write_evt->handle){
+      NRF_LOG_INFO("hello. Callback: 0x%X\n", (uint32_t)m_char_stream_list[i].char_callback.p_func);
+      if(m_char_stream_list[i].char_callback.write_handle != NULL){
+        m_char_stream_list[i].char_callback.write_handle(p_write_evt->data, p_write_evt->len);
+      }
     }
   }
 }
@@ -293,17 +309,14 @@ void ble_iccs_on_ble_evt(ble_evt_t * p_ble_evt)
     case BLE_GAP_EVT_CONNECTED:
       on_connect(p_ble_evt);
       break;
-
     case BLE_GAP_EVT_DISCONNECTED:
       on_disconnect(p_ble_evt);
       break;
-
     case BLE_GAP_EVT_KEY_PRESSED:
       break;
     case BLE_GATTS_EVT_WRITE:
       on_write(&p_ble_evt->evt.gatts_evt.params.write);
       break;
-
 
     default:
       // No implementation needed.

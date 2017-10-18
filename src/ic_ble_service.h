@@ -11,6 +11,7 @@
 #define IC_BLE_SERVICE_H
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <ble.h>
 #include <stdbool.h>
 
@@ -24,6 +25,7 @@ uint32_t ble_iccs_init(const ble_iccs_init_t *iccs_init);
 ic_return_val_e ble_iccs_connect_to_stream0(void (*p_func)(bool));
 ic_return_val_e ble_iccs_connect_to_stream1(void (*p_func)(bool));
 ic_return_val_e ble_iccs_connect_to_stream2(void (*p_func)(bool));
+ic_return_val_e ble_iccs_connect_to_cmd(void (*p_func)(uint8_t *, size_t));
 ic_return_val_e ble_iccs_send_to_stream0(const uint8_t *data, size_t len,uint32_t *err);
 ic_return_val_e ble_iccs_send_to_stream1(const uint8_t *data, size_t len,uint32_t *err);
 ic_return_val_e ble_iccs_send_to_stream2(const uint8_t *data, size_t len,uint32_t *err);
