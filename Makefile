@@ -273,9 +273,13 @@ LDFLAGS += -Wl,--gc-sections
 # use newlib in nano version
 LDFLAGS += --specs=nano.specs -lc -lnosys
 
+BOOT_TARGETS:=boot generate_boot_settings merge_boot_settings flash_boot clean_boot nrf51822_xxac_s130_boot
 
+ifneq (,$(filter $(BOOT_TARGETS),$(MAKECMDGOALS)))
+  include bootloader_secure/makefile.boot
+else
 .PHONY: $(TARGET) default all clean help flash flash_softdevice
-
+	#
 # Default target - first one defined
 default: $(TARGET)
 
@@ -290,9 +294,10 @@ include $(SDK_ROOT)/components/toolchain/gcc/Makefile.common
 
 $(foreach target, $(TARGET), $(call define_target, $(target)))
 
+endif
+
 bin: $(OUTPUT_DIRECTORY)/$(TARGET).out
 	@$(OBJCOPY) -O binary "$<" "$(OUTPUT_DIRECTORY)/$(TARGET).bin"
-
 
 # Flash the program
 flash: $(OUTPUT_DIRECTORY)/$(TARGET).hex
@@ -307,4 +312,4 @@ flash_softdevice:
 	nrfjprog --reset -f nrf51
 
 erase:
-	nrfjprog --eraseall -f nrf52
+	nrfjprog --eraseall -f nrf51
