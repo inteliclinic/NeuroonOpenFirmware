@@ -137,7 +137,7 @@ ic_return_val_e ic_ads_service_init(void){
 
   m_ads_service_timer_handle = xTimerCreate(
       "ADS_TIMER",
-      8,
+      2,
       pdTRUE,
       NULL,
       ads_timer_callback);

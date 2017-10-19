@@ -85,6 +85,8 @@
 #include "ic_config.h"
 #include "ic_easy_ltc_driver.h"
 
+#include "ic_driver_lis3dh.h"
+
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE         4                                           /**< Size of timer operation queues. */
 
@@ -148,6 +150,7 @@ void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
 void init_task (void *arg){
   UNUSED_PARAMETER(arg);
   neuroon_exti_init();
+  ic_lis3dh_init();
   ic_ez_ltc_module_init();
   ic_ez_ltc_glow();
   ic_ads_service_init();
