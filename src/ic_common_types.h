@@ -17,7 +17,8 @@ typedef enum{
   IC_DRIVER_BUSY,
   IC_SOFTWARE_BUSY,
   IC_WARNING,
-  IC_ERROR
+  IC_ERROR,
+  IC_UNKNOWN_ERROR
 }ic_return_val_e;
 
 #endif /* !IC_COMMON_TYPES_H */

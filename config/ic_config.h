@@ -122,7 +122,7 @@
  * SHORTCUTS
  *
  */
-/** @defgroup IC_TWI
+/** @defgroup IC_LTC
  *  @{
  */
 
@@ -135,6 +135,16 @@
 static inline int isr_context(){
   return (SCB->ICSR & SCB_ICSR_VECTACTIVE_Msk) != 0;
 }
+
+/** @defgroup FreeRTOS
+ *  @{
+ */
+
+#define IC_FREERTOS_TASK_PRIORITY_HIGHEST 4
+#define IC_FREERTOS_TASK_PRIORITY_HIGH    3
+#define IC_FREERTOS_TASK_PRIORITY_MEDIUM  2
+#define IC_FREERTOS_TASK_PRIORITY_LOW     1
+#define IC_FREERTOS_TASK_PRIORITY_LOWEST  0
 
 #ifdef SEMAPHORE_H
 
@@ -150,7 +160,8 @@ static inline int isr_context(){
       __auto_type higher_priority_task_woken = pdFALSE;                     \
       ret_val = xSemaphoreTakeFromISR(name##_semaphore,                     \
           &higher_priority_task_woken);                                     \
-      portYIELD_FROM_ISR(higher_priority_task_woken);                       \
+      if(ret_val == pdTRUE)                                                 \
+        portYIELD_FROM_ISR(higher_priority_task_woken);                     \
     }                                                                       \
     else{                                                                   \
       ret_val = xSemaphoreTake(name##_semaphore, time_ms);                  \
@@ -212,5 +223,6 @@ static inline int isr_context(){
   }while(0)
 
 #endif /* TIMERS_H */
+/** @} */
 
 #endif /* !IC_CONFIG_H */

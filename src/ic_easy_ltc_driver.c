@@ -22,6 +22,8 @@
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 
+#define LTC_RESOLUTION    20
+
 static TaskHandle_t m_ez_ltc_task_handle;
 ALLOCK_SEMAPHORE(ez_ltc_lock);
 
@@ -53,25 +55,27 @@ static void ez_ltc_twi_finished(ic_return_val_e ret_val){
 uint8_t m_in_buffer[] = {2, 63};
 
 static void send_value_to_LTC(void){
-  uint32_t _dummy;
-  TAKE_SEMAPHORE(ez_ltc_lock, portMAX_DELAY, _dummy);
-  UNUSED_PARAMETER(_dummy);
+  __auto_type _sem_ret_val = pdTRUE;
+  __auto_type _twi_ret_val = IC_SUCCESS;
 
-  __auto_type _ret_val =
-    TWI_SEND_DATA(
-        ez_ltc_twi,
-        m_in_buffer,
-        sizeof(m_in_buffer),
-        ez_ltc_twi_finished);
+  TAKE_SEMAPHORE(ez_ltc_lock, LTC_RESOLUTION, _sem_ret_val);
 
-  if(_ret_val != IC_SUCCESS){
+  if(_sem_ret_val == pdTRUE){
+    _twi_ret_val =
+      TWI_SEND_DATA(
+          ez_ltc_twi,
+          m_in_buffer,
+          sizeof(m_in_buffer),
+          ez_ltc_twi_finished);
+  }
+
+  if(_twi_ret_val != IC_SUCCESS || _sem_ret_val != pdTRUE){
       TWI_SEND_DATA_FORCED(
         ez_ltc_twi,
         m_in_buffer,
         sizeof(m_in_buffer),
         ez_ltc_twi_finished);
   }
-
 }
 
 void ez_ltc_main_task(void *args){
@@ -89,7 +93,7 @@ void ez_ltc_main_task(void *args){
     switch(m_ltc_state.ltc_state){
       case EZ_LTC_GLOWING:
         if(m_ltc_state.val_going_up){
-          if(m_ltc_state.current_val != 63){
+          if(m_ltc_state.current_val < 63){
             m_in_buffer[1] = ++m_ltc_state.current_val;
             send_value_to_LTC();
           }
@@ -99,7 +103,7 @@ void ez_ltc_main_task(void *args){
           }
         }
         else{
-          if(m_ltc_state.current_val != 0){
+          if(m_ltc_state.current_val > 1){
             m_in_buffer[1] = --m_ltc_state.current_val;
             send_value_to_LTC();
           }
@@ -108,13 +112,13 @@ void ez_ltc_main_task(void *args){
             send_value_to_LTC();
           }
         }
-        vTaskDelay(20);
+        vTaskDelay(LTC_RESOLUTION);
         continue;
       case EZ_LTC_OFF:
         if (m_ltc_state.current_val != 0){
           m_in_buffer[1] = --m_ltc_state.current_val;
           send_value_to_LTC();
-          vTaskDelay(20);
+          vTaskDelay(LTC_RESOLUTION);
           continue;
         }
         else {
@@ -124,7 +128,7 @@ void ez_ltc_main_task(void *args){
         if (m_ltc_state.current_val != 63){
           m_in_buffer[1] = ++m_ltc_state.current_val;
           send_value_to_LTC();
-          vTaskDelay(20);
+          vTaskDelay(LTC_RESOLUTION);
           continue;
         }
         else {
@@ -135,10 +139,14 @@ void ez_ltc_main_task(void *args){
     taskYIELD();
   }
 }
+
 void ic_ez_ltc_module_init(void){
   TWI_INIT(ez_ltc_twi);
+  CHANGE_TO_GREEN;
 
-  if(pdPASS != xTaskCreate(ez_ltc_main_task, "EZLTC", 256, NULL, 1, &m_ez_ltc_task_handle)){
+  if(pdPASS != xTaskCreate(ez_ltc_main_task, "EZLTC", 256, NULL, IC_FREERTOS_TASK_PRIORITY_LOW,
+        &m_ez_ltc_task_handle))
+  {
     APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
   }
 }
@@ -158,17 +166,43 @@ void ic_ez_ltc_brighten(){
   RESUME_TASK(m_ez_ltc_task_handle);
 }
 
+static void color_change_blue(ic_return_val_e ret_val){
+  NRF_LOG_INFO("Changed to blue\n");
+  CHANGE_TO_BLUE;
+}
+
+static void color_change_red(ic_return_val_e ret_val){
+  NRF_LOG_INFO("Changed to green\n");
+  CHANGE_TO_GREEN;
+}
+
 static void on_connect(void){
   m_in_buffer[1] = 0;
-  send_value_to_LTC();
-  CHANGE_TO_BLUE;
+  uint32_t _ret;
+  TAKE_SEMAPHORE(ez_ltc_lock, LTC_RESOLUTION, _ret);
+  NRF_LOG_INFO("%s:%d\n",(uint32_t)__func__, _ret);
+
+  __auto_type _ret_val = TWI_SEND_DATA(
+      ez_ltc_twi,
+      m_in_buffer,
+      sizeof(m_in_buffer),
+      color_change_blue);
+  NRF_LOG_INFO("%s:%d\n", (uint32_t)__func__, _ret_val);
   /*ic_ez_ltc_brighten();*/
 }
 
 static void on_disconnect(void){
   m_in_buffer[1] = 0;
-  send_value_to_LTC();
-  CHANGE_TO_RED;
+  uint32_t _ret;
+  TAKE_SEMAPHORE(ez_ltc_lock, LTC_RESOLUTION, _ret);
+  NRF_LOG_INFO("%s:%d\n",(uint32_t)__func__, _ret);
+
+  __auto_type _ret_val = TWI_SEND_DATA(
+      ez_ltc_twi,
+      m_in_buffer,
+      sizeof(m_in_buffer),
+      color_change_red);
+  NRF_LOG_INFO("%s:%d\n", (uint32_t)__func__, _ret_val);
   /*ic_ez_ltc_brighten();*/
 }
 
