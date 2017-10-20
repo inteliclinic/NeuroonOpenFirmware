@@ -41,6 +41,7 @@
 #include "ble_conn_state.h"
 
 #include "ble_cts_c.h"
+#include "ble_dfu.h"
 
 #include "ic_easy_ltc_driver.h"
 
@@ -97,6 +98,24 @@ ALLOCK_SEMAPHORE(m_ble_event_ready);
    static ble_yy_service_t                     m_yys;
  */
 
+static ble_dfu_t m_dfus;                                                            /**< Structure used to identify the DFU service. */
+
+static void ble_dfu_evt_handler(ble_dfu_t * p_dfu, ble_dfu_evt_t * p_evt){
+    switch (p_evt->type){
+        case BLE_DFU_EVT_INDICATION_DISABLED:
+            NRF_LOG_INFO("Indication for BLE_DFU is disabled\r\n");
+            break;
+        case BLE_DFU_EVT_INDICATION_ENABLED:
+            NRF_LOG_INFO("Indication for BLE_DFU is enabled\r\n");
+            break;
+        case BLE_DFU_EVT_ENTERING_BOOTLOADER:
+            NRF_LOG_INFO("Device is entering bootloader mode!\r\n");
+            break;
+        default:
+            NRF_LOG_INFO("Unknown event from ble_dfu\r\n");
+            break;
+    }
+}
 // YOUR_JOB: Use UUIDs for service(s) used in your application.
 static ble_uuid_t m_adv_uuids[] = {{BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}};
 /**< Universally unique service identifiers. */
@@ -253,6 +272,17 @@ static void services_init(void)
   ble_iccs_init_t iccs_init;
   ble_iccs_init(&iccs_init);
 
+  ble_dfu_init_t dfus_init;
+
+  // Initialize the Device Firmware Update Service.
+  memset(&dfus_init, 0, sizeof(dfus_init));
+
+  dfus_init.evt_handler                               = ble_dfu_evt_handler;
+  dfus_init.ctrl_point_security_req_write_perm        = SEC_SIGNED;
+  dfus_init.ctrl_point_security_req_cccd_write_perm   = SEC_SIGNED;
+
+  err_code = ble_dfu_init(&m_dfus, &dfus_init);
+  APP_ERROR_CHECK(err_code);
     /* YOUR_JOB: Add code to initialize the services used by the application.
        uint32_t                           err_code;
        ble_xxs_init_t                     xxs_init;
@@ -496,6 +526,7 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
   ble_advertising_on_ble_evt(p_ble_evt);
   ble_iccs_on_ble_evt(p_ble_evt);
   ic_ez_ltc_on_ble_evt(p_ble_evt);
+  ble_dfu_on_ble_evt(&m_dfus, p_ble_evt);
   /*YOUR_JOB add calls to _on_ble_evt functions from each service your application is using
     ble_xxs_on_ble_evt(&m_xxs, p_ble_evt);
     ble_yys_on_ble_evt(&m_yys, p_ble_evt);
@@ -531,6 +562,8 @@ static void ble_stack_init(void)
                                                     PERIPHERAL_LINK_COUNT,
                                                     &ble_enable_params);
     APP_ERROR_CHECK(err_code);
+    ble_enable_params.common_enable_params.vs_uuid_count   = 2;
+    /*ble_enable_params.gatts_enable_params.attr_tab_size    = 0x580;*/
 
     // Check the ram settings against the used number of links
     CHECK_RAM_START_ADDR(CENTRAL_LINK_COUNT, PERIPHERAL_LINK_COUNT);
