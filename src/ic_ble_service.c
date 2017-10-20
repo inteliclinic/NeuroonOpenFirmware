@@ -211,8 +211,24 @@ static ic_return_val_e ble_iccs_send_to_char(
 
     __auto_type _sd_err = sd_ble_gatts_hvx(m_conn_handle, &hvx_params);
 
-    if (_sd_err != NRF_SUCCESS)
-      err_code = IC_ERROR;
+    if (_sd_err != NRF_SUCCESS){
+      switch(_sd_err){
+        case BLE_ERROR_INVALID_CONN_HANDLE:
+        case NRF_ERROR_INVALID_STATE:
+        case NRF_ERROR_INVALID_PARAM:
+        case BLE_ERROR_INVALID_ATTR_HANDLE:
+        case BLE_ERROR_GATTS_INVALID_ATTR_TYPE:
+        case NRF_ERROR_NOT_FOUND:
+        case NRF_ERROR_DATA_SIZE:
+        case BLE_ERROR_GATTS_SYS_ATTR_MISSING:
+          err_code = IC_ERROR;
+        case NRF_ERROR_BUSY:
+        case BLE_ERROR_NO_TX_PACKETS:
+          err_code = IC_BUSY;
+        default:
+          err_code = IC_UNKNOWN_ERROR;
+      }
+    }
   }
   else err_code = IC_BLE_NOT_CONNECTED;
 
@@ -282,6 +298,10 @@ static void on_connect(ble_evt_t *p_ble_evt){
 
 static void on_disconnect(ble_evt_t * p_ble_evt){
   m_conn_handle = BLE_CONN_HANDLE_INVALID;
+  for(int i = 0; i<sizeof(m_char_stream_list)/sizeof(m_char_stream_list[0]); ++i){
+    if(m_char_stream_list[i].char_callback.readiness_notify_handle != NULL)
+      m_char_stream_list[i].char_callback.readiness_notify_handle(false);
+  }
 }
 
 static void on_write(ble_gatts_evt_write_t * p_write_evt){
