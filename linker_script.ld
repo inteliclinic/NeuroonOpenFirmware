@@ -6,7 +6,8 @@ GROUP(-lgcc -lc -lnosys)
 MEMORY
 {
   FLASH (rx) : ORIGIN = 0x1B000, LENGTH = 0x1FC00
-  RAM (rwx) :  ORIGIN = 0x20001fe8, LENGTH = 0x6018
+  /*RAM (rwx) :  ORIGIN = 0x20002078, LENGTH = 0x5f88*/
+  RAM (rwx) :  ORIGIN = 0x20001ff8, LENGTH = 0x6008
 
   /** Location of bootloader setting in at the last flash page. */
   BOOTLOADER_SETTINGS (rw) : ORIGIN = 0x0003FC00, LENGTH = 0x0400

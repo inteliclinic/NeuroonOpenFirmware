@@ -97,7 +97,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/scheduler/app_scheduler.c \
   $(SDK_ROOT)/components/ble/ble_services/ble_dis/ble_dis.c \
   $(SDK_ROOT)/components/ble/ble_services/ble_cts_c/ble_cts_c.c \
-  $(SDK_ROOT)/components/ble/ble_db_discovery/ble_db_discovery.c
+  $(SDK_ROOT)/components/ble/ble_db_discovery/ble_db_discovery.c \
   $(SDK_ROOT)/components/ble/ble_services/ble_dfu/ble_dfu.c \
   $(SDK_ROOT)/components/libraries/bootloader/dfu/nrf_dfu_settings.c \
   #$(SDK_ROOT)/components/boards/boards.c \
@@ -215,9 +215,9 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/softdevice/common/softdevice_handler \
   $(SDK_ROOT)/components/ble/ble_services/ble_hrs \
   $(SDK_ROOT)/components/libraries/log/src \
-  $(SDK_ROOT)/components/libraries/fifo/ \
-  $(SDK_ROOT)/components/ble/ble_db_discovery
-  $(SDK_ROOT)/components/libraries/bootloader/dfu/
+  $(SDK_ROOT)/components/libraries/fifo \
+  $(SDK_ROOT)/components/ble/ble_db_discovery \
+  $(SDK_ROOT)/components/libraries/bootloader/dfu
   #$(SDK_ROOT)/components/boards \
   #$(SDK_ROOT)/components/libraries/bsp \
 
@@ -226,7 +226,7 @@ LIB_FILES += \
 
 # C flags common to all targets
 #CFLAGS += -DBOARD_CUSTOM
-CFLAGS += -D__STACK_SIZE=4096
+CFLAGS += -D__STACK_SIZE=6144
 CFLAGS += -D__HEAP_SIZE=0
 CFLAGS += -DFREERTOS
 CFLAGS += -std=gnu11
@@ -240,7 +240,7 @@ CFLAGS += -DNRF_SD_BLE_API_VERSION=2
 CFLAGS += -DNRF_DFU_SETTINGS_VERSION=1
 CFLAGS += -mcpu=cortex-m0
 CFLAGS += -mthumb -mabi=aapcs
-CFLAGS += -Wall -Werror -O3 -g0
+CFLAGS += -Wall -Werror -Og -g3
 CFLAGS += -mfloat-abi=soft
 # keep every function in separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
@@ -260,7 +260,7 @@ ASMFLAGS += -DBLE_STACK_SUPPORT_REQD
 ASMFLAGS += -DSWI_DISABLE0
 ASMFLAGS += -DNRF51822
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=2
-ASMFLAGS += -D__STACK_SIZE=4096
+ASMFLAGS += -D__STACK_SIZE=6144
 ASMFLAGS += -D__HEAP_SIZE=0
 #ASMFLAGS += -DDEBUG
 #ASMFLAGS += -DDEBUG_NRF
