@@ -42,7 +42,10 @@ void read_callback(int16_t eeg){
 static void on_stream_state_change(bool active){
   __auto_type _timer_ret_val = pdFAIL;
   if(active)  START_TIMER (m_ads_service_timer_handle, 0, _timer_ret_val);
-  else        STOP_TIMER  (m_ads_service_timer_handle, 0, _timer_ret_val);
+  else{
+    vTaskSuspend(send_data_task_handle);
+    STOP_TIMER  (m_ads_service_timer_handle, 0, _timer_ret_val);
+  }
   UNUSED_PARAMETER(_timer_ret_val);
 }
 
@@ -55,7 +58,6 @@ static void ads_timer_callback(TimerHandle_t xTimer){
   TAKE_SEMAPHORE(m_twi_ready, 1, _semphr_successfull);
   if(_semphr_successfull == pdFALSE){
     /*_force = true;*/
-    NRF_LOG_INFO("forced semphr\n");
   }
   switch(ads_get_value(read_callback, _force)){
     case IC_ERROR:
@@ -98,13 +100,13 @@ static void send_data_task(void *arg){
           send_via_ble = false;
           break;
         case IC_BLE_NOT_CONNECTED:
-          vTaskSuspend(NULL);
           send_via_ble = false;
           break;
+        case IC_BUSY:
+          continue; // TODO: Fix it. Can kill CPU.
         default:
           /*NRF_LOG_INFO("err: %s\n", (uint32_t)ic_get_nrferr2str(_nrf_error));*/
-          taskYIELD();
-          continue;
+          break;
       }
     }
     else{
