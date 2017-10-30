@@ -53,7 +53,18 @@ typedef struct{
  *
  */
 #define TWI_REGISTER(name, address)                                                               \
-  static ic_twi_instance_s name##_twi_instance = {.device_address = address};
+  static ic_twi_instance_s name##_twi_instance = {.device_address = address}
+
+/**
+ * @brief Macro changes devices address
+ *
+ * This macro should be called when device needs custom address operation
+ *
+ * @param name Name of instance.
+ *
+ */
+#define TWI_CHANGE_ADDRESS(name, address)                                                         \
+  name##_twi_instance.device_address = address
 
 /**
  * @brief   Macro simplifying usage of @ref ic_twi_init.

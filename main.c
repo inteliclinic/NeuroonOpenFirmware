@@ -147,10 +147,29 @@ void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
 #endif // DEBUG
 }
 
+static void power_down_all_systems(void){
+  nrf_gpio_cfg_output(15);
+  nrf_gpio_pin_clear(15);
+  nrf_gpio_cfg_output(16);
+  nrf_gpio_pin_clear(16);
+  nrf_gpio_cfg_output(IC_LTC_POWER_PIN);
+  nrf_gpio_pin_clear(IC_LTC_POWER_PIN);
+}
+
+static void power_up_all_systems(void){
+  nrf_gpio_cfg_output(15);
+  nrf_gpio_pin_set(15);
+  nrf_gpio_cfg_output(16);
+  nrf_gpio_pin_set(16);
+  nrf_gpio_cfg_output(IC_LTC_POWER_PIN);
+  nrf_gpio_pin_set(IC_LTC_POWER_PIN);
+}
+
+
 void init_task (void *arg){
   UNUSED_PARAMETER(arg);
+  power_up_all_systems();
   neuroon_exti_init();
-  ic_lis3dh_init();
   ic_ez_ltc_module_init();
   ic_ez_ltc_glow();
   ic_ads_service_init();
@@ -164,15 +183,6 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName){
   NRF_LOG_INFO("Stack overflowed: %s\n\r", (uint32_t)pcTaskName);
 }
 
-static void power_up_all_systems(void){
-  nrf_gpio_cfg_output(15);
-  nrf_gpio_pin_set(15);
-  nrf_gpio_cfg_output(16);
-  nrf_gpio_pin_set(16);
-  nrf_gpio_cfg_output(IC_LTC_POWER_PIN);
-  nrf_gpio_pin_set(IC_LTC_POWER_PIN);
-}
-
 /**@brief Function for application main entry.
  */
 int main(void)
@@ -180,6 +190,7 @@ int main(void)
     // Initialize.
     __auto_type err_code = NRF_LOG_INIT(xTaskGetTickCount);
     APP_ERROR_CHECK(err_code);
+    power_down_all_systems();
 
     err_code = nrf_drv_clock_init();
     APP_ERROR_CHECK(err_code);
@@ -188,7 +199,6 @@ int main(void)
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
 
-    power_up_all_systems();
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
     NRF_LOG_INFO("starting scheduler\n");

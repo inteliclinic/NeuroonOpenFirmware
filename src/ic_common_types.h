@@ -21,4 +21,6 @@ typedef enum{
   IC_UNKNOWN_ERROR
 }ic_return_val_e;
 
+extern const char *g_return_val_string[];
+
 #endif /* !IC_COMMON_TYPES_H */

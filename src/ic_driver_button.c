@@ -152,21 +152,19 @@ static void btn_long_press(TimerHandle_t xTimer){
 }
 
 static void exti_callback(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t button_action){
-  NRF_LOG_INFO("%s\n",(uint32_t)__func__);
   switch(pin&0xFF){
     case IC_ACC_EXTI_PIN:
       if(m_acc_handle!=NULL){
         m_acc_handle(nrf_gpio_pin_read(pin)?EXTI_EDGE_UP:EXTI_EDGE_DOWN);
-        NRF_LOG_INFO("Acc INT\n");
       }
       else
-        NRF_LOG_INFO("No handler!");
+        NRF_LOG_INFO("No handler!(LIS3DH)");
       break;
     case IC_AFE_EXTI_PIN:
       if(m_afe_handle!=NULL)
         m_afe_handle(button_action==NRF_GPIOTE_POLARITY_LOTOHI?EXTI_EDGE_UP:EXTI_EDGE_DOWN);
       else
-        NRF_LOG_INFO("No handler!");
+        /*NRF_LOG_INFO("No handler!(AFE)");*/
       break;
     default:
       NRF_LOG_ERROR("Unsupported pin %d!\n", pin);
