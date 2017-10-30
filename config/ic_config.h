@@ -59,7 +59,8 @@
 
 #define IC_BUTTON_PWR_BUTTON_PIN    12
 #define IC_BUTTON_USB_CONNECT_PIN   11
-#define IC_BUTTON_ACC_EXTI_PIN      17
+#define IC_ACC_EXTI_PIN      17
+#define IC_AFE_EXTI_PIN      0
 
 /** @} */
 

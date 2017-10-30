@@ -11,7 +11,7 @@
 #include "ic_config.h"
 
 /**SLAVE ADDRESS*/
-#define ADS_TWI_ADDRESS         0b1001000
+#define ADS_TWI_ADDRESS         0b10010000
 
 #define ADS_ADDR_RES_POS        2       //Reserved - always write 0h
 

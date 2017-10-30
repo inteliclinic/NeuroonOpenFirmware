@@ -41,7 +41,7 @@ static struct{
   .val_going_up = false
 };
 
-TWI_REGISTER(ez_ltc_twi, 0x1C);
+TWI_REGISTER(ez_ltc_twi, 0x38);
 
 static void ez_ltc_twi_finished(ic_return_val_e ret_val){
   UNUSED_PARAMETER(ret_val);

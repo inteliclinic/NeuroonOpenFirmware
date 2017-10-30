@@ -20,6 +20,9 @@
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 
+#define TWI_READ_OP(addr) (addr|0x01)
+#define TWI_WRITE_OP(addr) (addr&0xFE)
+
 // Helper macro. Not intended to be used directly
 #define IC_TWI_TRANSFER(_name, _operation, _p_data, _length, _flags)                              \
     _name.p_data    = (uint8_t *)(_p_data);                                                       \
@@ -29,11 +32,11 @@
 
 // Macro covering Nordics APP_TWI_WRITE
 #define IC_TWI_WRITE(name, address, p_data, length, flags)                                        \
-    IC_TWI_TRANSFER(name, APP_TWI_WRITE_OP(address), p_data, length, flags)
+    IC_TWI_TRANSFER(name, TWI_WRITE_OP(address), p_data, length, flags)
 
 // Macro covering Nordics APP_TWI_READ
 #define IC_TWI_READ(name, address, p_data, length, flags)                                         \
-    IC_TWI_TRANSFER(name, APP_TWI_READ_OP(address), p_data, length, flags)
+    IC_TWI_TRANSFER(name, TWI_READ_OP(address), p_data, length, flags)
 
 /**
  * @brief

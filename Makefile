@@ -46,9 +46,11 @@ SRC_FILES += \
   $(PROJ_DIR)/src/ic_driver_spi.c \
   $(PROJ_DIR)/src/ic_driver_twi.c\
   $(PROJ_DIR)/src/ic_driver_ads.c\
+  $(PROJ_DIR)/src/ic_driver_lis3dh.c\
   $(PROJ_DIR)/src/ic_service_ads.c\
   $(PROJ_DIR)/src/ic_easy_ltc_driver.c\
   $(PROJ_DIR)/src/ic_nrf_error.c \
+  $(PROJ_DIR)/src/ic_common_types.c \
   $(NUC_ROOT)/src/ic_characteristics.c \
   $(NUC_ROOT)/src/ic_crc8.c \
   $(NUC_ROOT)/src/ic_device.c \

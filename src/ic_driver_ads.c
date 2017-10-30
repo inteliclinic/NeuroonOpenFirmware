@@ -68,7 +68,7 @@ ic_return_val_e ic_ads_init (void){
 
   check_value = SWAP_2_BYTES(check_value);
 
-  NRF_LOG_INFO("check_value:%d, ADS_LO_THRESH:%d\n", check_value, ADS_LO_THRESH);
+  NRF_LOG_INFO("check_value:0x%X, ADS_LO_THRESH:0x%X\n", check_value, ADS_LO_THRESH);
 
   if  (check_value != ADS_LO_THRESH) {
     m_ads_initialized = false;
