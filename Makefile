@@ -274,7 +274,7 @@ LDFLAGS += -Wl,--gc-sections
 # use newlib in nano version
 LDFLAGS += --specs=nano.specs -lc -lnosys
 
-BOOT_TARGETS:=boot boot_gen_pub_key boot_gen_prv_key boot_generate_settings boot_merge_settings boot_flash boot_bin boot_clean
+BOOT_TARGETS:=boot boot_help boot_gen_pub_key boot_gen_prv_key boot_generate_settings boot_merge_settings boot_flash boot_bin boot_clean
 
 ifneq (,$(filter $(BOOT_TARGETS),$(MAKECMDGOALS)))
   include bootloader_secure/makefile.boot

@@ -158,11 +158,16 @@ LDFLAGS += -Wl,--gc-sections
 LDFLAGS += --specs=nano.specs -lc -lnosys
 
 
-.PHONY: $(BOOT_TARGET) boot boot_gen_pub_key boot_gen_prv_key boot_generate_settings boot_merge_settings boot_flash boot_bin boot_clean
+.PHONY: $(BOOT_TARGET) boot boot_help boot_gen_pub_key boot_gen_prv_key boot_generate_settings boot_merge_settings boot_flash boot_bin boot_clean
 	# default all clean help
 
 # Default target - first one defined
 default: $(BOOT_PROJ_DIR)/dfu_public_key.c $(BOOT_TARGET)
+
+# Print all targets that can be built
+boot_help:
+	@echo 	following commands are available:
+	@echo 	$(BOOT_TARGETS)
 
 TEMPLATE_PATH := $(SDK_ROOT)/components/toolchain/gcc
 
@@ -173,8 +178,6 @@ $(foreach target, $(BOOT_TARGET), $(call define_target, $(target)))
 boot: $(BOOT_PROJ_DIR)/dfu_public_key.c $(OUTPUT_DIRECTORY)/$(BOOT_TARGET).hex
 
 boot_clean: clean
-	rm $(BOOT_PROJ_DIR)/dfu_public_key.c
-	rm $(BOOT_PROJ_DIR)/private.pem
 
 boot_bin: $(BOOT_PROJ_DIR)/dfu_public_key.c $(OUTPUT_DIRECTORY)/$(BOOT_TARGET).out
 	@$(OBJCOPY) -O binary "$<" "$(OUTPUT_DIRECTORY)/$(BOOT_TARGET).bin"
@@ -200,7 +203,7 @@ boot_flash: $(OUTPUT_DIRECTORY)/$(BOOT_TARGET)_s.hex
 boot_gen_prv_key: $(BOOT_PROJ_DIR)/private.pem
 $(BOOT_PROJ_DIR)/private.pem:
 	@echo Checking private key.
-	@test -s $(BOOT_PROJ_DIR)/private.pem || { nrfutil keys generate $(BOOT_PROJ_DIR)/private.pem; }
+	@test -s $(BOOT_PROJ_DIR)/private.pem || { nrfutil keys generate $(BOOT_PROJ_DIR)/private.pem; echo "New private key generated! If you use this key to generate public key and compile bootloader, you MUST use it for generating update packages!"; }
 
 boot_gen_pub_key: $(BOOT_PROJ_DIR)/dfu_public_key.c
 $(BOOT_PROJ_DIR)/dfu_public_key.c: $(BOOT_PROJ_DIR)/private.pem
