@@ -166,7 +166,7 @@ static nrf_dfu_res_code_t dfu_handle_prevalidate(dfu_signed_command_t const * p_
     dfu_init_command_t const *  p_init = &p_command->command.init;
     uint32_t                    err_code;
     uint32_t                    hw_version = NRF_DFU_HW_VERSION;
-    uint32_t                    fw_version = 0;
+    /*uint32_t                    fw_version = 0;*/
 
     // check for init command found during decoding
     if(!p_init_cmd || !init_cmd_len)
@@ -211,61 +211,61 @@ static nrf_dfu_res_code_t dfu_handle_prevalidate(dfu_signed_command_t const * p_
             return NRF_DFU_RES_CODE_OPERATION_FAILED;
         }
 
-        // Get the fw version
-        switch (p_init->type)
-        {
-            case DFU_FW_TYPE_APPLICATION:
-                if (p_init->has_fw_version == false)
-                {
-                    return NRF_DFU_RES_CODE_OPERATION_FAILED;
-                }
-                // Get the application FW version
-                fw_version = s_dfu_settings.app_version;
-                break;
+        /*// Get the fw version*/
+        /*switch (p_init->type)*/
+        /*{*/
+            /*case DFU_FW_TYPE_APPLICATION:*/
+                /*if (p_init->has_fw_version == false)*/
+                /*{*/
+                    /*return NRF_DFU_RES_CODE_OPERATION_FAILED;*/
+                /*}*/
+                /*// Get the application FW version*/
+                /*fw_version = s_dfu_settings.app_version;*/
+                /*break;*/
 
-            case DFU_FW_TYPE_SOFTDEVICE:
-                // not loaded
-                break;
+            /*case DFU_FW_TYPE_SOFTDEVICE:*/
+                /*// not loaded*/
+                /*break;*/
 
-            case DFU_FW_TYPE_BOOTLOADER: // fall through
-            case DFU_FW_TYPE_SOFTDEVICE_BOOTLOADER:
-                if (p_init->has_fw_version == false)
-                {
-                    return NRF_DFU_RES_CODE_OPERATION_FAILED;
-                }
-                fw_version = s_dfu_settings.bootloader_version;
-                break;
+            /*case DFU_FW_TYPE_BOOTLOADER: // fall through*/
+            /*case DFU_FW_TYPE_SOFTDEVICE_BOOTLOADER:*/
+                /*if (p_init->has_fw_version == false)*/
+                /*{*/
+                    /*return NRF_DFU_RES_CODE_OPERATION_FAILED;*/
+                /*}*/
+                /*fw_version = s_dfu_settings.bootloader_version;*/
+                /*break;*/
 
-            default:
-                NRF_LOG_INFO("Unknown FW update type\r\n");
-                return NRF_DFU_RES_CODE_OPERATION_FAILED;
-        }
+            /*default:*/
+                /*NRF_LOG_INFO("Unknown FW update type\r\n");*/
+                /*return NRF_DFU_RES_CODE_OPERATION_FAILED;*/
+        /*}*/
 
-        NRF_LOG_INFO("Req version: %d, Present: %d\r\n", p_init->fw_version, fw_version);
+        /*NRF_LOG_INFO("Req version: %d, Present: %d\r\n", p_init->fw_version, fw_version);*/
 
         // Check of init command FW version
-        switch (p_init->type)
-        {
-            case DFU_FW_TYPE_APPLICATION:
-                if (p_init->fw_version < fw_version)
-                {
-                    return NRF_DFU_RES_CODE_OPERATION_FAILED;
-                }
-                break;
+        /*switch (p_init->type)*/
+        /*{*/
+            /*case DFU_FW_TYPE_APPLICATION:*/
+                /*if (p_init->fw_version < fw_version)*/
+                /*{*/
+                    /*return NRF_DFU_RES_CODE_OPERATION_FAILED;*/
+                /*}*/
+                /*break;*/
 
-            case DFU_FW_TYPE_BOOTLOADER:            // fall through
-            case DFU_FW_TYPE_SOFTDEVICE_BOOTLOADER:
-                // updating the bootloader is stricter. There must be an increase in version number
-                if (p_init->fw_version <= fw_version)
-                {
-                    return NRF_DFU_RES_CODE_OPERATION_FAILED;
-                }
-                break;
+            /*case DFU_FW_TYPE_BOOTLOADER:            // fall through*/
+            /*case DFU_FW_TYPE_SOFTDEVICE_BOOTLOADER:*/
+                /*// updating the bootloader is stricter. There must be an increase in version number*/
+                /*if (p_init->fw_version <= fw_version)*/
+                /*{*/
+                    /*return NRF_DFU_RES_CODE_OPERATION_FAILED;*/
+                /*}*/
+                /*break;*/
 
-            default:
-                // do not care about fw_version in the case of a softdevice transfer
-                break;
-        }
+            /*default:*/
+                /*// do not care about fw_version in the case of a softdevice transfer*/
+                /*break;*/
+        /*}*/
 
 #ifdef NRF_DFU_DEBUG_VERSION
     }
