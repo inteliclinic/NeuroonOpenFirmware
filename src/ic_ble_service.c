@@ -52,8 +52,6 @@ typedef struct {
 static uint16_t m_service_handle;
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;
 
-static void m_cmd_handle(uint8_t *, size_t);
-
 /*static characteritic_desc_t m_stream0_char_handle;*/
 /*static characteritic_desc_t m_stream1_char_handle;*/
 /*static characteritic_desc_t m_stream2_char_handle;*/
@@ -77,7 +75,7 @@ static characteritic_desc_t m_char_stream_list[] = {
   },
   {
     .uuid = BLE_UUID_ICCS_CMD_CHARACTERISTIC,
-    .char_callback = {m_cmd_handle},
+    .char_callback = {NULL},
     .read_write_notify = CHAR_WRITE_ENABLE
   }
 };
@@ -279,13 +277,6 @@ bool ble_iccs_stream1_ready(){
 
 bool ble_iccs_stream2_ready(){
   return m_char_stream_list[STREAM2].notification_connected;
-}
-
-static void m_cmd_handle(uint8_t *data, size_t len){
-  NRF_LOG_INFO("data:\n");
-  for(uint8_t i = 0; i < len; i++)
-    NRF_LOG_INFO(" %d\n", data[i]);
-  NRF_LOG_INFO("size:%d\n", len);
 }
 
 static void on_connect(ble_evt_t *p_ble_evt){

@@ -40,6 +40,7 @@ SRC_FILES += \
   $(PROJ_DIR)/main.c \
   $(PROJ_DIR)/src/ic_bluetooth.c \
   $(PROJ_DIR)/src/ic_ble_service.c \
+  $(PROJ_DIR)/src/ic_command_task.c \
   $(PROJ_DIR)/src/nrf_dfu_flash_buttonless.c \
   $(PROJ_DIR)/src/ic_driver_uart.c \
   $(PROJ_DIR)/src/ic_driver_button.c \
