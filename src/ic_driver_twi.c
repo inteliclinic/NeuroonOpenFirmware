@@ -64,7 +64,7 @@ static void m_twi_event_handler(uint32_t result, void *p_context){
     _instance->active = false;
 
     if(_instance->callback != NULL)
-      _instance->callback(result == NRF_SUCCESS ? IC_SUCCESS : IC_ERROR);
+      _instance->callback(result == NRF_SUCCESS ? IC_SUCCESS : IC_ERROR, _instance->context);
 
     _instance->callback = NULL;
   }
@@ -91,6 +91,7 @@ static ic_return_val_e m_ic_twi_transaction(
     uint8_t *buffer,
     size_t len,
     ic_twi_event_cb callback,
+    void *context,
     bool read,
     bool force)
 {
@@ -114,6 +115,7 @@ static ic_return_val_e m_ic_twi_transaction(
   }
 
   instance->callback = callback;
+  instance->context = context;
 
   __auto_type _ret_val = callback == NULL ?
     app_twi_perform(
@@ -192,6 +194,7 @@ ic_return_val_e ic_twi_send(
     uint8_t *buffer,
     size_t len,
     ic_twi_event_cb callback,
+    void *context,
     bool force)
 
 {
@@ -203,6 +206,7 @@ ic_return_val_e ic_twi_send(
       buffer,                   // uint8_t *buffer,
       len,                      // size_t len,
       callback,                 // ic_twi_event_cb callback,
+      context,
       false,
       force);                   // bool read
 
@@ -215,6 +219,7 @@ ic_return_val_e ic_twi_read(
     uint8_t *buffer,
     size_t len,
     ic_twi_event_cb callback,
+    void *context,
     bool force)
 {
 
@@ -225,6 +230,7 @@ ic_return_val_e ic_twi_read(
       buffer,                   // uint8_t *buffer,
       len,                      // size_t len,
       callback,                 // ic_twi_event_cb callback,
+      context,
       true,
       force);                    // bool read
 

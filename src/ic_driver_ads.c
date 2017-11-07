@@ -64,7 +64,7 @@ ic_return_val_e ic_ads_init (void){
   TWI_INIT(ADS);
 
   /**Check communication I2C*/
-  TWI_READ_DATA(ADS, ADS_ADDR_LO_REG, (uint8_t *)&check_value, ADS_REG_SIZE, NULL);
+  TWI_READ_DATA(ADS, ADS_ADDR_LO_REG, (uint8_t *)&check_value, ADS_REG_SIZE, NULL, NULL);
 
   check_value = SWAP_2_BYTES(check_value);
 
@@ -95,7 +95,7 @@ void ads_deinit(void){
 void ads_power_down(void){
   memset(&m_config_frame.payload.data, 0x00, sizeof(m_config_frame));
   m_config_frame.payload.bit_map.mode = ADS_MODE_POW_D;
-  TWI_SEND_DATA(ADS, (uint8_t *)&m_config_frame, sizeof(m_config_frame), NULL);
+  TWI_SEND_DATA(ADS, (uint8_t *)&m_config_frame, sizeof(m_config_frame), NULL, NULL);
 }
 
 /**
@@ -111,12 +111,12 @@ void ads_power_up(void){
   m_config_frame.payload.bit_map.comp_que = ADS_COMP_QUE_DIS;
   m_config_frame.payload.bit_map.mode     = ADS_MODE_CONT;
 
-  TWI_SEND_DATA(ADS, (uint8_t *)&m_config_frame, sizeof(m_config_frame), NULL);
+  TWI_SEND_DATA(ADS, (uint8_t *)&m_config_frame, sizeof(m_config_frame), NULL, NULL);
 }
 
 static volatile void (*m_user_read_callback)(int16_t);
 
-static void m_read_value_cb(ic_return_val_e ret_val){
+static void m_read_value_cb(ic_return_val_e ret_val, void *p_context){
   if(m_user_read_callback != NULL){
     m_user_read_callback(SWAP_2_BYTES(m_conversion_read_frame));
     m_user_read_callback = NULL;
@@ -146,14 +146,16 @@ ic_return_val_e ads_get_value(void (*p_read_callback)(int16_t), bool force){
         ADS_ADDR_CONV_REG,
         (uint8_t *)&m_conversion_read_frame,
         ADS_REG_SIZE,
-        m_read_value_cb
+        m_read_value_cb,
+        NULL
         ) :
     TWI_READ_DATA(
         ADS,
         ADS_ADDR_CONV_REG,
         (uint8_t *)&m_conversion_read_frame,
         ADS_REG_SIZE,
-        m_read_value_cb
+        m_read_value_cb,
+        NULL
         );
 }
 

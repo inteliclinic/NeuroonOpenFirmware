@@ -43,16 +43,23 @@ static struct{
 
 TWI_REGISTER(ez_ltc_twi, 0x38);
 
-static void ez_ltc_twi_finished(ic_return_val_e ret_val){
+static void ez_ltc_twi_finished(ic_return_val_e ret_val, void *p_context){
   UNUSED_PARAMETER(ret_val);
+  UNUSED_PARAMETER(p_context);
   GIVE_SEMAPHORE(ez_ltc_lock);
 }
+
+enum LED_COLOR{
+  RED_COLOR,
+  GREEN_COLOR,
+  BLUE_COLOR
+};
 
 #define CHANGE_TO_RED   m_in_buffer[0] = 2
 #define CHANGE_TO_GREEN m_in_buffer[0] = 1
 #define CHANGE_TO_BLUE  m_in_buffer[0] = 3
 
-uint8_t m_in_buffer[] = {2, 63};
+static uint8_t m_in_buffer[] = {2, 63};
 
 static void send_value_to_LTC(void){
   __auto_type _sem_ret_val = pdTRUE;
@@ -66,7 +73,8 @@ static void send_value_to_LTC(void){
           ez_ltc_twi,
           m_in_buffer,
           sizeof(m_in_buffer),
-          ez_ltc_twi_finished);
+          ez_ltc_twi_finished,
+          NULL);
   }
 
   if(_twi_ret_val != IC_SUCCESS || _sem_ret_val != pdTRUE){
@@ -74,7 +82,8 @@ static void send_value_to_LTC(void){
         ez_ltc_twi,
         m_in_buffer,
         sizeof(m_in_buffer),
-        ez_ltc_twi_finished);
+        ez_ltc_twi_finished,
+        NULL);
   }
 }
 
@@ -85,7 +94,12 @@ void ez_ltc_main_task(void *args){
   TAKE_SEMAPHORE(ez_ltc_lock, 0, _dummy);
   UNUSED_PARAMETER(_dummy);
 
-  TWI_SEND_DATA(ez_ltc_twi, m_in_buffer, sizeof(m_in_buffer), ez_ltc_twi_finished);
+  TWI_SEND_DATA(
+      ez_ltc_twi,
+      m_in_buffer,
+      sizeof(m_in_buffer),
+      ez_ltc_twi_finished,
+      NULL);
 
   for(;;){
     __NOP();
@@ -166,14 +180,20 @@ void ic_ez_ltc_brighten(){
   RESUME_TASK(m_ez_ltc_task_handle);
 }
 
-static void color_change_blue(ic_return_val_e ret_val){
-  NRF_LOG_INFO("Changed to blue\n");
-  CHANGE_TO_BLUE;
-}
-
-static void color_change_red(ic_return_val_e ret_val){
-  NRF_LOG_INFO("Changed to green\n");
-  CHANGE_TO_GREEN;
+static void color_change(ic_return_val_e ret_val, void *color){
+  switch((enum LED_COLOR)color){
+    case RED_COLOR:
+      CHANGE_TO_RED;
+      break;
+    case GREEN_COLOR:
+      NRF_LOG_INFO("Changed to green\n");
+      CHANGE_TO_GREEN;
+      break;
+    case BLUE_COLOR:
+      NRF_LOG_INFO("Changed to blue\n");
+      CHANGE_TO_BLUE;
+      break;
+  }
 }
 
 static void on_connect(void){
@@ -186,7 +206,8 @@ static void on_connect(void){
       ez_ltc_twi,
       m_in_buffer,
       sizeof(m_in_buffer),
-      color_change_blue);
+      color_change,
+      (void *)BLUE_COLOR);
   NRF_LOG_INFO("%s:%d\n", (uint32_t)__func__, _ret_val);
   /*ic_ez_ltc_brighten();*/
 }
@@ -201,7 +222,8 @@ static void on_disconnect(void){
       ez_ltc_twi,
       m_in_buffer,
       sizeof(m_in_buffer),
-      color_change_red);
+      color_change,
+      (void *)GREEN_COLOR);
   NRF_LOG_INFO("%s:%d\n", (uint32_t)__func__, _ret_val);
   /*ic_ez_ltc_brighten();*/
 }
