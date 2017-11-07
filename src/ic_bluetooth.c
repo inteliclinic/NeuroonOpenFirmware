@@ -69,7 +69,7 @@
 #define APP_ADV_TIMEOUT_IN_SECONDS      0                                           /**< The advertising timeout in units of seconds. */
 
 #define MIN_CONN_INTERVAL               MSEC_TO_UNITS(8, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.1 seconds). */
-#define MAX_CONN_INTERVAL               MSEC_TO_UNITS(20, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (0.2 second). */
+#define MAX_CONN_INTERVAL               MSEC_TO_UNITS(32, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (0.2 second). */
 #define SLAVE_LATENCY                   0                                           /**< Slave latency. */
 #define CONN_SUP_TIMEOUT                MSEC_TO_UNITS(4000, UNIT_10_MS)             /**< Connection supervisory timeout (4 seconds). */
 
