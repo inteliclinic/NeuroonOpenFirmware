@@ -26,7 +26,7 @@
  *
  * @return void
  */
-typedef void (*ic_twi_event_cb)(ic_return_val_e);
+typedef void (*ic_twi_event_cb)(ic_return_val_e twi_return, void *context);
 
 /**
  * @brief Struct holding TWI instance information.
@@ -37,6 +37,7 @@ typedef void (*ic_twi_event_cb)(ic_return_val_e);
 typedef struct{
   void *nrf_twi_instance;             /** Nordic driver instance. */
   ic_twi_event_cb callback;           /** TWI IRQ callback */
+  void *context;                      /** TWI IRQ callbacks context */
   bool active;                        /** Is line ocupated by device */
   uint8_t device_address;             /** Devices TWI address */
   app_twi_transaction_t transaction;  /** RESERVED */
@@ -102,8 +103,9 @@ typedef struct{
     name,                                                                                         \
     in_buffer,                                                                                    \
     len,                                                                                          \
-    callback)                                                                                     \
-  ic_twi_send(&name##_twi_instance, in_buffer, len, callback, false)
+    callback,                                                                                     \
+    context)                                                                                      \
+  ic_twi_send(&name##_twi_instance, in_buffer, len, callback, context, false)
 
 /**
  * @brief   Macro simplifying @ref ic_twi_send
@@ -117,12 +119,13 @@ typedef struct{
  *
  * @return  @ref ic_twi_send.
  */
-#define TWI_SEND_DATA_FORCED(                                                                            \
+#define TWI_SEND_DATA_FORCED(                                                                     \
     name,                                                                                         \
     in_buffer,                                                                                    \
     len,                                                                                          \
-    callback)                                                                                     \
-  ic_twi_send(&name##_twi_instance, in_buffer, len, callback, true)
+    callback,                                                                                     \
+    context)                                                                                      \
+  ic_twi_send(&name##_twi_instance, in_buffer, len, callback, context, true)
 
 /**
  * @brief   Macro simplifying @ref ic_twi_read
@@ -140,8 +143,9 @@ typedef struct{
     reg_addr,                                                                                     \
     in_buffer,                                                                                    \
     len,                                                                                          \
-    callback)                                                                                     \
-  ic_twi_read(&name##_twi_instance, reg_addr, in_buffer, len, callback, false)
+    callback,                                                                                     \
+    context)                                                                                      \
+  ic_twi_read(&name##_twi_instance, reg_addr, in_buffer, len, callback, context, false)
 
 /**
  * @brief   Macro simplifying @ref ic_twi_read
@@ -156,13 +160,14 @@ typedef struct{
  *
  * @return  @ref ic_twi_read
  */
-#define TWI_READ_DATA_FORCED(                                                                            \
+#define TWI_READ_DATA_FORCED(                                                                     \
     name,                                                                                         \
     reg_addr,                                                                                     \
     in_buffer,                                                                                    \
     len,                                                                                          \
-    callback)                                                                                     \
-  ic_twi_read(&name##_twi_instance, reg_addr, in_buffer, len, callback, true)
+    callback,                                                                                     \
+    context)                                                                                      \
+  ic_twi_read(&name##_twi_instance, reg_addr, in_buffer, len, callback, context, true)
 
 /**
  * @brief TWI instance initialization function.
@@ -205,6 +210,7 @@ ic_return_val_e ic_twi_send(
     uint8_t *in_buffer,
     size_t len,
     ic_twi_event_cb callback,
+    void *context,
     bool force);
 
 /**
@@ -227,6 +233,7 @@ ic_return_val_e ic_twi_read(
     uint8_t *in_buffer,
     size_t len,
     ic_twi_event_cb callback,
+    void *context,
     bool force);
 
 

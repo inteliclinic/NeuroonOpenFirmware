@@ -20,6 +20,7 @@ typedef void (*ic_spi_event_cb)(void *context);
 typedef struct{
   void *nrf_spi_instance;
   ic_spi_event_cb callback;
+  void *context;
   uint8_t pin;
   bool active;                        /** Is line ocupated by device */
   struct{
@@ -40,6 +41,7 @@ ic_return_val_e ic_spi_send(
     uint8_t *out_buffer,
     size_t out_len,
     ic_spi_event_cb callback,
+    void *context,
     bool open
     );
 
@@ -55,13 +57,13 @@ bool ic_spi_instance_busy(ic_spi_instance_s *instance);
 #define SPI_INIT(name, ss_pin)\
   ic_spi_init(&name##_spi_instance, ss_pin)
 
-#define SPI_SEND_DATA(name, in_buffer, out_buffer, len, callback)\
+#define SPI_SEND_DATA(name, in_buffer, out_buffer, len, callback, context)\
   ic_spi_send(&name##_spi_instance, (uint8_t *)in_buffer, (uint8_t)len, (uint8_t *)out_buffer,\
-      (uint8_t)len, callback, false)
+      (uint8_t)len, callback, context, false)
 
-#define SPI_SEND_DATA_OPEN(name, in_buffer, out_buffer, len, callback)\
+#define SPI_SEND_DATA_OPEN(name, in_buffer, out_buffer, len, callback, context)\
   ic_spi_send(&name##_spi_instance, (uint8_t *)in_buffer, (uint8_t)len, (uint8_t *)out_buffer,\
-      (uint8_t)len, callback, true)
+      (uint8_t)len, callback, context, true)
 
 #define SPI_CS_HIGH(name) ic_spi_cs_high(&name##_spi_instance)
 
