@@ -95,7 +95,7 @@ static void spi_event_handler(nrf_drv_spi_evt_t const *p_event){
   _instance->active = false;
 
   if (_instance->callback != NULL){
-    _instance->callback(NULL);
+    _instance->callback(_instance->context);
   }
 
   _instance = show_next();
@@ -144,6 +144,7 @@ ic_return_val_e ic_spi_send(
     uint8_t *out_buffer,
     size_t out_len,
     ic_spi_event_cb callback,
+    void *context,
     bool open)
 {
   ASSERT(instance!=NULL);
@@ -152,6 +153,7 @@ ic_return_val_e ic_spi_send(
 
 
   instance->callback = callback;
+  instance->context = context;
 
   instance->transaction_desc.in_len = in_len;
   instance->transaction_desc.in_buffer = in_buffer;
