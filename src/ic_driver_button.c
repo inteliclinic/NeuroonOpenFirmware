@@ -134,10 +134,7 @@ void neuroon_exti_init(void){
     nrf_drv_gpiote_in_event_enable(m_exti[i].pin_no, true);
     APP_ERROR_CHECK(err_code);
   }
-  /*nrf_gpio_cfg_output(18);*/
-  /*nrf_gpio_pin_clear(18);*/
-  /*nrf_gpio_cfg_output(m_exti[0].pin_no);*/
-  /*nrf_gpio_pin_clear(m_exti[0].pin_no);*/
+
   err_code = app_button_init(m_buttons,sizeof(m_buttons)/sizeof(m_buttons[0]) , 6);
   APP_ERROR_CHECK(err_code);
   err_code = app_button_enable();
@@ -157,14 +154,10 @@ static void exti_callback(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t button
       if(m_acc_handle!=NULL){
         m_acc_handle(nrf_gpio_pin_read(pin)?EXTI_EDGE_UP:EXTI_EDGE_DOWN);
       }
-      else
-        NRF_LOG_INFO("No handler!(LIS3DH)");
       break;
     case IC_AFE_EXTI_PIN:
       if(m_afe_handle!=NULL)
         m_afe_handle(button_action==NRF_GPIOTE_POLARITY_LOTOHI?EXTI_EDGE_UP:EXTI_EDGE_DOWN);
-      else
-        /*NRF_LOG_INFO("No handler!(AFE)");*/
       break;
     default:
       NRF_LOG_ERROR("Unsupported pin %d!\n", pin);
@@ -187,12 +180,6 @@ static void exti_btn_callback(uint8_t pin, uint8_t button_action){
         else{
         }
       }
-      /*if(button_action == APP_BUTTON_PUSH){*/
-        /*if(m_pwr_press_handle != 0) ((p_btnCode)m_pwr_press_handle)();*/
-      /*}*/
-      /*else{*/
-        /*if(m_pwr_release_handle != 0) ((p_btnCode)m_pwr_release_handle)();*/
-      /*}*/
       break;
     case IC_BUTTON_USB_CONNECT_PIN:
       break;
