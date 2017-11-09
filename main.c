@@ -85,6 +85,8 @@
 #include "ic_config.h"
 #include "ic_easy_ltc_driver.h"
 
+#include "ic_service_time.h"
+
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE         4                                           /**< Size of timer operation queues. */
 
@@ -172,6 +174,7 @@ void init_task (void *arg){
   ic_ez_ltc_glow();
   ic_ads_service_init();
   ble_module_init();
+  ic_service_timestamp_init();
   /*ic_ble_test_init();*/
   vTaskDelete(NULL);
   taskYIELD();
