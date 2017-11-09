@@ -15,6 +15,7 @@ const char *g_return_val_string[] = {
   "IC_BUSY",
   "IC_DRIVER_BUSY",
   "IC_SOFTWARE_BUSY",
+  "IC_NOT_INIALIZED",
   "IC_WARNING",
   "IC_ERROR",
   "IC_UNKNOWN_ERROR"

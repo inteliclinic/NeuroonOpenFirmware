@@ -24,7 +24,11 @@ typedef struct{
 } ic_relative_timestamp_s;
 
 void ic_unix_timestamp_set(uint64_t timestamp);
+void ic_relative_timestamp_set(uint32_t timestamp);
 ic_unix_timestamp_s ic_unix_timestamp_get();
+ic_unix_timestamp_s ic_relative_timestamp_get();
 ic_return_val_e ic_service_timestamp_init();
+ic_return_val_e ic_service_timestamp_deinit();
+ic_return_val_e ic_service_timestamp_destroy();
 
 #endif /* !IC_SERVICE_TIME_H */
