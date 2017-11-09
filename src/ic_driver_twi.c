@@ -67,6 +67,8 @@ static void m_twi_event_handler(uint32_t result, void *p_context){
       _instance->callback(result == NRF_SUCCESS ? IC_SUCCESS : IC_ERROR, _instance->context);
 
     _instance->callback = NULL;
+  }else{
+    NRF_LOG_INFO("no instance data!\n");
   }
 }
 
@@ -95,7 +97,6 @@ static ic_return_val_e m_ic_twi_transaction(
     bool read,
     bool force)
 {
-
   ASSERT(instance!=NULL);
   ASSERT(buffer!=NULL);
   ASSERT(len<=255);
@@ -116,6 +117,7 @@ static ic_return_val_e m_ic_twi_transaction(
 
   instance->callback = callback;
   instance->context = context;
+  if(callback != NULL) instance->active = true;
 
   __auto_type _ret_val = callback == NULL ?
     app_twi_perform(
@@ -129,12 +131,11 @@ static ic_return_val_e m_ic_twi_transaction(
 
   switch (_ret_val){
     case NRF_SUCCESS:
-      if(callback != NULL) instance->active = true;
       return IC_SUCCESS;
     case NRF_ERROR_BUSY:
-      return IC_DRIVER_BUSY;
     default:
-      return IC_ERROR;
+      if(callback != NULL) instance->active = false;
+      return _ret_val == NRF_ERROR_BUSY? IC_DRIVER_BUSY : IC_ERROR;
   }
 }
 
