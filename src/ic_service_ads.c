@@ -54,10 +54,10 @@ static void ads_timer_callback(TimerHandle_t xTimer){
 
   static bool _force = false;
 
-  uint32_t _semphr_successfull;
+  __auto_type _semphr_successfull = pdTRUE;
   TAKE_SEMAPHORE(m_twi_ready, 1, _semphr_successfull);
   if(_semphr_successfull == pdFALSE){
-    /*_force = true;*/
+    NRF_LOG_INFO("Could not take TWI transaction semaphore(forced)\n");
   }
   switch(ads_get_value(read_callback, _force)){
     case IC_ERROR:
@@ -69,6 +69,7 @@ static void ads_timer_callback(TimerHandle_t xTimer){
       break;
     case IC_SOFTWARE_BUSY:
       NRF_LOG_INFO("ads read busy!(SOFT)\n");
+      ads_get_value(read_callback, true);
       _force = true;
       break;
     case IC_DRIVER_BUSY:
