@@ -158,11 +158,16 @@ LDFLAGS += -Wl,--gc-sections
 LDFLAGS += --specs=nano.specs -lc -lnosys
 
 
-.PHONY: $(BOOT_TARGET) boot generate_boot_settings merge_boot_settings flash_boot boot_bin clean_boot
+.PHONY: $(BOOT_TARGET) boot boot_help boot_gen_pub_key boot_gen_prv_key boot_generate_settings boot_merge_settings boot_flash boot_bin boot_clean
 	# default all clean help
 
 # Default target - first one defined
-#default: nrf51822_xxac_s130_boot
+default: $(BOOT_PROJ_DIR)/dfu_public_key.c $(BOOT_TARGET)
+
+# Print all targets that can be built
+boot_help:
+	@echo 	following commands are available:
+	@echo 	$(BOOT_TARGETS)
 
 TEMPLATE_PATH := $(SDK_ROOT)/components/toolchain/gcc
 
@@ -170,28 +175,38 @@ include $(TEMPLATE_PATH)/Makefile.common
 
 $(foreach target, $(BOOT_TARGET), $(call define_target, $(target)))
 
-boot: $(BOOT_TARGET)
+boot: $(BOOT_PROJ_DIR)/dfu_public_key.c $(OUTPUT_DIRECTORY)/$(BOOT_TARGET).hex
 
-clean_boot: clean
+boot_clean: clean
 
-boot_bin: $(OUTPUT_DIRECTORY)/$(BOOT_TARGET).out
+boot_bin: $(BOOT_PROJ_DIR)/dfu_public_key.c $(OUTPUT_DIRECTORY)/$(BOOT_TARGET).out
 	@$(OBJCOPY) -O binary "$<" "$(OUTPUT_DIRECTORY)/$(BOOT_TARGET).bin"
 
-generate_boot_settings: $(OUTPUT_DIRECTORY)/boot_settings.hex
+boot_generate_settings: $(OUTPUT_DIRECTORY)/boot_settings.hex
 $(OUTPUT_DIRECTORY)/boot_settings.hex:
+	@test -s $(NEUROON_APP) || { echo "Build neuroonOpen.hex! Try <<make>>"; exit 1; }
 	@echo Generating bootloader settings.
 	nrfutil settings generate --family NRF51 --application $(NEUROON_APP) --application-version $(NEUROON_APP_VER) --bootloader-version $(NEUROON_BOOT_VER) --bl-settings-version $(NEUROON_BOOT_SETTINGS_VER) $(@D)/boot_settings.hex
 
-merge_boot_settings: $(OUTPUT_DIRECTORY)/$(BOOT_TARGET)_s.hex
-$(OUTPUT_DIRECTORY)/$(BOOT_TARGET)_s.hex: $(addprefix $(OUTPUT_DIRECTORY)/, $(BOOT_TARGET).hex boot_settings.hex)
+boot_merge_settings: $(OUTPUT_DIRECTORY)/$(BOOT_TARGET)_s.hex
+$(OUTPUT_DIRECTORY)/$(BOOT_TARGET)_s.hex: $(BOOT_PROJ_DIR)/dfu_public_key.c $(addprefix $(OUTPUT_DIRECTORY)/, $(BOOT_TARGET).hex boot_settings.hex)
 	@echo Merging bootloader with bootloader settings.
-	mergehex -m $^ -o $(@D)/$(BOOT_TARGET)_s.hex
+	mergehex -m $(addprefix $(OUTPUT_DIRECTORY)/, $(BOOT_TARGET).hex boot_settings.hex) -o $(OUTPUT_DIRECTORY)/$(BOOT_TARGET)_s.hex
 
 # Flash the program
-flash_boot: $(OUTPUT_DIRECTORY)/$(BOOT_TARGET)_s.hex
+boot_flash: $(OUTPUT_DIRECTORY)/$(BOOT_TARGET)_s.hex
 	@echo Flashing dfu-bootloader with settings: $<
 	nrfjprog --program $< -f nrf51 --sectorerase
 	nrfjprog --reset -f nrf51
 
-#erase:
-	#nrfjprog --eraseall -f nrf52
+# Keys generating
+boot_gen_prv_key: $(BOOT_PROJ_DIR)/private.pem
+$(BOOT_PROJ_DIR)/private.pem:
+	@echo Checking private key.
+	@test -s $(BOOT_PROJ_DIR)/private.pem || { nrfutil keys generate $(BOOT_PROJ_DIR)/private.pem; echo "New private key generated! If you use this key to generate public key and compile bootloader, you MUST use it for generating update packages!"; }
+
+boot_gen_pub_key: $(BOOT_PROJ_DIR)/dfu_public_key.c
+$(BOOT_PROJ_DIR)/dfu_public_key.c: $(BOOT_PROJ_DIR)/private.pem
+	@echo Checking public key.
+	@test -s $(BOOT_PROJ_DIR)/dfu_public_key.c || { nrfutil keys display --key pk --format code $(BOOT_PROJ_DIR)/private.pem --out_file $(BOOT_PROJ_DIR)/dfu_public_key.c; }
+
