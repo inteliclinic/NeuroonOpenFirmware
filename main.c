@@ -101,7 +101,7 @@
 
 #define DEAD_BEEF                       0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
-static TaskHandle_t m_init_thread;
+static TaskHandle_t m_init_task;
 
 /**@brief Callback function for asserts in the SoftDevice.
  *
@@ -123,8 +123,11 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
  */
 static void power_manage(void)
 {
-  __auto_type err_code = sd_app_evt_wait();
-  APP_ERROR_CHECK(err_code);
+  /*__auto_type err_code = sd_app_evt_wait();*/
+  __SEV();
+  __WFE();
+  __WFE();
+  /*APP_ERROR_CHECK(err_code);*/
 }
 
 void vApplicationIdleHook( void )
@@ -149,11 +152,23 @@ void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
 
 static void power_down_all_systems(void){
   nrf_gpio_cfg_output(15);
-  nrf_gpio_pin_clear(15);
   nrf_gpio_cfg_output(16);
-  nrf_gpio_pin_clear(16);
   nrf_gpio_cfg_output(IC_LTC_POWER_PIN);
+  nrf_gpio_pin_clear(15);
+  nrf_gpio_pin_clear(16);
   nrf_gpio_pin_clear(IC_LTC_POWER_PIN);
+  /*nrf_gpio_cfg_default(15);*/
+  /*nrf_gpio_cfg_default(16);*/
+  /*nrf_gpio_cfg_default(IC_LTC_POWER_PIN);*/
+    nrf_gpio_cfg_default(IC_SPI_FLASH_SS_PIN);
+    nrf_gpio_cfg_default(IC_SPI_MISO_PIN);
+    nrf_gpio_cfg_default(IC_SPI_MOSI_PIN);
+    nrf_gpio_cfg_default(IC_SPI_SCK_PIN);
+    nrf_gpio_cfg_default(IC_UART_RX_PIN);
+    nrf_gpio_cfg_default(IC_UART_TX_PIN);
+    nrf_gpio_cfg_default(IC_SPI_AFE_SS_PIN);
+    nrf_gpio_cfg_default(IC_SPI_AFE_RESET_PIN);
+    nrf_gpio_cfg_default(IC_SPI_AFE_PDN_PIN);
 }
 
 static void power_up_all_systems(void){
@@ -165,19 +180,55 @@ static void power_up_all_systems(void){
   nrf_gpio_pin_set(IC_LTC_POWER_PIN);
 }
 
+ALLOCK_SEMAPHORE(m_fade_lock);
+
+static void m_fade_callback(void){
+  NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);
+  GIVE_SEMAPHORE(m_fade_lock);
+}
+
+static void m_reinit(void){
+  vTaskResume(m_init_task);
+  ic_bluetooth_enable();
+}
+
+
+static void m_deinit(void){
+  if (CHECK_INIT_SEMAPHORE(m_fade_lock))
+    INIT_SEMAPHORE_BINARY(m_fade_lock);
+
+  __auto_type _ret_val = pdFAIL;
+
+  TAKE_SEMAPHORE(m_fade_lock, 0, _ret_val);
+  ic_btn_pwr_long_press_handle_init(m_reinit);
+  ic_ads_service_deinit();
+  ic_bluetooth_disable();
+
+  ic_ez_ltc_fade(m_fade_callback);
+
+  TAKE_SEMAPHORE(m_fade_lock, pdMS_TO_TICKS(4000), _ret_val);
+  GIVE_SEMAPHORE(m_fade_lock);
+  ic_ez_ltc_module_deinit();
+  power_down_all_systems();
+  /*NVIC_DisableIRQ(RTC1_IRQn);*/
+  /*NRF_POWER->SYSTEMOFF = 1;*/
+}
 
 void init_task (void *arg){
   UNUSED_PARAMETER(arg);
-  power_up_all_systems();
-  neuroon_exti_init();
-  ic_ez_ltc_module_init();
-  ic_ez_ltc_glow();
-  ic_ads_service_init();
-  ble_module_init();
-  ic_service_timestamp_init();
-  /*ic_ble_test_init();*/
-  vTaskDelete(NULL);
-  taskYIELD();
+  for(;;){
+    power_up_all_systems();
+    ic_neuroon_exti_init();
+    ic_ez_ltc_module_init();
+    ic_btn_pwr_long_press_handle_init(m_deinit);
+    ic_ez_ltc_brighten(NULL);
+    ic_ads_service_init();
+    ic_ble_module_init();
+    ic_service_timestamp_init();
+    vTaskSuspend(NULL);
+    /*vTaskDelete(NULL);*/
+    taskYIELD();
+  }
 }
 
 void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName){
@@ -196,10 +247,9 @@ int main(void)
     err_code = nrf_drv_clock_init();
     APP_ERROR_CHECK(err_code);
 
-    if(pdPASS != xTaskCreate(init_task, "INIT", 256, NULL, 4, &m_init_thread)){
+    if(pdPASS != xTaskCreate(init_task, "INIT", 512, NULL, 4, &m_init_task)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
-
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
     NRF_LOG_INFO("starting scheduler\n");
@@ -207,7 +257,7 @@ int main(void)
 
     for (;;)
     {
-      APP_ERROR_HANDLER(NRF_ERROR_FORBIDDEN);
+      /*APP_ERROR_HANDLER(NRF_ERROR_FORBIDDEN);*/
       power_manage();
     }
 }

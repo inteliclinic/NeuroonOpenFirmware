@@ -26,7 +26,6 @@
 #include "timers.h"
 #include "semphr.h"
 
-#include "ic_config.h"
 
 #include "fstorage.h"
 #include "fds.h"
@@ -35,20 +34,19 @@
 #include "ble_dis.h"
 #include "ic_ble_service.h"
 
-#include "ble_hci.h"
-#include "ble_advdata.h"
-#include "ble_advertising.h"
 #include "ble_conn_state.h"
 
 #include "ble_cts_c.h"
 #include "ble_dfu.h"
 
 #include "ic_easy_ltc_driver.h"
+#include "ic_bluetooth.h"
 
 #define NRF_LOG_MODULE_NAME "BLE"
 #define NRF_LOG_LEVEL 5
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
+
 
 #define IS_SRVC_CHANGED_CHARACT_PRESENT 1                                           /**< Include or not the service_changed characteristic. if not enabled, the server's database cannot be changed for the lifetime of the device*/
 
@@ -87,7 +85,10 @@
 #define SEC_PARAM_MAX_KEY_SIZE          16                                          /**< Maximum encryption key size. */
 
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                            /**< Handle of the current connection. */
+static TaskHandle_t m_ble_tast_handle = NULL;
+static bool m_module_initialized = false;
 
+static bool m_ble_power_down = false;
 
 ALLOCK_SEMAPHORE(m_ble_event_ready);
 
@@ -523,7 +524,9 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
   pm_on_ble_evt(p_ble_evt);
   ble_conn_params_on_ble_evt(p_ble_evt);
   on_ble_evt(p_ble_evt);
-  ble_advertising_on_ble_evt(p_ble_evt);
+  if(!m_ble_power_down){
+    ble_advertising_on_ble_evt(p_ble_evt);
+  }
   ble_iccs_on_ble_evt(p_ble_evt);
   ic_ez_ltc_on_ble_evt(p_ble_evt);
   ble_dfu_on_ble_evt(&m_dfus, p_ble_evt);
@@ -549,9 +552,9 @@ static void ble_stack_init(void)
 {
     uint32_t err_code;
 
-    nrf_clock_lf_cfg_t clock_lf_cfg = { .source = NRF_CLOCK_LF_SRC_RC,
-      .rc_ctiv = 4,
-      .rc_temp_ctiv = 1,
+    nrf_clock_lf_cfg_t clock_lf_cfg = { .source = NRF_CLOCK_LF_SRC_SYNTH,
+      .rc_ctiv = 0,
+      .rc_temp_ctiv = 0,
       .xtal_accuracy = NRF_CLOCK_LF_XTAL_ACCURACY_20_PPM};
 
     // Initialize the SoftDevice handler module.
@@ -659,13 +662,10 @@ static void advertising_start(void)
     APP_ERROR_CHECK(err_code);
 }
 
-static void ble_stack_thread(void * arg)
-{
-  UNUSED_PARAMETER(arg);
-
+static void init_assets(void){
   // Initialize.
   ble_stack_init();
-  peer_manager_init(false);
+  peer_manager_init(true);
   gap_params_init();
   advertising_init();
   services_init();
@@ -673,6 +673,24 @@ static void ble_stack_thread(void * arg)
 
   __auto_type err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
   APP_ERROR_CHECK(err_code);
+}
+
+static void ble_stack_thread(void * arg)
+{
+  UNUSED_PARAMETER(arg);
+
+  // Initialize.
+/*
+ *  ble_stack_init();
+ *  peer_manager_init(true);
+ *  gap_params_init();
+ *  advertising_init();
+ *  services_init();
+ *  conn_params_init();
+ *
+ *  __auto_type err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
+ *  APP_ERROR_CHECK(err_code);
+ */
 
 
   while (1)
@@ -689,10 +707,50 @@ static void ble_stack_thread(void * arg)
   }
 }
 
-void ble_module_init(void){
+ic_return_val_e ic_ble_module_init(void){
+  if(m_module_initialized) return IC_SUCCESS;
+
+  init_assets();
+
   INIT_SEMAPHORE_BINARY(m_ble_event_ready);
 
-  // Start execution.
-  if (pdPASS != xTaskCreate(ble_stack_thread, "BLE", 512, NULL, 4, NULL))
-    APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+  if (m_ble_tast_handle == NULL){
+    // Start execution.
+    if (pdPASS != xTaskCreate(ble_stack_thread, "BLE", 512, NULL, 3, &m_ble_tast_handle))
+      APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+  }
+  else{
+    RESUME_TASK(m_ble_tast_handle);
+  }
+
+  m_module_initialized = true;
+  return IC_SUCCESS;
+}
+
+ic_return_val_e ic_bluetooth_disable(void){
+  if(m_module_initialized == false) return IC_NOT_INIALIZED;
+
+  __auto_type _err_code = IC_SUCCESS;
+
+  m_ble_power_down = true;
+  if(m_conn_handle != BLE_CONN_HANDLE_INVALID){
+    sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+    m_conn_handle = BLE_CONN_HANDLE_INVALID;
+  }
+  else{
+    _err_code = sd_ble_gap_adv_stop();
+    NRF_LOG_INFO("{%s} %d\n", (uint32_t)__func__, _err_code);
+  }
+
+  /*sd_softdevice_disable();*/
+  return _err_code != NRF_SUCCESS ? IC_ERROR : IC_SUCCESS;
+}
+
+ic_return_val_e ic_bluetooth_enable(void){
+  if(m_module_initialized == false) return IC_NOT_INIALIZED;
+  m_ble_power_down = false;
+  pm_peers_delete();
+  ble_advertising_start(BLE_ADV_MODE_FAST);
+
+  return NRF_SUCCESS;
 }

@@ -59,6 +59,9 @@ TWI_REGISTER(ADS, ADS_TWI_ADDRESS);
  * initialization attempt failed.
  */
 ic_return_val_e ic_ads_init (void){
+  if(m_ads_initialized)
+    return IC_SUCCESS;
+
   static uint16_t check_value = 0;
 
   TWI_INIT(ADS);
@@ -75,34 +78,35 @@ ic_return_val_e ic_ads_init (void){
     return IC_ERROR;
   }
 
-  ads_power_up();
+  ic_ads_power_up();
 
   m_ads_initialized = true;
 
   return IC_SUCCESS;
 }
 
-void ads_deinit(void){
-  ads_power_down();
-  TWI_UNINIT(ADS);
+void ic_ads_deinit(void){
+  ic_ads_power_down();
+  TWI_DEINIT(ADS);
+  m_ads_initialized = false;
   return;
 }
 
 /**
- * @fn ads_power_down ()
+ * @fn ic_ads_power_down ()
  * @brief ADS will be turned OFF
  */
-void ads_power_down(void){
+void ic_ads_power_down(void){
   memset(&m_config_frame.payload.data, 0x00, sizeof(m_config_frame));
   m_config_frame.payload.bit_map.mode = ADS_MODE_POW_D;
   TWI_SEND_DATA(ADS, (uint8_t *)&m_config_frame, sizeof(m_config_frame), NULL, NULL);
 }
 
 /**
- * @fn ads_power_up ()
+ * @fn ic_ads_power_up ()
  * @brief ADS will be turned ON
  */
-void ads_power_up(void){
+void ic_ads_power_up(void){
   memset(&m_config_frame.payload.data, 0x00, sizeof(m_config_frame));
 
   m_config_frame.payload.bit_map.os       = ADS_SINGLE_SHOT_CONV;

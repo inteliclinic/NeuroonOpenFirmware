@@ -80,14 +80,14 @@ typedef struct{
   ic_twi_init(&name##_twi_instance);
 
 /**
- * @brief Macro simplifying usage of @ref ic_twi_uninit.
+ * @brief Macro simplifying usage of @ref ic_twi_deinit.
  *
  * @param name Name of instance.
  *
- * @return  @ref ic_twi_uninit.
+ * @return  @ref ic_twi_deinit.
  */
-#define TWI_UNINIT(name)                                                                          \
-  ic_twi_uninit(&name##_twi_instance);
+#define TWI_DEINIT(name)                                                                          \
+  ic_twi_deinit(&name##_twi_instance);
 
 /**
  * @brief   Macro simplifying @ref ic_twi_send
@@ -190,7 +190,7 @@ ic_return_val_e ic_twi_init(ic_twi_instance_s * instance);
  *
  * @return  IC_SUCCESS when everything went ok (@ref ic_return_val_e).
  */
-ic_return_val_e ic_twi_uninit(ic_twi_instance_s *instance);
+ic_return_val_e ic_twi_deinit(ic_twi_instance_s *instance);
 
 /**
  * @brief Start sendig data transaction.

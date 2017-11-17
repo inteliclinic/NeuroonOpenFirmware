@@ -40,6 +40,7 @@ uint32_t m_relative_fraction_mem = 0;
 uint32_t m_unix_sub_timer_mem = 0;
 
 static TimerHandle_t m_timer_handle = NULL;
+static bool m_module_initialized = true;
 
 static inline void increment_timestamp(void){
   m_unix_timestamp.sub_timer = xTaskGetTickCount()&0x3FF;
@@ -74,6 +75,8 @@ ic_unix_timestamp_s ic_unix_timestamp_get(){
 }
 
 ic_return_val_e ic_service_timestamp_init(){
+  if(m_module_initialized == true) return IC_SUCCESS;
+
   __auto_type _tics = pdMS_TO_TICKS(1000);
 
   if(m_timer_handle == NULL)
@@ -88,6 +91,7 @@ ic_return_val_e ic_service_timestamp_init(){
     APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
   }
 
+  m_module_initialized = true;
   return IC_SUCCESS;
 }
 
@@ -97,8 +101,9 @@ ic_return_val_e ic_service_timestamp_deinit(){
 
   __auto_type _ret_val = pdFAIL;
   STOP_TIMER(m_timer_handle, 0, _ret_val);
-
   UNUSED_VARIABLE(_ret_val);
+
+  m_module_initialized = false;
 
   return IC_SUCCESS;
 }
