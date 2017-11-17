@@ -20,6 +20,8 @@
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 
+#include "nrf_gpio.h"
+
 #define TWI_READ_OP(addr) (addr|0x01)
 #define TWI_WRITE_OP(addr) (addr&0xFE)
 
@@ -174,7 +176,7 @@ ic_return_val_e ic_twi_init(ic_twi_instance_s * instance){
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-ic_return_val_e ic_twi_uninit(ic_twi_instance_s *instance){
+ic_return_val_e ic_twi_deinit(ic_twi_instance_s *instance){
   instance->nrf_twi_instance = NULL;
   instance->active = false;
 
@@ -185,6 +187,9 @@ ic_return_val_e ic_twi_uninit(ic_twi_instance_s *instance){
   if (--m_curren_state.twi_instance_cnt == 0){
     app_twi_uninit(&m_curren_state.nrf_drv_instance);
   }
+
+  nrf_gpio_cfg_default(IC_TWI_SCL_PIN);
+  nrf_gpio_cfg_default(IC_TWI_SDA_PIN);
 
   return IC_SUCCESS;
 }

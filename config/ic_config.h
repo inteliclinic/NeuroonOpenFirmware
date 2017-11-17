@@ -86,6 +86,10 @@
 #define IC_SPI_MOSI_PIN     23
 #define IC_SPI_SCK_PIN      6
 
+#define IC_SPI_AFE_SS_PIN   2
+#define IC_SPI_AFE_RESET_PIN   10
+#define IC_SPI_AFE_PDN_PIN   30
+
 /** @} */
 
 /*
@@ -151,6 +155,10 @@ static inline int isr_context(){
 
 #define ALLOCK_SEMAPHORE(name)                                              \
   static SemaphoreHandle_t name##_semaphore = NULL
+
+#define CHECK_INIT_SEMAPHORE(name) (name##_semaphore == NULL)
+
+#define GET_VAL_SEMAPHORE(name) name##_semaphore
 
 #define INIT_SEMAPHORE_BINARY(name)                                         \
   name##_semaphore = xSemaphoreCreateBinary()

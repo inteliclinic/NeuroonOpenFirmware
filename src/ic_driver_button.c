@@ -21,8 +21,6 @@
 
 #include "app_error.h"
 
-#include "ic_config.h"
-
 #define NRF_LOG_MODULE_NAME "BTN"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
@@ -32,6 +30,8 @@
 #define EXECUTE_HANDLER(code) do{\
   if(code!=NULL)code();else NRF_LOG_INFO("No handler!");\
 }while(0)
+
+static bool m_module_initialized = false;
 
 static void exti_btn_callback(uint8_t pin, uint8_t button_action);
 static void exti_callback(nrf_drv_gpiote_pin_t, nrf_gpiote_polarity_t);
@@ -119,7 +119,9 @@ void ic_afe_exti_handle_init(p_exti_code code){
   m_afe_handle = code;
 }
 
-void neuroon_exti_init(void){
+ic_return_val_e ic_neuroon_exti_init(void){
+  if(m_module_initialized) return NRF_SUCCESS;
+
   __auto_type err_code = nrf_drv_gpiote_init();
   APP_ERROR_CHECK(err_code);
   for (int i=0; i<sizeof(m_exti)/sizeof(m_exti[0]); ++i){
@@ -127,7 +129,7 @@ void neuroon_exti_init(void){
     {
       .is_watcher = false,
       .hi_accuracy = true,
-      .pull = NRF_GPIO_PIN_PULLDOWN,
+      .pull = NRF_GPIO_PIN_NOPULL,
       .sense = NRF_GPIOTE_POLARITY_TOGGLE,
     };
     err_code = nrf_drv_gpiote_in_init(m_exti[i].pin_no, &_pin_config, m_exti[i].exti_callback_code);
@@ -141,6 +143,10 @@ void neuroon_exti_init(void){
   APP_ERROR_CHECK(err_code);
   m_long_btn_press_timer = xTimerCreate("BTNT", IC_BUTTON_LONG_PRESS_OFFSET, pdFALSE, NULL,
       btn_long_press);
+
+  m_module_initialized = true;
+
+  return NRF_SUCCESS;
 }
 
 static void btn_long_press(TimerHandle_t xTimer){

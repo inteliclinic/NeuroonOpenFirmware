@@ -27,10 +27,11 @@
 
 #include "ic_nrf_error.h"
 
-static TimerHandle_t m_ads_service_timer_handle;
+static TimerHandle_t m_ads_service_timer_handle = NULL;
+static bool m_module_initialized = false;
 
 static int16_t m_eeg_measurement;
-static TaskHandle_t send_data_task_handle;
+static TaskHandle_t send_data_task_handle = NULL;
 
 ALLOCK_SEMAPHORE(m_twi_ready);
 
@@ -130,26 +131,46 @@ static void send_data_task(void *arg){
 }
 
 ic_return_val_e ic_ads_service_init(void){
+  if(m_module_initialized) return IC_SUCCESS;
 
-  ic_ads_init();
+  while(ic_ads_init() == IC_ERROR);
 
-  INIT_SEMAPHORE_BINARY(m_twi_ready);
+  if(CHECK_INIT_SEMAPHORE(m_twi_ready))
+    INIT_SEMAPHORE_BINARY(m_twi_ready);
+
   GIVE_SEMAPHORE(m_twi_ready);
 
-  m_ads_service_timer_handle = xTimerCreate(
-      "ADS_TIMER",
-      8,
-      pdTRUE,
-      NULL,
-      ads_timer_callback);
+  if(m_ads_service_timer_handle == NULL)
+    m_ads_service_timer_handle = xTimerCreate(
+        "ADS_TIMER",
+        8,
+        pdTRUE,
+        NULL,
+        ads_timer_callback);
 
-  /*xTimerStart(m_ads_service_timer_handle, 0);*/
-
-  if(pdPASS != xTaskCreate(send_data_task, "BLET", 256, NULL, 3, &send_data_task_handle)){
-    APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
-  }
+  if(send_data_task_handle == NULL)
+    if(pdPASS != xTaskCreate(send_data_task, "BLET", 256, NULL, 3, &send_data_task_handle)){
+      APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+    }
 
   ble_iccs_connect_to_stream0(on_stream_state_change);
+
+  vTaskSuspend(send_data_task_handle);
+
+  m_module_initialized = true;
+  return IC_SUCCESS;
+}
+
+ic_return_val_e ic_ads_service_deinit(void){
+  ic_ads_deinit();
+
+  m_module_initialized = false;
+
+  GIVE_SEMAPHORE(m_twi_ready);
+
+  __auto_type _ret_val = pdTRUE;
+  STOP_TIMER(m_ads_service_timer_handle, 0, _ret_val);
+  UNUSED_VARIABLE(_ret_val);
 
   vTaskSuspend(send_data_task_handle);
 

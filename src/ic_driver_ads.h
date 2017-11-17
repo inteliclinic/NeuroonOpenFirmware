@@ -134,9 +134,9 @@
 
 
 ic_return_val_e ic_ads_init(void);
-void ads_deinit();
-void ads_power_down();
-void ads_power_up(void);
+void ic_ads_deinit();
+void ic_ads_power_down();
+void ic_ads_power_up(void);
 void callback_twi(void *context);
 
 ic_return_val_e ads_get_value(void (*p_read_callback)(int16_t), bool force);
