@@ -118,7 +118,7 @@ static void ble_dfu_evt_handler(ble_dfu_t * p_dfu, ble_dfu_evt_t * p_evt){
     }
 }
 // YOUR_JOB: Use UUIDs for service(s) used in your application.
-static ble_uuid_t m_adv_uuids[] = {{BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}};
+static ble_uuid_t m_adv_uuids[] = {{BLE_UUID_ICCS_CHARACTERISTIC, BLE_UUID_TYPE_VENDOR_BEGIN}};
 /**< Universally unique service identifiers. */
 
 static void advertising_start(void);
@@ -667,9 +667,9 @@ static void init_assets(void){
   ble_stack_init();
   peer_manager_init(true);
   gap_params_init();
-  advertising_init();
   services_init();
   conn_params_init();
+  advertising_init();
 
   __auto_type err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
   APP_ERROR_CHECK(err_code);
