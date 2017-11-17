@@ -32,19 +32,6 @@ enum char_dir_e{
   CHAR_NOTIFY_ENABLE  = 0x04
 }char_dir;
 
-#define BLE_UUID_ICCS_SERVICE {0x86, 0x08, 0x1C, 0xB8, 0x1C, 0xA1, 0x0C, 0x84, 0xD3, 0xE2, 0x7F, 0xD9, 0x00, 0x00, 0x9E, 0xD0}
-
-#define BLE_UUID_ICCS_STREAM0_CHARACTERISTIC    0x0201
-#define BLE_UUID_ICCS_STREAM1_CHARACTERISTIC    0x0202
-#define BLE_UUID_ICCS_STREAM2_CHARACTERISTIC    0x0301
-
-#define BLE_UUID_ICCS_CMD_CHARACTERISTIC        0x0501
-
-#define UUID_RESPONSE_TX_CHARACTERISTIC       0x0302
-#define UUID_TEST_TOOL_TX_CHARACTERISTIC      0x0401
-#define UUID_TEST_TOOL_RX_CHARACTERISTIC      0x0402
-#define UUID_CMD_RX_CHARACTERISTIC            0x0501
-
 #define STREAM0 0
 #define STREAM1 1
 #define STREAM2 2
@@ -164,7 +151,7 @@ uint32_t ble_iccs_init(const ble_iccs_init_t *iccs_init){
   if(_err_code != NRF_SUCCESS) return _err_code;
 
   _ble_uuid.type = _uuid_type;
-  _ble_uuid.uuid = BLE_UUID_ICCS_STREAM0_CHARACTERISTIC;
+  _ble_uuid.uuid = BLE_UUID_ICCS_CHARACTERISTIC;
 
   _err_code = sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY, &_ble_uuid, &m_service_handle);
   if(_err_code != NRF_SUCCESS) return _err_code;
