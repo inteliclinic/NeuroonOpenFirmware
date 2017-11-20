@@ -79,6 +79,7 @@
 #include "ic_bluetooth.h"
 #include "ic_driver_uart.h"
 #include "ic_driver_button.h"
+#include "ic_command_task.h"
 
 #include "ic_service_ads.h"
 
@@ -225,6 +226,8 @@ void init_task (void *arg){
     ic_ads_service_init();
     ic_ble_module_init();
     ic_service_timestamp_init();
+    cmd_module_init();
+    /*cmd_task_connect_to_device_cmd(test_device_cmd_handle);*/
     vTaskSuspend(NULL);
     /*vTaskDelete(NULL);*/
     taskYIELD();
