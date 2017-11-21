@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "ic_config.h"
 #include "ic_common_types.h"
 #include "app_twi.h"
 
@@ -29,6 +30,23 @@
 typedef void (*ic_twi_event_cb)(ic_return_val_e twi_return, void *context);
 
 /**
+ * @brief
+ */
+typedef struct{
+  ic_twi_event_cb callback;           /** TWI IRQ callback */
+  void *context;                      /** TWI IRQ callbacks context */
+}ic_twi_transaction_payload_s;
+
+/**
+ * @brief
+ */
+typedef struct{
+  ic_twi_transaction_payload_s callback_array[IC_TWI_PENDIG_TRANSACTIONS];
+  uint8_t head;
+  uint8_t tail;
+}ic_twi_transaction_queue_s;
+
+/**
  * @brief Struct holding TWI instance information.
  *
  * It describes device connected to TWI line and its handling.
@@ -36,8 +54,7 @@ typedef void (*ic_twi_event_cb)(ic_return_val_e twi_return, void *context);
  */
 typedef struct{
   void *nrf_twi_instance;             /** Nordic driver instance. */
-  ic_twi_event_cb callback;           /** TWI IRQ callback */
-  void *context;                      /** TWI IRQ callbacks context */
+  ic_twi_transaction_queue_s callback_queue;
   bool active;                        /** Is line ocupated by device */
   uint8_t device_address;             /** Devices TWI address */
   app_twi_transaction_t transaction;  /** RESERVED */

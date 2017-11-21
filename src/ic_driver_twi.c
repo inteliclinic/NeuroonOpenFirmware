@@ -52,6 +52,39 @@ static struct{
   .twi_instance_cnt = 0,
 };
 
+static inline void pop_element(ic_twi_transaction_queue_s *queue){
+  if(queue->head != queue->tail){
+    if(++queue->tail==IC_TWI_PENDIG_TRANSACTIONS)
+      queue->tail = 0;
+  }
+}
+
+static inline bool put_queue_top(
+    ic_twi_transaction_queue_s *queue,
+    ic_twi_event_cb callback,
+    void *context)
+{
+  uint8_t _head = queue->head;
+  uint8_t _tail = queue->tail;
+
+  if(++_head == IC_TWI_PENDIG_TRANSACTIONS)
+    _head = 0;
+
+  if(_head == _tail)
+    return false;
+
+  queue->callback_array[queue->head].callback = callback;
+  queue->callback_array[queue->head].context = context;
+
+  queue->head++;
+
+  return true;
+}
+
+#define get_queue_top(v) v.callback_array[v.head]
+
+#define is_queue_empty(v) (v.head == v.tail)
+
 /**
  * @brief TWI IRQ handler
  *
@@ -64,11 +97,15 @@ static void m_twi_event_handler(uint32_t result, void *p_context){
 
   if(_instance != NULL){
     _instance->active = false;
+    if(!is_queue_empty(_instance->callback_queue)){
+      __auto_type _callback = get_queue_top(_instance->callback_queue).callback;
+      __auto_type _context = get_queue_top(_instance->callback_queue).context;
 
-    if(_instance->callback != NULL)
-      _instance->callback(result == NRF_SUCCESS ? IC_SUCCESS : IC_ERROR, _instance->context);
+      if(_callback != NULL)
+        _callback(result == NRF_SUCCESS ? IC_SUCCESS : IC_ERROR, _context);
 
-    _instance->callback = NULL;
+      pop_element(&_instance->callback_queue);
+    }
   }else{
     NRF_LOG_INFO("no instance data!\n");
   }
@@ -103,7 +140,7 @@ static ic_return_val_e m_ic_twi_transaction(
   ASSERT(buffer!=NULL);
   ASSERT(len<=255);
 
-  if(instance->active == true && !force) {
+  if(!put_queue_top(&instance->callback_queue, callback, context) == true && !force) {
     return IC_SOFTWARE_BUSY;
   }
 
@@ -117,8 +154,6 @@ static ic_return_val_e m_ic_twi_transaction(
     instance->transaction.number_of_transfers = 1;
   }
 
-  instance->callback = callback;
-  instance->context = context;
   if(callback != NULL) instance->active = true;
 
   __auto_type _ret_val = callback == NULL ?
