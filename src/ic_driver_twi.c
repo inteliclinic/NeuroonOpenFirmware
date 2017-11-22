@@ -139,9 +139,10 @@ static ic_return_val_e m_ic_twi_transaction(
   ASSERT(buffer!=NULL);
   ASSERT(len<=255);
 
-  if(!put_queue_top(&instance->callback_queue, callback, context) == true && !force) {
-    return IC_SOFTWARE_BUSY;
-  }
+  if(callback != NULL)
+    if(!put_queue_top(&instance->callback_queue, callback, context) == true && !force) {
+      return IC_SOFTWARE_BUSY;
+    }
 
   if(read){
     IC_TWI_WRITE(instance->transfers[0], address, &reg_addr, 1, APP_TWI_NO_STOP);
