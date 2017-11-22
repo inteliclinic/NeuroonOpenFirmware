@@ -76,12 +76,13 @@ static inline bool put_queue_top(
   queue->callback_array[queue->head].callback = callback;
   queue->callback_array[queue->head].context = context;
 
-  queue->head++;
+  if(++queue->head == IC_TWI_PENDIG_TRANSACTIONS)
+    queue->head = 0;
 
   return true;
 }
 
-#define get_queue_top(v) v.callback_array[v.head]
+#define get_queue_top(v) v.callback_array[v.head==0?IC_TWI_PENDIG_TRANSACTIONS-1:v.head-1]
 
 #define is_queue_empty(v) (v.head == v.tail)
 
@@ -92,11 +93,9 @@ static inline bool put_queue_top(
  * @param p_context user data passed by driver
  */
 static void m_twi_event_handler(uint32_t result, void *p_context){
-
   ic_twi_instance_s *_instance = p_context;
 
   if(_instance != NULL){
-    _instance->active = false;
     if(!is_queue_empty(_instance->callback_queue)){
       __auto_type _callback = get_queue_top(_instance->callback_queue).callback;
       __auto_type _context = get_queue_top(_instance->callback_queue).context;
@@ -154,8 +153,6 @@ static ic_return_val_e m_ic_twi_transaction(
     instance->transaction.number_of_transfers = 1;
   }
 
-  if(callback != NULL) instance->active = true;
-
   __auto_type _ret_val = callback == NULL ?
     app_twi_perform(
         &m_curren_state.nrf_drv_instance,
@@ -171,7 +168,6 @@ static ic_return_val_e m_ic_twi_transaction(
       return IC_SUCCESS;
     case NRF_ERROR_BUSY:
     default:
-      if(callback != NULL) instance->active = false;
       return _ret_val == NRF_ERROR_BUSY? IC_DRIVER_BUSY : IC_ERROR;
   }
 }
@@ -182,7 +178,6 @@ ic_return_val_e ic_twi_init(ic_twi_instance_s * instance){
   ASSERT(instance!=NULL);
 
   instance->nrf_twi_instance = (void *)&m_curren_state.nrf_drv_instance;
-  instance->active = false;
 
   instance->transaction.callback = m_twi_event_handler;
   instance->transaction.p_transfers = instance->transfers;
@@ -213,7 +208,6 @@ ic_return_val_e ic_twi_init(ic_twi_instance_s * instance){
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ic_return_val_e ic_twi_deinit(ic_twi_instance_s *instance){
   instance->nrf_twi_instance = NULL;
-  instance->active = false;
 
   instance->transaction.callback = NULL;
   instance->transaction.p_transfers = NULL;
