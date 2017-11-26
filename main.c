@@ -229,13 +229,13 @@ static void im_alive_task (void *arg){
   int8_t val = 0;
   for(;;){
 
-    ic_actuator_set(LEFT_RED_LED, val&0x3F, NULL);
-    ic_actuator_set(LEFT_GREEN_LED, val&0x3F, NULL);
-    ic_actuator_set(LEFT_BLUE_LED, (val&0x3F)>>3, NULL);
+    ic_actuator_set(ACTUATOR_LEFT_RED_LED, val&0x3F, NULL);
+    ic_actuator_set(ACTUATOR_LEFT_GREEN_LED, val&0x3F, NULL);
+    ic_actuator_set(ACTUATOR_LEFT_BLUE_LED, (val&0x3F)>>3, NULL);
 
-    ic_actuator_set(RIGHT_RED_LED, val&0x3F, NULL);
-    ic_actuator_set(RIGHT_GREEN_LED, val&0x3F, NULL);
-    ic_actuator_set(RIGHT_BLUE_LED, (val&0x3F)>>3, NULL);
+    ic_actuator_set(ACTUATOR_RIGHT_RED_LED, val&0x3F, NULL);
+    ic_actuator_set(ACTUATOR_RIGHT_GREEN_LED, val&0x3F, NULL);
+    ic_actuator_set(ACTUATOR_RIGHT_BLUE_LED, (val&0x3F)>>3, NULL);
 
     val++;
     vTaskDelay(16);
