@@ -528,12 +528,7 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
     ble_advertising_on_ble_evt(p_ble_evt);
   }
   ble_iccs_on_ble_evt(p_ble_evt);
-  ic_ez_ltc_on_ble_evt(p_ble_evt);
   ble_dfu_on_ble_evt(&m_dfus, p_ble_evt);
-  /*YOUR_JOB add calls to _on_ble_evt functions from each service your application is using
-    ble_xxs_on_ble_evt(&m_xxs, p_ble_evt);
-    ble_yys_on_ble_evt(&m_yys, p_ble_evt);
-    */
 }
 
 static uint32_t ble_new_event_handler(void)
