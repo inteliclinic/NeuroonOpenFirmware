@@ -41,6 +41,25 @@
     IC_TWI_TRANSFER(name, TWI_READ_OP(address), p_data, length, flags)
 
 /**
+ * @brief 
+ */
+struct transaction_queue_field_s{
+  ic_twi_event_cb callback;           /** TWI IRQ callback */
+  void *context;                      /** TWI IRQ callbacks context */
+  app_twi_transaction_t transaction;  /** RESERVED */
+  app_twi_transfer_t transfers[2];    /** RESERVED */
+};
+
+/**
+ * @brief
+ */
+struct transaction_queue_s{
+  struct transaction_queue_field_s callback_array[IC_TWI_PENDIG_TRANSACTIONS];
+  uint8_t head;
+  uint8_t tail;
+}m_transaction_queue;
+
+/**
  * @brief
  */
 static struct{
@@ -52,7 +71,7 @@ static struct{
   .twi_instance_cnt = 0,
 };
 
-static inline void pop_element(ic_twi_transaction_queue_s *queue){
+static inline void pop_element(struct transaction_queue_s *queue){
   if(queue->head != queue->tail){
     if(++queue->tail==IC_TWI_PENDIG_TRANSACTIONS)
       queue->tail = 0;
@@ -60,9 +79,11 @@ static inline void pop_element(ic_twi_transaction_queue_s *queue){
 }
 
 static inline bool put_queue_top(
-    ic_twi_transaction_queue_s *queue,
+    struct transaction_queue_s *queue,
     ic_twi_event_cb callback,
-    void *context)
+    void *context,
+    app_twi_transaction_t transaction,
+    app_twi_transfer_t *transfers) // Assumed there are 2 * sizeof(app_twi_transfer_t) bytes
 {
   uint8_t _head = queue->head;
   uint8_t _tail = queue->tail;
@@ -75,6 +96,16 @@ static inline bool put_queue_top(
 
   queue->callback_array[queue->head].callback = callback;
   queue->callback_array[queue->head].context = context;
+  queue->callback_array[queue->head].transaction = transaction;
+  queue->callback_array[queue->head].transaction.p_user_data =
+    &queue->callback_array[queue->head];
+  queue->callback_array[queue->head].transaction.p_transfers =
+    queue->callback_array[queue->head].transfers;
+  memcpy(
+      queue->callback_array[queue->head].transfers,
+      transfers,
+      sizeof(queue->callback_array[queue->head].transfers)
+      );
 
   if(++queue->head == IC_TWI_PENDIG_TRANSACTIONS)
     queue->head = 0;
@@ -82,7 +113,9 @@ static inline bool put_queue_top(
   return true;
 }
 
-#define get_queue_top(v) v.callback_array[v.head==0?IC_TWI_PENDIG_TRANSACTIONS-1:v.head-1]
+#define get_queue_last(v) v.callback_array[v.head==0?IC_TWI_PENDIG_TRANSACTIONS-1:v.head-1]
+
+#define get_queue_first(v) v.callback_array[v.tail]
 
 #define is_queue_empty(v) (v.head == v.tail)
 
@@ -93,17 +126,17 @@ static inline bool put_queue_top(
  * @param p_context user data passed by driver
  */
 static void m_twi_event_handler(uint32_t result, void *p_context){
-  ic_twi_instance_s *_instance = p_context;
+  struct transaction_queue_field_s * _transaction = p_context;
 
-  if(_instance != NULL){
-    if(!is_queue_empty(_instance->callback_queue)){
-      __auto_type _callback = get_queue_top(_instance->callback_queue).callback;
-      __auto_type _context = get_queue_top(_instance->callback_queue).context;
+  if(_transaction != NULL){
+    if(!is_queue_empty(m_transaction_queue)){
+      __auto_type _callback = get_queue_first(m_transaction_queue).callback;
+      __auto_type _context = get_queue_first(m_transaction_queue).context;
 
       if(_callback != NULL)
         _callback(result == NRF_SUCCESS ? IC_SUCCESS : IC_ERROR, _context);
 
-      pop_element(&_instance->callback_queue);
+      pop_element(&m_transaction_queue);
     }
   }else{
     NRF_LOG_INFO("no instance data!\n");
@@ -135,34 +168,48 @@ static ic_return_val_e m_ic_twi_transaction(
     bool read,
     bool force)
 {
-  ASSERT(instance!=NULL);
+  UNUSED_PARAMETER(force);
   ASSERT(buffer!=NULL);
+  ASSERT(instance!=NULL);
   ASSERT(len<=255);
 
-  if(callback != NULL)
-    if(!put_queue_top(&instance->callback_queue, callback, context) == true && !force) {
-      return IC_SOFTWARE_BUSY;
-    }
+  app_twi_transaction_t transaction = {.callback = m_twi_event_handler};
+  app_twi_transfer_t transfers[2];
 
   if(read){
-    IC_TWI_WRITE(instance->transfers[0], address, &reg_addr, 1, APP_TWI_NO_STOP);
-    IC_TWI_READ(instance->transfers[1], address, buffer, len, 0x00);
-    instance->transaction.number_of_transfers = 2;
+    IC_TWI_WRITE(transfers[0], address, &reg_addr, 1, APP_TWI_NO_STOP);
+    IC_TWI_READ(transfers[1], address, buffer, len, 0x00);
+    transaction.number_of_transfers = 2;
   }
   else{
-    IC_TWI_WRITE(instance->transfers[0], address, buffer, len, 0x00);
-    instance->transaction.number_of_transfers = 1;
+    IC_TWI_WRITE(transfers[0], address, buffer, len, 0x00);
+    transaction.number_of_transfers = 1;
+  }
+
+  if(callback != NULL){
+    __auto_type _ret_val = false;
+    CRITICAL_REGION_ENTER();
+    _ret_val = put_queue_top(
+        &m_transaction_queue,
+        callback,
+        context,
+        transaction,
+        transfers);
+    CRITICAL_REGION_EXIT();
+    if((!_ret_val) == true) {
+      return IC_SOFTWARE_BUSY;
+    }
   }
 
   __auto_type _ret_val = callback == NULL ?
     app_twi_perform(
         &m_curren_state.nrf_drv_instance,
-        instance->transaction.p_transfers,
-        instance->transaction.number_of_transfers,
+        transfers,
+        transaction.number_of_transfers,
         NULL) :
     app_twi_schedule(
         &m_curren_state.nrf_drv_instance,
-        &instance->transaction);
+        &get_queue_last(m_transaction_queue).transaction);
 
   switch (_ret_val){
     case NRF_SUCCESS:
@@ -177,12 +224,6 @@ static ic_return_val_e m_ic_twi_transaction(
 ic_return_val_e ic_twi_init(ic_twi_instance_s * instance){
 
   ASSERT(instance!=NULL);
-
-  instance->nrf_twi_instance = (void *)&m_curren_state.nrf_drv_instance;
-
-  instance->transaction.callback = m_twi_event_handler;
-  instance->transaction.p_transfers = instance->transfers;
-  instance->transaction.p_user_data = instance;
 
   if(m_curren_state.twi_instance_cnt++ == 0){
     nrf_drv_twi_config_t _twi_config = NRF_DRV_TWI_DEFAULT_CONFIG;
@@ -208,18 +249,13 @@ ic_return_val_e ic_twi_init(ic_twi_instance_s * instance){
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ic_return_val_e ic_twi_deinit(ic_twi_instance_s *instance){
-  instance->nrf_twi_instance = NULL;
-
-  instance->transaction.callback = NULL;
-  instance->transaction.p_transfers = NULL;
-  instance->transaction.p_user_data = NULL;
 
   if (--m_curren_state.twi_instance_cnt == 0){
     app_twi_uninit(&m_curren_state.nrf_drv_instance);
+    nrf_gpio_cfg_default(IC_TWI_SCL_PIN);
+    nrf_gpio_cfg_default(IC_TWI_SDA_PIN);
   }
 
-  nrf_gpio_cfg_default(IC_TWI_SCL_PIN);
-  nrf_gpio_cfg_default(IC_TWI_SDA_PIN);
 
   return IC_SUCCESS;
 }
