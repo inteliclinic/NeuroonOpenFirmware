@@ -117,8 +117,8 @@ static void ble_dfu_evt_handler(ble_dfu_t * p_dfu, ble_dfu_evt_t * p_evt){
             break;
     }
 }
-// YOUR_JOB: Use UUIDs for service(s) used in your application.
 static ble_uuid_t m_adv_uuids[] = {{BLE_UUID_ICCS_CHARACTERISTIC, BLE_UUID_TYPE_VENDOR_BEGIN}};
+// YOUR_JOB: Use UUIDs for service(s) used in your application.
 /**< Universally unique service identifiers. */
 
 static void advertising_start(void);
@@ -261,7 +261,7 @@ static void services_init(void)
 {
   ble_dis_init_t dis_init;
   memset(&dis_init, 0, sizeof(ble_dis_init_t));
-  dis_init.manufact_name_str.length = 12;
+  dis_init.manufact_name_str.length = strlen(MANUFACTURER_NAME);
   dis_init.manufact_name_str.p_str = (uint8_t *)MANUFACTURER_NAME;
   /*dis_init.dis_attr_md*/
 
@@ -528,12 +528,7 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
     ble_advertising_on_ble_evt(p_ble_evt);
   }
   ble_iccs_on_ble_evt(p_ble_evt);
-  ic_ez_ltc_on_ble_evt(p_ble_evt);
   ble_dfu_on_ble_evt(&m_dfus, p_ble_evt);
-  /*YOUR_JOB add calls to _on_ble_evt functions from each service your application is using
-    ble_xxs_on_ble_evt(&m_xxs, p_ble_evt);
-    ble_yys_on_ble_evt(&m_yys, p_ble_evt);
-    */
 }
 
 static uint32_t ble_new_event_handler(void)
@@ -639,7 +634,7 @@ static void advertising_init(void)
     memset(&advdata, 0, sizeof(advdata));
 
     advdata.name_type               = BLE_ADVDATA_FULL_NAME;
-    advdata.include_appearance      = true;
+    advdata.include_appearance      = false;
     advdata.flags                   = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
     advdata.uuids_complete.uuid_cnt = sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);
     advdata.uuids_complete.p_uuids  = m_adv_uuids;
@@ -650,7 +645,7 @@ static void advertising_init(void)
     options.ble_adv_fast_timeout  = APP_ADV_TIMEOUT_IN_SECONDS;
 
     __auto_type err_code = ble_advertising_init(&advdata, NULL, &options, on_adv_evt, NULL);
-    APP_ERROR_CHECK(err_code);
+    AmnePP_ERROR_CHECK(err_code);
 }
 
 /**@brief Function for starting advertising.
@@ -710,11 +705,11 @@ static void ble_stack_thread(void * arg)
 ic_return_val_e ic_ble_module_init(void){
   if(m_module_initialized) return IC_SUCCESS;
 
-  init_assets();
-
   INIT_SEMAPHORE_BINARY(m_ble_event_ready);
 
+  init_assets();
   if (m_ble_tast_handle == NULL){
+
     // Start execution.
     if (pdPASS != xTaskCreate(ble_stack_thread, "BLE", 512, NULL, 3, &m_ble_tast_handle))
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);

@@ -143,17 +143,24 @@ ic_return_val_e ads_get_value(void (*p_read_callback)(int16_t), bool force){
   else
     return IC_BUSY;
 
-  return          // TODO: Do it prettier
-    force ?
-    TWI_READ_DATA_FORCED(
+  if(force){
+    __auto_type _ret_val = TWI_READ_DATA(
         ADS,
         ADS_ADDR_CONV_REG,
         (uint8_t *)&m_conversion_read_frame,
         ADS_REG_SIZE,
-        m_read_value_cb,
+        NULL,
         NULL
-        ) :
-    TWI_READ_DATA(
+        );
+
+    if(m_user_read_callback != NULL){
+      m_user_read_callback(SWAP_2_BYTES(m_conversion_read_frame));
+      m_user_read_callback = NULL;
+    }
+
+    return _ret_val;
+  }else{
+    return TWI_READ_DATA(
         ADS,
         ADS_ADDR_CONV_REG,
         (uint8_t *)&m_conversion_read_frame,
@@ -162,6 +169,7 @@ ic_return_val_e ads_get_value(void (*p_read_callback)(int16_t), bool force){
         NULL
         );
 }
+  }
 
 /**@@fn ads_change_gain ()
  * @brief 			Amplifier will be set with provided gain

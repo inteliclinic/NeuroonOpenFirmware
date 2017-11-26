@@ -86,6 +86,9 @@
 #include "ic_config.h"
 #include "ic_easy_ltc_driver.h"
 
+#include "ic_driver_ltc.h"
+#include "ic_driver_actuators.h"
+
 #include "ic_service_time.h"
 
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
@@ -161,15 +164,15 @@ static void power_down_all_systems(void){
   /*nrf_gpio_cfg_default(15);*/
   /*nrf_gpio_cfg_default(16);*/
   /*nrf_gpio_cfg_default(IC_LTC_POWER_PIN);*/
-    nrf_gpio_cfg_default(IC_SPI_FLASH_SS_PIN);
-    nrf_gpio_cfg_default(IC_SPI_MISO_PIN);
-    nrf_gpio_cfg_default(IC_SPI_MOSI_PIN);
-    nrf_gpio_cfg_default(IC_SPI_SCK_PIN);
-    nrf_gpio_cfg_default(IC_UART_RX_PIN);
-    nrf_gpio_cfg_default(IC_UART_TX_PIN);
-    nrf_gpio_cfg_default(IC_SPI_AFE_SS_PIN);
-    nrf_gpio_cfg_default(IC_SPI_AFE_RESET_PIN);
-    nrf_gpio_cfg_default(IC_SPI_AFE_PDN_PIN);
+  nrf_gpio_cfg_default(IC_SPI_FLASH_SS_PIN);
+  nrf_gpio_cfg_default(IC_SPI_MISO_PIN);
+  nrf_gpio_cfg_default(IC_SPI_MOSI_PIN);
+  nrf_gpio_cfg_default(IC_SPI_SCK_PIN);
+  nrf_gpio_cfg_default(IC_UART_RX_PIN);
+  nrf_gpio_cfg_default(IC_UART_TX_PIN);
+  nrf_gpio_cfg_default(IC_SPI_AFE_SS_PIN);
+  nrf_gpio_cfg_default(IC_SPI_AFE_RESET_PIN);
+  nrf_gpio_cfg_default(IC_SPI_AFE_PDN_PIN);
 }
 
 static void power_up_all_systems(void){
@@ -181,48 +184,75 @@ static void power_up_all_systems(void){
   nrf_gpio_pin_set(IC_LTC_POWER_PIN);
 }
 
-ALLOCK_SEMAPHORE(m_fade_lock);
+/*ALLOCK_SEMAPHORE(m_fade_lock);*/
 
-static void m_fade_callback(void){
-  NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);
-  GIVE_SEMAPHORE(m_fade_lock);
+/*static void m_fade_callback(void){*/
+  /*NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);*/
+  /*GIVE_SEMAPHORE(m_fade_lock);*/
+/*}*/
+
+/*static void m_reinit(void){*/
+  /*vTaskResume(m_init_task);*/
+  /*ic_bluetooth_enable();*/
+/*}*/
+
+
+/*
+ *static void m_deinit(void){
+ *  if (CHECK_INIT_SEMAPHORE(m_fade_lock))
+ *    INIT_SEMAPHORE_BINARY(m_fade_lock);
+ *
+ *  __auto_type _ret_val = pdFAIL;
+ *
+ *  TAKE_SEMAPHORE(m_fade_lock, 0, _ret_val);
+ *  ic_btn_pwr_long_press_handle_init(m_reinit);
+ *  ic_ads_service_deinit();
+ *  ic_bluetooth_disable();
+ *
+ *
+ *  ic_actuator_init();
+ *
+ *  ic_actuator_set(LEFT_GREEN_LED, 63, NULL);
+ *
+ *  TAKE_SEMAPHORE(m_fade_lock, pdMS_TO_TICKS(4000), _ret_val);
+ *  GIVE_SEMAPHORE(m_fade_lock);
+ *  ic_ez_ltc_module_deinit();
+ *  power_down_all_systems();
+ *  [>NVIC_DisableIRQ(RTC1_IRQn);<]
+ *  [>NRF_POWER->SYSTEMOFF = 1;<]
+ *}
+ *
+ */
+
+static void im_alive_task (void *arg){
+  UNUSED_PARAMETER(arg);
+  int8_t val = 0;
+  for(;;){
+
+    ic_actuator_set(LEFT_RED_LED, val&0x3F, NULL);
+    ic_actuator_set(LEFT_GREEN_LED, val&0x3F, NULL);
+    ic_actuator_set(LEFT_BLUE_LED, (val&0x3F)>>3, NULL);
+
+    ic_actuator_set(RIGHT_RED_LED, val&0x3F, NULL);
+    ic_actuator_set(RIGHT_GREEN_LED, val&0x3F, NULL);
+    ic_actuator_set(RIGHT_BLUE_LED, (val&0x3F)>>3, NULL);
+
+    val++;
+    vTaskDelay(16);
+  }
 }
 
-static void m_reinit(void){
-  vTaskResume(m_init_task);
-  ic_bluetooth_enable();
-}
-
-
-static void m_deinit(void){
-  if (CHECK_INIT_SEMAPHORE(m_fade_lock))
-    INIT_SEMAPHORE_BINARY(m_fade_lock);
-
-  __auto_type _ret_val = pdFAIL;
-
-  TAKE_SEMAPHORE(m_fade_lock, 0, _ret_val);
-  ic_btn_pwr_long_press_handle_init(m_reinit);
-  ic_ads_service_deinit();
-  ic_bluetooth_disable();
-
-  ic_ez_ltc_fade(m_fade_callback);
-
-  TAKE_SEMAPHORE(m_fade_lock, pdMS_TO_TICKS(4000), _ret_val);
-  GIVE_SEMAPHORE(m_fade_lock);
-  ic_ez_ltc_module_deinit();
-  power_down_all_systems();
-  /*NVIC_DisableIRQ(RTC1_IRQn);*/
-  /*NRF_POWER->SYSTEMOFF = 1;*/
-}
-
-void init_task (void *arg){
+static void init_task (void *arg){
   UNUSED_PARAMETER(arg);
   for(;;){
     power_up_all_systems();
     ic_neuroon_exti_init();
-    ic_ez_ltc_module_init();
-    ic_btn_pwr_long_press_handle_init(m_deinit);
-    ic_ez_ltc_brighten(NULL);
+    ic_actuator_init();
+
+    if(pdPASS != xTaskCreate(im_alive_task, "TEST", 256, NULL, 2, NULL)){
+      APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+    }
+
     ic_ads_service_init();
     ic_ble_module_init();
     ic_service_timestamp_init();
