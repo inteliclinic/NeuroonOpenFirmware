@@ -50,6 +50,8 @@ SRC_FILES += \
   $(PROJ_DIR)/src/ic_service_ads.c\
   $(PROJ_DIR)/src/ic_service_time.c\
   $(PROJ_DIR)/src/ic_easy_ltc_driver.c\
+  $(PROJ_DIR)/src/ic_driver_ltc.c\
+  $(PROJ_DIR)/src/ic_driver_actuators.c\
   $(PROJ_DIR)/src/ic_nrf_error.c \
   $(PROJ_DIR)/src/ic_common_types.c \
   $(NUC_ROOT)/src/ic_characteristics.c \
