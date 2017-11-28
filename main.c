@@ -49,7 +49,7 @@
  * from button, advertise, get a connection restart advertising on disconnect and if no new
  * connection created go back to system-off mode.
  * It can easily be used as a starting point for creating a new application, the comments identified
- * with 'YOUR_JOB' indicates where and how you can customize.
+ u* with 'YOUR_JOB' indicates where and how you can customize.
  */
 
 #include <stdbool.h>
@@ -88,6 +88,7 @@
 
 #include "ic_driver_ltc.h"
 #include "ic_driver_actuators.h"
+#include "ic_service_ltc.h"
 
 #include "ic_service_time.h"
 
@@ -224,23 +225,23 @@ static void power_up_all_systems(void){
  *
  */
 
-static void im_alive_task (void *arg){
-  UNUSED_PARAMETER(arg);
-  int8_t val = 0;
-  for(;;){
+/*static void im_alive_task (void *arg){*/
+  /*UNUSED_PARAMETER(arg);*/
+  /*int8_t val = 0;*/
+  /*for(;;){*/
 
-    ic_actuator_set(ACTUATOR_LEFT_RED_LED, val&0x3F, NULL);
-    ic_actuator_set(ACTUATOR_LEFT_GREEN_LED, val&0x3F, NULL);
-    ic_actuator_set(ACTUATOR_LEFT_BLUE_LED, (val&0x3F)>>3, NULL);
+    /*ic_actuator_set(ACTUATOR_LEFT_RED_LED, val&0x3F, NULL);*/
+    /*ic_actuator_set(ACTUATOR_LEFT_GREEN_LED, val&0x3F, NULL);*/
+    /*ic_actuator_set(ACTUATOR_LEFT_BLUE_LED, (val&0x3F)>>3, NULL);*/
 
-    ic_actuator_set(ACTUATOR_RIGHT_RED_LED, val&0x3F, NULL);
-    ic_actuator_set(ACTUATOR_RIGHT_GREEN_LED, val&0x3F, NULL);
-    ic_actuator_set(ACTUATOR_RIGHT_BLUE_LED, (val&0x3F)>>3, NULL);
+    /*ic_actuator_set(ACTUATOR_RIGHT_RED_LED, val&0x3F, NULL);*/
+    /*ic_actuator_set(ACTUATOR_RIGHT_GREEN_LED, val&0x3F, NULL);*/
+    /*ic_actuator_set(ACTUATOR_RIGHT_BLUE_LED, (val&0x3F)>>3, NULL);*/
 
-    val++;
-    vTaskDelay(16);
-  }
-}
+    /*val++;*/
+    /*vTaskDelay(16);*/
+  /*}*/
+/*}*/
 
 static void init_task (void *arg){
   UNUSED_PARAMETER(arg);
@@ -249,9 +250,17 @@ static void init_task (void *arg){
     ic_neuroon_exti_init();
     ic_actuator_init();
 
-    if(pdPASS != xTaskCreate(im_alive_task, "TEST", 256, NULL, 2, NULL)){
-      APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
-    }
+    /*
+     *if(pdPASS != xTaskCreate(im_alive_task, "TEST", 256, NULL, 2, NULL)){
+     *  APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+     *}
+     */
+
+    ic_ltc_service_init();
+    ic_actuator_lgl_func_triangle(
+    8192,
+    4096,
+    32);
 
     ic_ads_service_init();
     ic_ble_module_init();
