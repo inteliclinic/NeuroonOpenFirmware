@@ -92,13 +92,9 @@ ic_return_val_e ic_acc_module_init(void)
   acc_data_timer = xTimerCreate("acc_data_tim", ACC_TIMER_DATA, pdTRUE, (void *) 0, data_callback);
 
   if (xTimerStart(acc_wdt_timer, 0) != pdPASS)
-  {
     NRF_LOG_ERROR("Couldn't start acc_timer\r\n");
-  }
   if (xTimerStart(acc_data_timer, 0) != pdPASS)
-  {
     NRF_LOG_ERROR("Couldn't start acc_timer\r\n");
-  }
 
   return IC_SUCCESS;
 }
