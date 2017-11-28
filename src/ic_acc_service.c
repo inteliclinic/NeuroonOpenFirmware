@@ -62,12 +62,8 @@ void ic_reset_acc_wdt(acc_data_s data)
   buffer = data;
     /*  reset the watchdog timer  */
   if (acc_wdt_timer != NULL)
-  {
     if (xTimerResetFromISR(acc_wdt_timer, 0) != pdPASS)
-    {
       NRF_LOG_ERROR("Couldn't reset timer\r\n");
-    }
-  }
 }
 
 acc_data_s ic_acc_get_data()
@@ -166,7 +162,7 @@ ic_return_val_e ic_acc_module_init(void)
   if (ic_acc_init(NULL) != IC_SUCCESS)
     return IC_ERROR;
 
-  acc_wdt_timer  = xTimerCreate("acc_wdt_timer", WATCHDOG_TIMER_PERIOD, pdTRUE, (void *) 0, wdt_timer);
+  acc_wdt_timer  = xTimerCreate("acc_wdt_timer", ACC_TIMER_DATA, pdTRUE, (void *) 0, wdt_timer);
 
   if (xTimerStart(acc_wdt_timer, 0) != pdPASS)
   {
