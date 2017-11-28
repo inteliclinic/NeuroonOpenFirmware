@@ -9,6 +9,7 @@
 
 #include "ic_driver_button.h"
 #include "app_button.h"
+#include "app_timer.h"
 #include "nordic_common.h"
 #include "nrf.h"
 
@@ -26,6 +27,8 @@
 #include "nrf_log_ctrl.h"
 
 #include "nrf_drv_gpiote.h"
+
+#include "ic_config.h"
 
 #define EXECUTE_HANDLER(code) do{\
   if(code!=NULL)code();else NRF_LOG_INFO("No handler!");\
@@ -122,6 +125,8 @@ void ic_afe_exti_handle_init(p_exti_code code){
 ic_return_val_e ic_neuroon_exti_init(void){
   if(m_module_initialized) return NRF_SUCCESS;
 
+  app_timer_init(portNRF_RTC_PRESCALER, 0, NULL, NULL);
+
   __auto_type err_code = nrf_drv_gpiote_init();
   APP_ERROR_CHECK(err_code);
   for (int i=0; i<sizeof(m_exti)/sizeof(m_exti[0]); ++i){
@@ -176,12 +181,16 @@ static void exti_btn_callback(uint8_t pin, uint8_t button_action){
     case IC_BUTTON_PWR_BUTTON_PIN:
       if (button_action == APP_BUTTON_PUSH){
         EXECUTE_HANDLER(m_pwr_press_handle);
-        xTimerStart(m_long_btn_press_timer, 0);
+        __auto_type _ret_val = pdPASS;
+        UNUSED_VARIABLE(_ret_val);
+        START_TIMER(m_long_btn_press_timer, 0, _ret_val);
       }
       else{
         EXECUTE_HANDLER(m_pwr_release_handle);
         if(xTimerIsTimerActive(m_long_btn_press_timer)!=pdFALSE){
-          xTimerStop(m_long_btn_press_timer, 0);
+          __auto_type _ret_val = pdPASS;
+          STOP_TIMER(m_long_btn_press_timer, 0, _ret_val);
+          UNUSED_VARIABLE(_ret_val);
         }
         else{
         }

@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "ic_config.h"
+#include "ic_common_types.h"
 
 bool rc_start_advertising();
 ic_return_val_e ic_ble_module_init(void);

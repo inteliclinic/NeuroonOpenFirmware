@@ -10,7 +10,7 @@
 #ifndef IC_DRIVER_BUTTON_H
 #define IC_DRIVER_BUTTON_H
 
-#include "ic_config.h"
+#include "ic_common_types.h"
 
 enum exti_edge_dir{
   EXTI_EDGE_UP = 0x00,

@@ -645,7 +645,7 @@ static void advertising_init(void)
     options.ble_adv_fast_timeout  = APP_ADV_TIMEOUT_IN_SECONDS;
 
     __auto_type err_code = ble_advertising_init(&advdata, NULL, &options, on_adv_evt, NULL);
-    AmnePP_ERROR_CHECK(err_code);
+    APP_ERROR_CHECK(err_code);
 }
 
 /**@brief Function for starting advertising.
