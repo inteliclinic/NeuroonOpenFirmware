@@ -11,7 +11,7 @@
 /**
  * Define whether you want to use accelerometer in EXTINT mode
  */
-//#define _ACC_EXTI_MODE
+#define _ACC_EXTI_MODE
 
 /**
  * @brief Reset accelerometer watchdog timer

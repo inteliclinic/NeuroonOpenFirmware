@@ -248,13 +248,13 @@ CFLAGS += -DNRF_SD_BLE_API_VERSION=2
 CFLAGS += -DNRF_DFU_SETTINGS_VERSION=1
 CFLAGS += -mcpu=cortex-m0
 CFLAGS += -mthumb -mabi=aapcs
-CFLAGS += -Wall -Werror -O2 -g0
+CFLAGS += -Wall -Werror -Og -g1
 CFLAGS += -mfloat-abi=soft
 # keep every function in separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin --short-enums
 CFLAGS += -DDEBUG
-CFLAGS += -DDEBUG_NRF
+#CFLAGS += -DDEBUG_NRF
 
 # C++ flags common to all targets
 CXXFLAGS += \
@@ -271,7 +271,7 @@ ASMFLAGS += -DNRF_SD_BLE_API_VERSION=2
 ASMFLAGS += -D__STACK_SIZE=6144
 ASMFLAGS += -D__HEAP_SIZE=0
 ASMFLAGS += -DDEBUG
-ASMFLAGS += -DDEBUG_NRF
+#ASMFLAGS += -DDEBUG_NRF
 
 # Linker flags
 LDFLAGS += -mthumb -mabi=aapcs -L $(TEMPLATE_PATH) -T$(LINKER_SCRIPT)
