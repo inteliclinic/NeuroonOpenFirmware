@@ -220,7 +220,7 @@ ic_return_val_e ic_lis3dh_init (void(*fp)(acc_data_s)){
 
 ic_return_val_e ic_lis3dh_uninit(void)
 {
-  TWI_UNINIT(LIS3DH);
+  TWI_DEINIT(LIS3DH);
     /*  set AccInt pin to high impedance mode  */
   nrf_gpio_cfg_default(IC_ACC_EXTI_PIN);
 

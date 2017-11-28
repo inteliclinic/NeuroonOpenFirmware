@@ -82,6 +82,7 @@
 #include "ic_command_task.h"
 
 #include "ic_service_ads.h"
+#include "ic_acc_service.h"
 
 #include "ic_config.h"
 #include "ic_easy_ltc_driver.h"
@@ -173,11 +174,12 @@ static void power_up_all_systems(void){
 void init_task (void *arg){
   UNUSED_PARAMETER(arg);
   power_up_all_systems();
-  neuroon_exti_init();
+  ic_neuroon_exti_init();
   ic_ez_ltc_module_init();
   ic_ez_ltc_glow();
   ic_ads_service_init();
-  ble_module_init();
+  ic_ble_module_init();
+  ic_acc_module_init();
   /*ic_ble_test_init();*/
   vTaskDelete(NULL);
   taskYIELD();
