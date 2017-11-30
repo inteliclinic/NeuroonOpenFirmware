@@ -80,7 +80,7 @@ ic_return_val_e ic_actuator_init(){
 
 ic_return_val_e ic_actuator_set(ic_actuator_e device, uint8_t val, void(*fp)(bool)){
   __auto_type _val_tmp = m_device_value[device].val;
-  m_device_value[device].val = val&0x3F;
+  m_device_value[device].val = val&IC_LTC_MAX_VAL;
   m_device_value[device].fp = fp;
 
   __auto_type _ret_val = ic_set_channel(

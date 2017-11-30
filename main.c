@@ -122,8 +122,8 @@ static TaskHandle_t m_init_task;
 void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
 {
     app_error_handler(DEAD_BEEF, line_num, p_file_name);
-}
 
+}
 /**@brief Function for the Power manager.
  */
 static void power_manage(void)
@@ -243,6 +243,8 @@ static void power_up_all_systems(void){
   /*}*/
 /*}*/
 
+#define PERIOD 1024
+
 static void init_task (void *arg){
   UNUSED_PARAMETER(arg);
   for(;;){
@@ -257,10 +259,66 @@ static void init_task (void *arg){
      */
 
     ic_ltc_service_init();
-    ic_actuator_lgl_func_triangle(
-    8192,
-    4096,
-    32);
+
+    NRF_LOG_INFO("func blink\n");
+    ic_actuator_set_blink_func(IC_LEFT_GREEN_LED, PERIOD, 0, 50);
+    ic_actuator_set_blink_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
+    ic_actuator_set_blink_func(IC_LEFT_BLUE_LED, PERIOD, 0, 8);
+    ic_actuator_set_blink_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 50);
+    ic_actuator_set_blink_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
+    ic_actuator_set_blink_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 8);
+    /*ic_actuator_set_triangle_func(IC_VIBRATOR, PERIOD, 10240, 63);*/
+    /*ic_actuator_set_triangle_func(IC_POWER_LEDS, PERIOD, 10240, 63);*/
+
+    vTaskDelay(pdMS_TO_TICKS(5000));
+
+    NRF_LOG_INFO("func on\n");
+    ic_actuator_set_on_func(IC_LEFT_GREEN_LED, PERIOD, 0, 50);
+    ic_actuator_set_on_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
+    ic_actuator_set_on_func(IC_LEFT_BLUE_LED, PERIOD, 0, 8);
+    ic_actuator_set_on_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 50);
+    ic_actuator_set_on_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
+    ic_actuator_set_on_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 8);
+
+    vTaskDelay(pdMS_TO_TICKS(5000));
+
+    NRF_LOG_INFO("func triangle\n");
+    ic_actuator_set_triangle_func(IC_LEFT_GREEN_LED, PERIOD, 0, 50);
+    ic_actuator_set_triangle_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
+    ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, PERIOD, 0, 8);
+    ic_actuator_set_triangle_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 50);
+    ic_actuator_set_triangle_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
+    ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 8);
+
+    vTaskDelay(pdMS_TO_TICKS(5000));
+
+    NRF_LOG_INFO("func saw\n");
+    ic_actuator_set_saw_func(IC_LEFT_GREEN_LED, PERIOD, 0, 50);
+    ic_actuator_set_saw_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
+    ic_actuator_set_saw_func(IC_LEFT_BLUE_LED, PERIOD, 0, 8);
+    ic_actuator_set_saw_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 50);
+    ic_actuator_set_saw_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
+    ic_actuator_set_saw_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 8);
+
+    vTaskDelay(pdMS_TO_TICKS(5000));
+
+    NRF_LOG_INFO("func square\n");
+    ic_actuator_set_square_func(IC_LEFT_GREEN_LED, PERIOD, 0, 50);
+    ic_actuator_set_square_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
+    ic_actuator_set_square_func(IC_LEFT_BLUE_LED, PERIOD, 0, 8);
+    ic_actuator_set_square_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 50);
+    ic_actuator_set_square_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
+    ic_actuator_set_square_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 8);
+
+    vTaskDelay(pdMS_TO_TICKS(5000));
+
+    NRF_LOG_INFO("func off\n");
+    ic_actuator_set_off_func(IC_LEFT_GREEN_LED, PERIOD, 0, 50);
+    ic_actuator_set_off_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
+    ic_actuator_set_off_func(IC_LEFT_BLUE_LED, PERIOD, 0, 8);
+    ic_actuator_set_off_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 50);
+    ic_actuator_set_off_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
+    ic_actuator_set_off_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 8);
 
     ic_ads_service_init();
     ic_ble_module_init();
@@ -294,8 +352,8 @@ int main(void)
     }
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
-    NRF_LOG_INFO("starting scheduler\n");
     vTaskStartScheduler();
+    NRF_LOG_INFO("starting scheduler\n");
 
     for (;;)
     {

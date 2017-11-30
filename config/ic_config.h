@@ -132,6 +132,7 @@
  */
 
 #define IC_LTC_POWER_PIN    25
+#define IC_LTC_MAX_VAL      0x3F
 
 /** @} */
 

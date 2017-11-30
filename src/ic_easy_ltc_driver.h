@@ -13,6 +13,8 @@
 #include "ic_config.h"
 #include "ble.h"
 
+#define LTC_MAX_VAL 0x3F
+
 ic_return_val_e ic_ez_ltc_module_init(void);
 void ic_ez_ltc_module_deinit(void);
 

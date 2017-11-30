@@ -14,7 +14,7 @@
 #include "app_error.h"
 
 #include "ic_config.h"
-/*#include "ic_service_ltc.h"*/
+#include "ic_service_ltc.h"
 #include "ic_driver_actuators.h"
 
 #include "ic_command_task.h"
@@ -27,86 +27,176 @@
 
 #define QUANTUM_OF_TIME 16
 
+static volatile uint32_t m_active_function_counter = 0;
+
+const float m_beta_factor = 1.0/IC_LTC_MAX_VAL;
+
 static TimerHandle_t m_ltc_refresh_timer_handle = NULL;
+static TimerHandle_t m_ltc_blink_timer_handle = NULL;
 static TaskHandle_t m_ltc_refresh_task_handle = NULL;
 
-static void m_device_parse(u_BLECmdPayload payload){
-  if(payload.device_cmd.device&DEV_RIGHT_RED_LED){
-  }
-  if(payload.device_cmd.device&DEV_RIGHT_GREEN_LED){
-  }
-  if(payload.device_cmd.device&DEV_RIGHT_BLUE_LED){
-  }
-  if(payload.device_cmd.device&DEV_LEFT_RED_LED){
-  }
-  if(payload.device_cmd.device&DEV_LEFT_GREEN_LED){
-  }
-  if(payload.device_cmd.device&DEV_LEFT_BLUE_LED){
-  }
-  if(payload.device_cmd.device&DEV_VIBRATOR){
-  }
-  if(payload.device_cmd.device&DEV_POWER_LED){
-  }
-}
-
-static int m_active_function_counter = 0;
 
 static struct device_state_s{
   uint8_t desired_val;
   ic_actuator_e device;
   void(*associated_callback)(bool);
   bool turned_on;
+  bool refresh_ltc;
   e_funcType func;
   uint32_t period;
   uint32_t duration;
   uint32_t cur_period;
   uint32_t cur_duration;
+  uint8_t intensity;
   float alpha;
+  float beta;
 }m_device_state[] =
 {
-  {.desired_val = 0x00, .device = ACTUATOR_LEFT_GREEN_LED,   .associated_callback = NULL,  .turned_on = false, .func = FUN_TYPE_OFF},
-  {.desired_val = 0x00, .device = ACTUATOR_LEFT_RED_LED,     .associated_callback = NULL,  .turned_on = false, .func = FUN_TYPE_OFF},
-  {.desired_val = 0x00, .device = ACTUATOR_LEFT_BLUE_LED,    .associated_callback = NULL,  .turned_on = false, .func = FUN_TYPE_OFF},
-  {.desired_val = 0x00, .device = ACTUATOR_RIGHT_GREEN_LED,  .associated_callback = NULL,  .turned_on = false, .func = FUN_TYPE_OFF},
-  {.desired_val = 0x00, .device = ACTUATOR_RIGHT_RED_LED,    .associated_callback = NULL,  .turned_on = false, .func = FUN_TYPE_OFF},
-  {.desired_val = 0x00, .device = ACTUATOR_RIGHT_BLUE_LED,   .associated_callback = NULL,  .turned_on = false, .func = FUN_TYPE_OFF},
-  {.desired_val = 0x00, .device = ACTUATOR_VIBRATOR,         .associated_callback = NULL,  .turned_on = false, .func = FUN_TYPE_OFF},
-  {.desired_val = 0x00, .device = ACTUATOR_POWER_LEDS,       .associated_callback = NULL,  .turned_on = false, .func = FUN_TYPE_OFF}
+  {.desired_val = 0x00, .device = ACTUATOR_LEFT_GREEN_LED,   .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF},
+  {.desired_val = 0x00, .device = ACTUATOR_LEFT_RED_LED,     .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF},
+  {.desired_val = 0x00, .device = ACTUATOR_LEFT_BLUE_LED,    .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF},
+  {.desired_val = 0x00, .device = ACTUATOR_RIGHT_GREEN_LED,  .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF},
+  {.desired_val = 0x00, .device = ACTUATOR_RIGHT_RED_LED,    .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF},
+  {.desired_val = 0x00, .device = ACTUATOR_RIGHT_BLUE_LED,   .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF},
+  {.desired_val = 0x00, .device = ACTUATOR_VIBRATOR,         .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF},
+  {.desired_val = 0x00, .device = ACTUATOR_POWER_LEDS,       .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF}
 };
 
-static uint8_t function_saw(uint8_t step, void *p_context){
-  return step>>1;
+static void m_device_parse(u_BLECmdPayload payload){
+  if(payload.device_cmd.device&DEV_RIGHT_RED_LED){
+    actuator_set_func(
+        &m_device_state[ACTUATOR_RIGHT_RED_LED],
+        payload.device_cmd.func_type,
+        payload.device_cmd.func_parameter.periodic_func.period,
+        payload.device_cmd.func_parameter.periodic_func.duration,
+        payload.device_cmd.intensity.right_red_led);
+  }
+  if(payload.device_cmd.device&DEV_RIGHT_GREEN_LED){
+    actuator_set_func(
+        &m_device_state[ACTUATOR_RIGHT_GREEN_LED],
+        payload.device_cmd.func_type,
+        payload.device_cmd.func_parameter.periodic_func.period,
+        payload.device_cmd.func_parameter.periodic_func.duration,
+        payload.device_cmd.intensity.right_green_led);
+  }
+  if(payload.device_cmd.device&DEV_RIGHT_BLUE_LED){
+    actuator_set_func(
+        &m_device_state[ACTUATOR_RIGHT_BLUE_LED],
+        payload.device_cmd.func_type,
+        payload.device_cmd.func_parameter.periodic_func.period,
+        payload.device_cmd.func_parameter.periodic_func.duration,
+        payload.device_cmd.intensity.right_blue_led);
+  }
+  if(payload.device_cmd.device&DEV_LEFT_RED_LED){
+    actuator_set_func(
+        &m_device_state[ACTUATOR_LEFT_RED_LED],
+        payload.device_cmd.func_type,
+        payload.device_cmd.func_parameter.periodic_func.period,
+        payload.device_cmd.func_parameter.periodic_func.duration,
+        payload.device_cmd.intensity.left_red_led);
+  }
+  if(payload.device_cmd.device&DEV_LEFT_GREEN_LED){
+    actuator_set_func(
+        &m_device_state[ACTUATOR_LEFT_GREEN_LED],
+        payload.device_cmd.func_type,
+        payload.device_cmd.func_parameter.periodic_func.period,
+        payload.device_cmd.func_parameter.periodic_func.duration,
+        payload.device_cmd.intensity.left_green_led);
+  }
+  if(payload.device_cmd.device&DEV_LEFT_BLUE_LED){
+    actuator_set_func(
+        &m_device_state[ACTUATOR_LEFT_BLUE_LED],
+        payload.device_cmd.func_type,
+        payload.device_cmd.func_parameter.periodic_func.period,
+        payload.device_cmd.func_parameter.periodic_func.duration,
+        payload.device_cmd.intensity.left_blue_led);
+  }
+  if(payload.device_cmd.device&DEV_VIBRATOR){
+    actuator_set_func(
+        &m_device_state[ACTUATOR_VIBRATOR],
+        payload.device_cmd.func_type,
+        payload.device_cmd.func_parameter.periodic_func.period,
+        payload.device_cmd.func_parameter.periodic_func.duration,
+        payload.device_cmd.intensity.vibrator);
+  }
+  if(payload.device_cmd.device&DEV_POWER_LED){
+    actuator_set_func(
+        &m_device_state[ACTUATOR_POWER_LEDS],
+        payload.device_cmd.func_type,
+        payload.device_cmd.func_parameter.periodic_func.period,
+        payload.device_cmd.func_parameter.periodic_func.duration,
+        0);
+  }
 }
 
-static uint8_t function_triangle(uint8_t step, void *p_context){
-  return step<64?step:127-step;
+static uint8_t function_ramp_down(struct device_state_s *device){
+  uint8_t _step = 16 * device->beta;
+  if (_step == 0) _step = 1;
+  return ({int16_t _ret_val =
+      device->desired_val - _step; _ret_val<0 ? 0 : _ret_val;});
 }
 
-static uint8_t function_off(uint8_t step, void *p_context){
-  return 0;
-}
-
-static uint8_t function_ramp_down(uint8_t step, void *p_context){
+static uint8_t function_ramp_up(struct device_state_s *device){
+  uint8_t _step = 16 * device->beta;
+  if (_step == 0) _step = 1;
   return ({__auto_type _ret_val =
-      ((struct device_state_s *)p_context)->desired_val - 3; _ret_val<0 ? 0 : _ret_val;});
+      device->desired_val + _step; _ret_val>device->intensity ? device->intensity : _ret_val;});
 }
 
-uint8_t(*m_function_map[])(uint8_t, void *) = {
+static uint8_t function_off(struct device_state_s *device){
+  return function_ramp_down(device);
+}
+
+static uint8_t function_on(struct device_state_s *device){
+  return function_ramp_up(device);
+}
+
+static uint8_t function_saw(struct device_state_s *device){
+  uint8_t _step = device->cur_period*device->alpha;
+  return (_step>>1)*device->beta;
+}
+
+static uint8_t function_triangle(struct device_state_s *device){
+  uint8_t _step = device->cur_period*device->alpha;
+  return (_step<64?_step:127-_step)*device->beta;
+}
+
+static uint8_t function_square(struct device_state_s *device){
+  uint8_t _step = device->cur_period*device->alpha;
+  uint8_t _ret_val;
+  if(_step<64){
+    _ret_val = device->intensity == device->desired_val ? device->intensity : function_ramp_up(device);
+  } else {
+    _ret_val = 0 == device->desired_val ? 0 : function_ramp_down(device);
+  }
+  return _ret_val;
+}
+
+static uint8_t function_blink(struct device_state_s *device){
+  uint8_t _ret_val;
+  if(device->cur_period<16){
+    _ret_val = device->intensity;
+  } else {
+    _ret_val = 0;
+  }
+  return _ret_val;
+}
+
+uint8_t(*m_function_map[])(struct device_state_s *) = {
   function_off,
-  function_ramp_down,
+  function_off,
+  function_on,
   NULL,
-  NULL,
-  NULL,
-  NULL,
+  function_blink,
+  function_square,
   function_saw,
   function_triangle,
   NULL
 };
 
-static uint8_t calculate_val(uint8_t step, struct device_state_s *device){
-  NRF_LOG_INFO("step: %d\n", step);
+static uint8_t calculate_val(struct device_state_s *device){
   return m_function_map[device->func] != NULL ?
-    m_function_map[device->func](step, device) : ({NRF_LOG_INFO("Function not implemented\n"); 0;});
+    m_function_map[device->func](device) : ({NRF_LOG_INFO("Function not implemented\n"); 0;});
 }
 
 #define REFRESH_ALL(func) do{\
@@ -116,7 +206,6 @@ static uint8_t calculate_val(uint8_t step, struct device_state_s *device){
 }while(0)
 
 static void refresh_device(struct device_state_s * device){
-  NRF_LOG_INFO("device->desired_val = %d\n", device->desired_val);
   __auto_type _ret_val = ic_actuator_set(
       device->device,
       device->desired_val,
@@ -130,30 +219,35 @@ static void refresh_device(struct device_state_s * device){
 static void refresh_time(struct device_state_s * device){
   if((device->cur_period += QUANTUM_OF_TIME)>device->period){
     __auto_type _delta = device->cur_period - device->period;
-    device->cur_period = _delta;
+    device->cur_period = _delta-1;
   }
 
-  if((device->cur_duration += QUANTUM_OF_TIME)>=device->duration){
-    NRF_LOG_INFO("offing, because\n");
-    device->func = FUN_TYPE_OFF;
-  }
+  if(device->duration > 0)
+    if((device->cur_duration += QUANTUM_OF_TIME)>=device->duration){
+      device->func = FUN_TYPE_OFF;
+    }
 }
 
 static void refresh_function(struct device_state_s *device){
-  NRF_LOG_INFO("alpha = %d, cur_period = %d\n",device->alpha, device->cur_period);
-  device->desired_val = calculate_val(device->cur_period*device->alpha, device);
+  __auto_type _tmp_val = calculate_val(device);
+  device->refresh_ltc = _tmp_val == device->desired_val ? false : true;
+  if(device->refresh_ltc)
+    device->desired_val = _tmp_val;
 }
 
 static void refresh_activation(struct device_state_s *device){
-  if((device->desired_val == 0)&&(device->func == FUN_TYPE_OFF)){
-    NRF_LOG_INFO("Deactivate\n");
+  if(
+      ((device->desired_val == 0)&&(device->func == FUN_TYPE_OFF)) ||
+      ((device->desired_val == device->intensity)&&(device->func == FUN_TYPE_ON))
+    )
+  {
     device->turned_on = false;
     m_active_function_counter--;
   }
 }
 
 static void ltc_refresh_timer_callback(TimerHandle_t xTimer){
-  NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);
+  NRF_LOG_INFO("no timer\n");
   REFRESH_ALL(device);
 }
 
@@ -166,8 +260,6 @@ static void ltc_refresh_task_callback(void *arg){
       last_wake_time = xTaskGetTickCount();
     }
 
-    NRF_LOG_INFO("Task: %s\n", (uint32_t)__func__);
-
     REFRESH_ALL(time);
     REFRESH_ALL(function);
     REFRESH_ALL(device);
@@ -179,23 +271,140 @@ static void ltc_refresh_task_callback(void *arg){
   }
 }
 
-ic_return_val_e ic_actuator_lgl_func_triangle(
+static ic_return_val_e actuator_set_func(
+    struct device_state_s *device,
+    e_funcType func,
     uint32_t period,
     uint32_t duration,
     uint8_t intensity)
 {
-  NRF_LOG_INFO("{%s}\n",(uint32_t)__func__);
-  m_device_state[ACTUATOR_LEFT_GREEN_LED].alpha = (128.0*intensity)/(63*period);
-  m_device_state[ACTUATOR_LEFT_GREEN_LED].cur_period = 0;
-  m_device_state[ACTUATOR_LEFT_GREEN_LED].cur_duration = 0;
-  m_device_state[ACTUATOR_LEFT_GREEN_LED].func = FUN_TYPE_TRIANGLE;
-  m_device_state[ACTUATOR_LEFT_GREEN_LED].turned_on = true;
-  m_device_state[ACTUATOR_LEFT_GREEN_LED].period = period-1;
-  m_device_state[ACTUATOR_LEFT_GREEN_LED].duration = duration-1;
-  if(m_active_function_counter++ == 0){
-    RESUME_TASK(m_ltc_refresh_task_handle);
+  device->alpha = (128.0)/(period);
+  device->beta = (intensity&IC_LTC_MAX_VAL)*m_beta_factor;
+  device->intensity = intensity;
+  device->cur_period = 0;
+  device->cur_duration = 0;
+  device->func = func;
+  device->period = period-1;
+  device->duration = duration == 0 ? 0 : duration-1;
+  if(!device->turned_on){
+    device->turned_on = true;
+    if(m_active_function_counter++ == 0){
+      RESUME_TASK(m_ltc_refresh_task_handle);
+    }
   }
   return IC_SUCCESS;
+}
+
+ic_return_val_e ic_actuator_set_off_func(
+    ic_devices_e device,
+    uint32_t period,
+    uint32_t duration,
+    uint8_t intensity)
+{
+  return actuator_set_func(
+      &m_device_state[device],
+      FUN_TYPE_OFF,
+      period,
+      duration,
+      intensity);
+}
+
+ic_return_val_e ic_actuator_set_on_func(
+    ic_devices_e device,
+    uint32_t period,
+    uint32_t duration,
+    uint8_t intensity)
+{
+  return actuator_set_func(
+      &m_device_state[device],
+      FUN_TYPE_ON,
+      period,
+      duration,
+      intensity);
+}
+
+ic_return_val_e ic_actuator_set_sin_func(
+    ic_devices_e device,
+    uint32_t period,
+    uint32_t duration,
+    uint8_t intensity)
+{
+  return actuator_set_func(
+      &m_device_state[device],
+      FUN_TYPE_SIN_WAVE,
+      period,
+      duration,
+      intensity);
+}
+
+ic_return_val_e ic_actuator_set_blink_func(
+    ic_devices_e device,
+    uint32_t period,
+    uint32_t duration,
+    uint8_t intensity)
+{
+  return actuator_set_func(
+      &m_device_state[device],
+      FUN_TYPE_BLINK,
+      period,
+      duration,
+      intensity);
+}
+
+ic_return_val_e ic_actuator_set_square_func(
+    ic_devices_e device,
+    uint32_t period,
+    uint32_t duration,
+    uint8_t intensity)
+{
+  return actuator_set_func(
+      &m_device_state[device],
+      FUN_TYPE_SQUARE,
+      period,
+      duration,
+      intensity);
+}
+
+ic_return_val_e ic_actuator_set_saw_func(
+    ic_devices_e device,
+    uint32_t period,
+    uint32_t duration,
+    uint8_t intensity)
+{
+  return actuator_set_func(
+      &m_device_state[device],
+      FUN_TYPE_SAW,
+      period,
+      duration,
+      intensity);
+}
+
+ic_return_val_e ic_actuator_set_triangle_func(
+    ic_devices_e device,
+    uint32_t period,
+    uint32_t duration,
+    uint8_t intensity)
+{
+  return actuator_set_func(
+      &m_device_state[device],
+      FUN_TYPE_TRIANGLE,
+      period,
+      duration,
+      intensity);
+}
+
+ic_return_val_e ic_actuator_set_ramp_func(
+    ic_devices_e device,
+    uint32_t period,
+    uint32_t duration,
+    uint8_t intensity)
+{
+  return actuator_set_func(
+      &m_device_state[device],
+      FUN_TYPE_RAMP,
+      period,
+      duration,
+      intensity);
 }
 
 ic_return_val_e ic_ltc_service_init(){
