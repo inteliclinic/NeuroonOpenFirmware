@@ -1,6 +1,6 @@
 /**
  * @file    ic_driver_lis3dh.c
- * @Author  Paweł Kaźmierzewski <p.kazmierzewski@inteliclinic.com>
+ * @Author  Kacper Gracki <k.gracki@inteliclinic.com>
  * @date    October, 2017
  * @brief   Brief description
  *
