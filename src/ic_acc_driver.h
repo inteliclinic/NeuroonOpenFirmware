@@ -56,4 +56,6 @@ ic_return_val_e ic_acc_read(void(*fp)(acc_data_s));
  */
 ic_return_val_e ic_acc_set_data_rate(acc_power_mode_e data_rate);
 
+ic_return_val_e ic_acc_do_self_test();
+
 #endif	// !IC_ACC_DRIVER_H //

@@ -259,4 +259,6 @@ ic_return_val_e ic_lis3dh_set_g_range(acc_g_range_e g_range);
  */
 ic_return_val_e ic_lis3dh_get_g_range(uint8_t *range);
 
+ic_return_val_e ic_lis3dh_self_test();
+
 #endif /* !IC_DRIVER_LIS3DH_H */

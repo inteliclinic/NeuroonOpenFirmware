@@ -67,3 +67,5 @@ acc_data_s ic_acc_get_data(void);
  */
 ic_return_val_e ic_acc_set_rate(acc_power_mode_e data_rate);
 
+ic_return_val_e ic_acc_selftest(void);
+
