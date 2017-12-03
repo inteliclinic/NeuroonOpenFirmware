@@ -133,6 +133,8 @@
 
 #define IC_LTC_POWER_PIN    25
 #define IC_LTC_MAX_VAL      0x3F
+#define IC_LTC_VIB_MIN_VAL  15
+#define IC_LTC_VIB_MAX_VAL  (0x3F-IC_LTC_VIB_MIN_VAL)
 
 /** @} */
 

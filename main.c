@@ -243,7 +243,41 @@ static void power_up_all_systems(void){
   /*}*/
 /*}*/
 
-#define PERIOD 1024
+#define WELCOME_PERIOD pdMS_TO_TICKS(1000)
+#define PERIOD pdMS_TO_TICKS(4000)
+
+static void on_connect(void){
+  ic_actuator_set_off_func(IC_LEFT_RED_LED, PERIOD, 0, 0);
+  ic_actuator_set_off_func(IC_RIGHT_RED_LED, PERIOD, 0, 0);
+  ic_actuator_set_off_func(IC_LEFT_GREEN_LED, PERIOD, 0, 0);
+  ic_actuator_set_off_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 0);
+}
+
+static void on_disconnect(void){
+  ic_actuator_set_triangle_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
+  ic_actuator_set_triangle_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
+  ic_actuator_set_triangle_func(IC_LEFT_GREEN_LED, PERIOD, 0, 30);
+  ic_actuator_set_triangle_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 30);
+}
+
+ void welcome(void){
+  ic_actuator_set_triangle_func(IC_POWER_LEDS, 32, 64, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_LEFT_GREEN_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_RIGHT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_RIGHT_GREEN_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_VIBRATOR, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
+}
 
 static void init_task (void *arg){
   UNUSED_PARAMETER(arg);
@@ -252,82 +286,30 @@ static void init_task (void *arg){
     ic_neuroon_exti_init();
     ic_actuator_init();
 
-    /*
-     *if(pdPASS != xTaskCreate(im_alive_task, "TEST", 256, NULL, 2, NULL)){
-     *  APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
-     *}
-     */
-
     ic_ltc_service_init();
 
-    NRF_LOG_INFO("func blink\n");
-    ic_actuator_set_blink_func(IC_LEFT_GREEN_LED, PERIOD, 0, 50);
-    ic_actuator_set_blink_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
-    ic_actuator_set_blink_func(IC_LEFT_BLUE_LED, PERIOD, 0, 8);
-    ic_actuator_set_blink_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 50);
-    ic_actuator_set_blink_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
-    ic_actuator_set_blink_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 8);
-    /*ic_actuator_set_triangle_func(IC_VIBRATOR, PERIOD, 10240, 63);*/
-    /*ic_actuator_set_triangle_func(IC_POWER_LEDS, PERIOD, 10240, 63);*/
-
-    vTaskDelay(pdMS_TO_TICKS(5000));
-
-    NRF_LOG_INFO("func on\n");
-    ic_actuator_set_on_func(IC_LEFT_GREEN_LED, PERIOD, 0, 50);
-    ic_actuator_set_on_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
-    ic_actuator_set_on_func(IC_LEFT_BLUE_LED, PERIOD, 0, 8);
-    ic_actuator_set_on_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 50);
-    ic_actuator_set_on_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
-    ic_actuator_set_on_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 8);
-
-    vTaskDelay(pdMS_TO_TICKS(5000));
-
-    NRF_LOG_INFO("func triangle\n");
-    ic_actuator_set_triangle_func(IC_LEFT_GREEN_LED, PERIOD, 0, 50);
-    ic_actuator_set_triangle_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
-    ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, PERIOD, 0, 8);
-    ic_actuator_set_triangle_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 50);
-    ic_actuator_set_triangle_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
-    ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 8);
-
-    vTaskDelay(pdMS_TO_TICKS(5000));
-
-    NRF_LOG_INFO("func saw\n");
-    ic_actuator_set_saw_func(IC_LEFT_GREEN_LED, PERIOD, 0, 50);
-    ic_actuator_set_saw_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
-    ic_actuator_set_saw_func(IC_LEFT_BLUE_LED, PERIOD, 0, 8);
-    ic_actuator_set_saw_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 50);
-    ic_actuator_set_saw_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
-    ic_actuator_set_saw_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 8);
-
-    vTaskDelay(pdMS_TO_TICKS(5000));
-
-    NRF_LOG_INFO("func square\n");
-    ic_actuator_set_square_func(IC_LEFT_GREEN_LED, PERIOD, 0, 50);
-    ic_actuator_set_square_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
-    ic_actuator_set_square_func(IC_LEFT_BLUE_LED, PERIOD, 0, 8);
-    ic_actuator_set_square_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 50);
-    ic_actuator_set_square_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
-    ic_actuator_set_square_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 8);
-
-    vTaskDelay(pdMS_TO_TICKS(5000));
-
-    NRF_LOG_INFO("func off\n");
-    ic_actuator_set_off_func(IC_LEFT_GREEN_LED, PERIOD, 0, 50);
-    ic_actuator_set_off_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
-    ic_actuator_set_off_func(IC_LEFT_BLUE_LED, PERIOD, 0, 8);
-    ic_actuator_set_off_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 50);
-    ic_actuator_set_off_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
-    ic_actuator_set_off_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 8);
+    welcome();
 
     ic_ads_service_init();
     ic_ble_module_init();
     ic_service_timestamp_init();
     cmd_module_init();
     /*cmd_task_connect_to_device_cmd(test_device_cmd_handle);*/
+    on_disconnect();
     vTaskSuspend(NULL);
     /*vTaskDelete(NULL);*/
     taskYIELD();
+  }
+}
+
+void main_on_ble_evt(ble_evt_t * p_ble_evt){
+  switch(p_ble_evt->header.evt_id){
+    case BLE_GAP_EVT_CONNECTED:
+      on_connect();
+      break;
+    case BLE_GAP_EVT_DISCONNECTED:
+      on_disconnect();
+      break;
   }
 }
 

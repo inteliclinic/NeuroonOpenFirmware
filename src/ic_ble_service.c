@@ -37,6 +37,10 @@ enum char_dir_e{
 #define STREAM2 2
 #define CMD_CHAR 3
 
+static struct {
+  uint8_t uuid_type;
+}m_service_desc;
+
 typedef struct {
   ble_gatts_char_handles_t char_handle;
   uint16_t uuid;
@@ -116,8 +120,10 @@ static uint32_t char_add(uint16_t                       uuid,
   _char_md.p_cccd_md        = NULL; //&_cccd_md;
   _char_md.p_sccd_md        = NULL;
 
-  BLE_UUID_BLE_ASSIGN(_ble_uuid, uuid);
-
+  /*BLE_UUID_BLE_ASSIGN(_ble_uuid, uuid);*/
+  _ble_uuid.type = m_service_desc.uuid_type;
+  NRF_LOG_INFO("_ble_uuid.type = %d\n",_ble_uuid.type);
+  _ble_uuid.uuid = uuid;
   memset(&_attr_md, 0, sizeof(_attr_md));
 
   if(_char_md.char_props.write) BLE_GAP_CONN_SEC_MODE_SET_OPEN(&_attr_md.write_perm);
@@ -145,12 +151,11 @@ static uint32_t char_add(uint16_t                       uuid,
 uint32_t ble_iccs_init(const ble_iccs_init_t *iccs_init){
   ble_uuid128_t _ble_uuid128 = {.uuid128 = BLE_UUID_ICCS_SERVICE};
   ble_uuid_t _ble_uuid;
-  uint8_t _uuid_type;
 
-  __auto_type _err_code = sd_ble_uuid_vs_add(&_ble_uuid128, &_uuid_type);
+  __auto_type _err_code = sd_ble_uuid_vs_add(&_ble_uuid128, &m_service_desc.uuid_type);
   if(_err_code != NRF_SUCCESS) return _err_code;
 
-  _ble_uuid.type = _uuid_type;
+  _ble_uuid.type = m_service_desc.uuid_type;
   _ble_uuid.uuid = BLE_UUID_ICCS_CHARACTERISTIC;
 
   _err_code = sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY, &_ble_uuid, &m_service_handle);
