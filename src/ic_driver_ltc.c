@@ -21,15 +21,14 @@
 
 TWI_REGISTER(ltc_twi, 0x38);
 
-static union{
-  char data;
+static struct{
   struct{
     char value : 6;
     char reseved : 1;
     char enabled : 1;
   }meta_data;
   uint8_t bufer[2];
-}m_ltc_channels[18];
+}m_ltc_channels[19];
 
 /*
  *static void m_twi_callback(ic_return_val_e ret, void *context){

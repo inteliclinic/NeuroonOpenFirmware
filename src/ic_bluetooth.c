@@ -47,6 +47,7 @@
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 
+extern void main_on_ble_evt(ble_evt_t * p_ble_evt);
 
 #define IS_SRVC_CHANGED_CHARACT_PRESENT 1                                           /**< Include or not the service_changed characteristic. if not enabled, the server's database cannot be changed for the lifetime of the device*/
 
@@ -528,6 +529,7 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
     ble_advertising_on_ble_evt(p_ble_evt);
   }
   ble_iccs_on_ble_evt(p_ble_evt);
+  main_on_ble_evt(p_ble_evt);
   ble_dfu_on_ble_evt(&m_dfus, p_ble_evt);
 }
 

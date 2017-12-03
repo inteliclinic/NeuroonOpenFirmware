@@ -49,7 +49,7 @@
  * from button, advertise, get a connection restart advertising on disconnect and if no new
  * connection created go back to system-off mode.
  * It can easily be used as a starting point for creating a new application, the comments identified
- * with 'YOUR_JOB' indicates where and how you can customize.
+ u* with 'YOUR_JOB' indicates where and how you can customize.
  */
 
 #include <stdbool.h>
@@ -88,6 +88,7 @@
 
 #include "ic_driver_ltc.h"
 #include "ic_driver_actuators.h"
+#include "ic_service_ltc.h"
 
 #include "ic_service_time.h"
 
@@ -121,8 +122,8 @@ static TaskHandle_t m_init_task;
 void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
 {
     app_error_handler(DEAD_BEEF, line_num, p_file_name);
-}
 
+}
 /**@brief Function for the Power manager.
  */
 static void power_manage(void)
@@ -224,22 +225,58 @@ static void power_up_all_systems(void){
  *
  */
 
-static void im_alive_task (void *arg){
-  UNUSED_PARAMETER(arg);
-  int8_t val = 0;
-  for(;;){
+/*static void im_alive_task (void *arg){*/
+  /*UNUSED_PARAMETER(arg);*/
+  /*int8_t val = 0;*/
+  /*for(;;){*/
 
-    ic_actuator_set(LEFT_RED_LED, val&0x3F, NULL);
-    ic_actuator_set(LEFT_GREEN_LED, val&0x3F, NULL);
-    ic_actuator_set(LEFT_BLUE_LED, (val&0x3F)>>3, NULL);
+    /*ic_actuator_set(ACTUATOR_LEFT_RED_LED, val&0x3F, NULL);*/
+    /*ic_actuator_set(ACTUATOR_LEFT_GREEN_LED, val&0x3F, NULL);*/
+    /*ic_actuator_set(ACTUATOR_LEFT_BLUE_LED, (val&0x3F)>>3, NULL);*/
 
-    ic_actuator_set(RIGHT_RED_LED, val&0x3F, NULL);
-    ic_actuator_set(RIGHT_GREEN_LED, val&0x3F, NULL);
-    ic_actuator_set(RIGHT_BLUE_LED, (val&0x3F)>>3, NULL);
+    /*ic_actuator_set(ACTUATOR_RIGHT_RED_LED, val&0x3F, NULL);*/
+    /*ic_actuator_set(ACTUATOR_RIGHT_GREEN_LED, val&0x3F, NULL);*/
+    /*ic_actuator_set(ACTUATOR_RIGHT_BLUE_LED, (val&0x3F)>>3, NULL);*/
 
-    val++;
-    vTaskDelay(16);
-  }
+    /*val++;*/
+    /*vTaskDelay(16);*/
+  /*}*/
+/*}*/
+
+#define WELCOME_PERIOD pdMS_TO_TICKS(1000)
+#define PERIOD pdMS_TO_TICKS(4000)
+
+static void on_connect(void){
+  ic_actuator_set_off_func(IC_LEFT_RED_LED, PERIOD, 0, 0);
+  ic_actuator_set_off_func(IC_RIGHT_RED_LED, PERIOD, 0, 0);
+  ic_actuator_set_off_func(IC_LEFT_GREEN_LED, PERIOD, 0, 0);
+  ic_actuator_set_off_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 0);
+}
+
+static void on_disconnect(void){
+  ic_actuator_set_triangle_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
+  ic_actuator_set_triangle_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
+  ic_actuator_set_triangle_func(IC_LEFT_GREEN_LED, PERIOD, 0, 30);
+  ic_actuator_set_triangle_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 30);
+}
+
+ void welcome(void){
+  ic_actuator_set_triangle_func(IC_POWER_LEDS, 32, 64, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_LEFT_GREEN_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_RIGHT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_RIGHT_GREEN_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_VIBRATOR, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
 }
 
 static void init_task (void *arg){
@@ -249,18 +286,30 @@ static void init_task (void *arg){
     ic_neuroon_exti_init();
     ic_actuator_init();
 
-    if(pdPASS != xTaskCreate(im_alive_task, "TEST", 256, NULL, 2, NULL)){
-      APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
-    }
+    ic_ltc_service_init();
+
+    welcome();
 
     ic_ads_service_init();
     ic_ble_module_init();
     ic_service_timestamp_init();
     cmd_module_init();
     /*cmd_task_connect_to_device_cmd(test_device_cmd_handle);*/
+    on_disconnect();
     vTaskSuspend(NULL);
     /*vTaskDelete(NULL);*/
     taskYIELD();
+  }
+}
+
+void main_on_ble_evt(ble_evt_t * p_ble_evt){
+  switch(p_ble_evt->header.evt_id){
+    case BLE_GAP_EVT_CONNECTED:
+      on_connect();
+      break;
+    case BLE_GAP_EVT_DISCONNECTED:
+      on_disconnect();
+      break;
   }
 }
 
@@ -285,8 +334,8 @@ int main(void)
     }
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
-    NRF_LOG_INFO("starting scheduler\n");
     vTaskStartScheduler();
+    NRF_LOG_INFO("starting scheduler\n");
 
     for (;;)
     {

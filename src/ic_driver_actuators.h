@@ -15,17 +15,41 @@
 #include <stdbool.h>
 
 typedef enum{
-  LEFT_GREEN_LED = 0x00,
-  LEFT_RED_LED,
-  LEFT_BLUE_LED,
-  RIGHT_GREEN_LED,
-  RIGHT_RED_LED,
-  RIGHT_BLUE_LED,
-  VIBRATOR,
-  POWER_LEDS
-}e_device;
+  ACTUATOR_LEFT_GREEN_LED = 0x00,
+  ACTUATOR_LEFT_RED_LED,
+  ACTUATOR_LEFT_BLUE_LED,
+  ACTUATOR_RIGHT_GREEN_LED,
+  ACTUATOR_RIGHT_RED_LED,
+  ACTUATOR_RIGHT_BLUE_LED,
+  ACTUATOR_VIBRATOR,
+  ACTUATOR_POWER_LEDS
+}ic_actuator_e;
 
+/**
+ * @brief 
+ *
+ * @return 
+ */
 ic_return_val_e ic_actuator_init(void);
-ic_return_val_e ic_actuator_set(e_device device, uint8_t val, void(*fp)(bool));
+
+/**
+ * @brief 
+ *
+ * @param device
+ * @param val
+ * @param fp
+ *
+ * @return 
+ */
+ic_return_val_e ic_actuator_set(ic_actuator_e device, uint8_t val, void(*fp)(bool));
+
+/**
+ * @brief 
+ *
+ * @param device
+ *
+ * @return 
+ */
+uint8_t ic_actuator_get_current_val(ic_actuator_e device);
 
 #endif /* !IC_DRIVER_ACTUATORS_H */
