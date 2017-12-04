@@ -49,7 +49,7 @@
  * from button, advertise, get a connection restart advertising on disconnect and if no new
  * connection created go back to system-off mode.
  * It can easily be used as a starting point for creating a new application, the comments identified
- u* with 'YOUR_JOB' indicates where and how you can customize.
+ * with 'YOUR_JOB' indicates where and how you can customize.
  */
 
 #include <stdbool.h>
@@ -82,6 +82,8 @@
 #include "ic_command_task.h"
 
 #include "ic_service_ads.h"
+
+#include "ic_acc_service.h"
 
 #include "ic_config.h"
 #include "ic_easy_ltc_driver.h"
@@ -124,8 +126,8 @@ static void (*m_welcome)(void);
 void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
 {
     app_error_handler(DEAD_BEEF, line_num, p_file_name);
-
 }
+
 /**@brief Function for the Power manager.
  */
 static void power_manage(void)
@@ -227,7 +229,7 @@ static void power_up_all_systems(void){
  *
  */
 
-/*static void im_alive_task (void *arg){*/
+
   /*UNUSED_PARAMETER(arg);*/
   /*int8_t val = 0;*/
   /*for(;;){*/
@@ -343,8 +345,9 @@ static void init_task (void *arg){
   UNUSED_PARAMETER(arg);
   for(;;){
     power_up_all_systems();
-    ic_btn_pwr_long_press_handle_init(m_deep_sleep);
     ic_neuroon_exti_init();
+    ic_btn_pwr_long_press_handle_init(m_deep_sleep);
+
     if(m_welcome != showoff)
       vTaskDelay(pdMS_TO_TICKS(2000));
 
@@ -414,8 +417,8 @@ int main(void)
     vTaskSuspend(m_cleanup_task);
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
-    vTaskStartScheduler();
     NRF_LOG_INFO("starting scheduler\n");
+    vTaskStartScheduler();
 
     for (;;)
     {
