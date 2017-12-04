@@ -107,6 +107,8 @@
 #define DEAD_BEEF                       0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
 static TaskHandle_t m_init_task;
+static TaskHandle_t m_cleanup_task;
+static void (*m_welcome)(void);
 
 /**@brief Callback function for asserts in the SoftDevice.
  *
@@ -261,8 +263,51 @@ static void on_disconnect(void){
 }
 
  void welcome(void){
-  ic_actuator_set_triangle_func(IC_POWER_LEDS, 32, 64, 63);
+  ic_actuator_set_triangle_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
   vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_LEFT_GREEN_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_RIGHT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_RIGHT_GREEN_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
+}
+
+void showoff(void){
+  ic_actuator_set_triangle_func(IC_POWER_LEDS, WELCOME_PERIOD>>2, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
+  ic_actuator_set_triangle_func(IC_LEFT_GREEN_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
+  ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
+  ic_actuator_set_triangle_func(IC_RIGHT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
+  ic_actuator_set_triangle_func(IC_RIGHT_GREEN_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
+  ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
+  ic_actuator_set_triangle_func(IC_VIBRATOR, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
+
+  power_down_all_systems();
+
+  NRF_POWER->SYSTEMOFF = 1;
+}
+
+void bye_bye(void){
+  ic_actuator_set_off_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  ic_actuator_set_off_func(IC_LEFT_GREEN_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  ic_actuator_set_off_func(IC_LEFT_BLUE_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  ic_actuator_set_off_func(IC_RIGHT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  ic_actuator_set_off_func(IC_RIGHT_GREEN_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  ic_actuator_set_off_func(IC_RIGHT_BLUE_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+
   ic_actuator_set_triangle_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
   vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
   ic_actuator_set_triangle_func(IC_LEFT_GREEN_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
@@ -275,23 +320,46 @@ static void on_disconnect(void){
   vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
   ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
   vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
-  ic_actuator_set_triangle_func(IC_VIBRATOR, WELCOME_PERIOD, WELCOME_PERIOD, 63);
-  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
+}
+
+static void m_deep_sleep(void){
+  RESUME_TASK(m_cleanup_task);
+}
+
+static void cleanup_task (void *arg){
+  bye_bye();
+
+  ic_bluetooth_disable();
+  ic_ads_service_deinit();
+
+  vTaskDelay(1024);
+
+  power_down_all_systems();
+
+  NRF_POWER->SYSTEMOFF = 1;
 }
 
 static void init_task (void *arg){
   UNUSED_PARAMETER(arg);
   for(;;){
     power_up_all_systems();
+    ic_btn_pwr_long_press_handle_init(m_deep_sleep);
     ic_neuroon_exti_init();
-    ic_actuator_init();
+    if(m_welcome != showoff)
+      vTaskDelay(pdMS_TO_TICKS(2000));
+
+    if(!ic_button_pressed(IC_BUTTON_PWR_BUTTON_PIN) && m_welcome == welcome){
+      power_down_all_systems();
+      NRF_POWER->SYSTEMOFF = 1;
+    }
 
     ic_ltc_service_init();
 
-    welcome();
+    m_welcome();
 
     ic_ads_service_init();
     ic_ble_module_init();
+    sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
     ic_service_timestamp_init();
     cmd_module_init();
     /*cmd_task_connect_to_device_cmd(test_device_cmd_handle);*/
@@ -332,6 +400,18 @@ int main(void)
     if(pdPASS != xTaskCreate(init_task, "INIT", 512, NULL, 4, &m_init_task)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
+
+    if(pdPASS != xTaskCreate(cleanup_task, "INIT", 128, NULL, 4, &m_cleanup_task)){
+      APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+    }
+
+    NRF_LOG_INFO("Reset reason: %d; Ret val: %d\n", NRF_POWER->RESETREAS, sd_power_reset_reason_clr(0xFFFFFFFF));
+
+    m_welcome = NRF_POWER->RESETREAS & (0x01<<16) ? welcome : showoff;
+
+    NRF_LOG_INFO("GPREGRET: %d\n", NRF_POWER->GPREGRET);
+
+    vTaskSuspend(m_cleanup_task);
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
     vTaskStartScheduler();
