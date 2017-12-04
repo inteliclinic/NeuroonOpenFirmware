@@ -151,6 +151,7 @@ void m_reconfigure_reg_bit(uint8_t reg, uint8_t bits, bool set){
 #define CLR_REG_BIT(reg, bits) m_reconfigure_reg_bit(reg, bits, false)
 
 #define DISABLE_DRDY_INT  CLR_REG_BIT(LIS3DH_REG_CTRL_REG3, LIS3DH_CTRL_REG3_I1_DRDY)
+  /*  enable interrupt by setting I1_ZXDYA bit in LIS3DH_REG_CTRL_REG3 register  */
 #define ENABLE_DRDY_INT   SET_REG_BIT(LIS3DH_REG_CTRL_REG3, LIS3DH_CTRL_REG3_I1_DRDY)
 
 ic_return_val_e ic_lis3dh_init (void(*fp)(acc_data_s)){
@@ -288,14 +289,14 @@ ic_return_val_e ic_lis3dh_get_g_range(uint8_t *range)
       break;
   }
 
-  NRF_LOG_FLUSH();
-
   return IC_SUCCESS;
 }
 
 ic_return_val_e ic_lis3dh_self_test()
 {
+    /*  high-pass filter mode normal  */
   m_config_reg(LIS3DH_REG_CTRL_REG2, 0x00);
+    /*  disable interrupt pin configuration */
   m_config_reg(LIS3DH_REG_CTRL_REG3, 0x00);
   m_config_reg(LIS3DH_REG_CTRL_REG4, 0x80);
   m_config_reg(LIS3DH_REG_CTRL_REG1, 0x47);
@@ -310,14 +311,11 @@ ic_return_val_e ic_lis3dh_self_test()
   acc_data_s nost_acc_data[5] = {0};
   acc_data_s st_acc_data[5] = {0};
 
-  for (int i=0;i<5;i++)
+  for (int i = 0; i < 5;i++)
   {
-    if((lis3dh_bufer[0] & 0b00001000)==0)
-    {
-      __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, &nost_acc_data[i]);
-      if(_ret_val == IC_SOFTWARE_BUSY)
-        TWI_READ_DATA_FORCED(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, &nost_acc_data[i]);
-    }
+    __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, &nost_acc_data[i]);
+    if(_ret_val == IC_SOFTWARE_BUSY)
+      TWI_READ_DATA_FORCED(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, &nost_acc_data[i]);
   }
 
   acc_data_s ave_nost_acc_data = {0};
@@ -336,22 +334,16 @@ ic_return_val_e ic_lis3dh_self_test()
     /*  enable self-test  */
   m_config_reg(LIS3DH_REG_CTRL_REG4, 0x82);
 
-  if ((lis3dh_bufer[0] & 0b00001000)==0)
+  __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, NULL);
+  if(_ret_val == IC_SOFTWARE_BUSY)
+    TWI_READ_DATA_FORCED(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, NULL);
+
+
+  for (int i = 0; i < 5; i++)
   {
-    __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, NULL);
+    __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, &st_acc_data[i]);
     if(_ret_val == IC_SOFTWARE_BUSY)
-      TWI_READ_DATA_FORCED(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, NULL);
-  }
-
-
-  for (int i=0;i<5;i++)
-  {
-    if ((lis3dh_bufer[0] & 0b00001000)==0)
-    {
-      __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, &st_acc_data[i]);
-      if(_ret_val == IC_SOFTWARE_BUSY)
-        TWI_READ_DATA_FORCED(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, &st_acc_data[i]);
-    }
+      TWI_READ_DATA_FORCED(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, &st_acc_data[i]);
   }
 
   acc_data_s ave_st_acc_data = {0};
@@ -372,8 +364,19 @@ ic_return_val_e ic_lis3dh_self_test()
       (abs(abs(ave_st_acc_data.y) - abs(ave_nost_acc_data.y)) < MIN_VAL) &&
       (abs(abs(ave_st_acc_data.z) - abs(ave_nost_acc_data.z)) < MIN_VAL))
   {
+      /*  disable sensor  */
+    m_config_reg(LIS3DH_REG_CTRL_REG1, 0x00);
+      /*  disable selftest  */
+    m_config_reg(LIS3DH_REG_CTRL_REG4, 0x00);
+
     return IC_SUCCESS;
   }
   else
+  {
+    /*  disable sensor  */
+    m_config_reg(LIS3DH_REG_CTRL_REG1, 0x00);
+      /*  disable selftest  */
+    m_config_reg(LIS3DH_REG_CTRL_REG4, 0x00);
+  }
     return IC_ERROR;
 }
