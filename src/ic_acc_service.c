@@ -26,6 +26,8 @@ TimerHandle_t acc_data_timer;
 
 static volatile acc_data_s buffer;
 
+static void(*m_user_cb)(acc_data_s data);
+
 #ifdef _ACC_EXTI_MODE
 /**************************************************************************************************************************/
 void ic_wdt_get_data(acc_data_s data)
@@ -39,8 +41,8 @@ void ic_wdt_get_data(acc_data_s data)
 void wdt_timer()
 {
 //	NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);
-
-  ic_acc_read(ic_wdt_get_data);
+  if(m_user_cb != NULL)
+    ic_acc_read(m_user_cb);
 }
 /**************************************************************************************************************************/
 void data_callback()
@@ -86,7 +88,7 @@ ic_return_val_e ic_acc_selftest(void)
   return IC_SUCCESS;
 }
 /**************************************************************************************************************************/
-ic_return_val_e ic_acc_module_init(void)
+ic_return_val_e ic_acc_module_init(void(*cb)(acc_data_s))
 {
     /**
      *  init accelerometer module and pass your callback function
@@ -98,6 +100,8 @@ ic_return_val_e ic_acc_module_init(void)
 
   acc_wdt_timer  = xTimerCreate("acc_wdt_timer", WATCHDOG_TIMER_PERIOD, pdTRUE, (void *) 0, wdt_timer);
   acc_data_timer = xTimerCreate("acc_data_tim", ACC_TIMER_DATA, pdTRUE, (void *) 0, data_callback);
+
+  m_user_cb = cb;
 
   if (xTimerStart(acc_wdt_timer, 0) != pdPASS)
     NRF_LOG_ERROR("Couldn't start acc_timer\r\n");
@@ -138,7 +142,7 @@ void wdt_timer()
 {
 //	NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);
 
-  ic_acc_read(ic_wdt_get_data);
+  ic_acc_read(m_user_cb);
 }
 /**************************************************************************************************************************/
 void ic_reset_acc_wdt(acc_data_s data)
@@ -156,7 +160,7 @@ void ic_reset_acc_wdt(acc_data_s data)
   }
 }
 /**************************************************************************************************************************/
-ic_return_val_e ic_acc_module_init(void)
+ic_return_val_e ic_acc_module_init(void(*cb)(acc_data_s))
 {
   /***
    *  init accelerometer module and pass your callback function
@@ -167,6 +171,8 @@ ic_return_val_e ic_acc_module_init(void)
     return IC_ERROR;
 
   acc_wdt_timer  = xTimerCreate("acc_wdt_timer", ACC_TIMER_DATA, pdTRUE, (void *) 0, wdt_timer);
+
+  m_user_cb = cb;
 
   if (xTimerStart(acc_wdt_timer, 0) != pdPASS)
   {

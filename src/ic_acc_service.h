@@ -12,6 +12,7 @@
  * Define whether you want to use accelerometer in EXTINT mode
  */
 #define _ACC_EXTI_MODE
+#undef _ACC_EXTI_MODE
 
 /**
  * @brief Reset accelerometer watchdog timer
@@ -32,7 +33,7 @@ void ic_wdt_get_data(acc_data_s data);
 /**
  * @brief Initialize accelerometer module
  */
-ic_return_val_e ic_acc_module_init(void);
+ic_return_val_e ic_acc_module_init(void(*cb)(acc_data_s));
 
 /**
  * @brief Deinitialization accelerometer module
