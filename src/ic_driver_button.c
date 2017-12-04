@@ -218,3 +218,7 @@ static void exti_btn_callback(uint8_t pin, uint8_t button_action){
 #endif
 }
 
+bool ic_button_pressed(uint8_t pin){
+  return nrf_gpio_pin_read(pin);
+}
+
