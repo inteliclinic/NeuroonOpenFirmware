@@ -14,6 +14,12 @@
 #include "app_util_platform.h"
 #include "ic_common_types.h"
 
+#ifndef NEUROON_OPEN_VERSION
+#define APP_VERSION "NILL"
+#else
+#define APP_VERSION NEUROON_OPEN_VERSION
+#endif
+
 #define OSTIMER_WAIT_FOR_QUEUE  2 /**< Number of ticks to wait for the timer queue to be ready */
 
 #define IC_IRQ_PRIORITY_HIGHEST APP_IRQ_PRIORITY_HIGHEST

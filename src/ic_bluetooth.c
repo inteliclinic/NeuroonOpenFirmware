@@ -100,7 +100,7 @@ ALLOCK_SEMAPHORE(m_ble_event_ready);
    static ble_yy_service_t                     m_yys;
  */
 
-static ble_dfu_t m_dfus;                                                            /**< Structure used to identify the DFU service. */
+static ble_dfu_t m_dfus;/* Structure used to identify the DFU service. */
 
 static void ble_dfu_evt_handler(ble_dfu_t * p_dfu, ble_dfu_evt_t * p_evt){
     switch (p_evt->type){
@@ -264,6 +264,8 @@ static void services_init(void)
   memset(&dis_init, 0, sizeof(ble_dis_init_t));
   dis_init.manufact_name_str.length = strlen(MANUFACTURER_NAME);
   dis_init.manufact_name_str.p_str = (uint8_t *)MANUFACTURER_NAME;
+  dis_init.sw_rev_str.length = strlen(NEUROON_OPEN_VERSION);
+  dis_init.sw_rev_str.p_str = (uint8_t *)NEUROON_OPEN_VERSION;
   /*dis_init.dis_attr_md*/
 
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&dis_init.dis_attr_md.read_perm);
@@ -713,7 +715,7 @@ ic_return_val_e ic_ble_module_init(void){
   if (m_ble_tast_handle == NULL){
 
     // Start execution.
-    if (pdPASS != xTaskCreate(ble_stack_thread, "BLE", 512, NULL, 3, &m_ble_tast_handle))
+    if (pdPASS != xTaskCreate(ble_stack_thread, "BLE", 384, NULL, 3, &m_ble_tast_handle))
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
   }
   else{

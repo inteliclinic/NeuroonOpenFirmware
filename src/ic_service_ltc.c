@@ -494,7 +494,7 @@ ic_return_val_e ic_ltc_service_init(){
   if(pdPASS != xTaskCreate(
         ltc_refresh_task_callback,
         "LTCS",
-        256,
+        128,
         NULL,
         2,
         &m_ltc_refresh_task_handle))

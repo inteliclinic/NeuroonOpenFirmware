@@ -6,6 +6,8 @@ SDK_ROOT := sdk
 NUC_ROOT := nuc
 PROJ_DIR := .
 
+GIT_VERSION = $(shell git describe --tags --abbrev=5 --dirty=-D)
+
 $(OUTPUT_DIRECTORY)/$(TARGET).out: \
   LINKER_SCRIPT  := linker_script.ld
 
@@ -249,12 +251,13 @@ CFLAGS += -DNRF_SD_BLE_API_VERSION=2
 CFLAGS += -DNRF_DFU_SETTINGS_VERSION=1
 CFLAGS += -mcpu=cortex-m0
 CFLAGS += -mthumb -mabi=aapcs
-CFLAGS += -Wall -Werror -Og -g1
+CFLAGS += -Wall -Werror -Og -g3
 CFLAGS += -mfloat-abi=soft
 # keep every function in separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin --short-enums
-CFLAGS += -DDEBUG
+CFLAGS += -DNEUROON_OPEN_VERSION=\"$(GIT_VERSION)\"\
+#CFLAGS += -DDEBUG
 #CFLAGS += -DDEBUG_NRF
 
 # C++ flags common to all targets

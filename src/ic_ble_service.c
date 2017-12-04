@@ -94,11 +94,12 @@ static characteritic_desc_t m_char_stream_list[] = {
  *
  * @return      NRF_SUCCESS on success, otherwise an error code.
  */
-static uint32_t char_add(uint16_t                       uuid,
-    uint8_t                        *p_char_value,
-    uint16_t                       char_len,
-    ble_gatts_char_handles_t       *p_handles,
-    uint8_t                        read_write)
+static uint32_t char_add(
+    uint16_t                  uuid,
+    uint8_t                   *p_char_value,
+    uint16_t                  char_len,
+    ble_gatts_char_handles_t  *p_handles,
+    uint8_t                   read_write)
 {
   ble_uuid_t          _ble_uuid;
   ble_gatts_char_md_t _char_md;
@@ -255,21 +256,21 @@ ic_return_val_e ble_iccs_send_to_stream0(
     const uint8_t *data,
     size_t len,
     uint32_t *err){
-  return ble_iccs_send_to_char(data, len, &m_char_stream_list[0], err);
+  return ble_iccs_send_to_char(data, len, &m_char_stream_list[STREAM0], err);
 }
 
 ic_return_val_e ble_iccs_send_to_stream1(
     const uint8_t *data,
     size_t len,
     uint32_t *err){
-  return ble_iccs_send_to_char(data, len, &m_char_stream_list[1], err);
+  return ble_iccs_send_to_char(data, len, &m_char_stream_list[STREAM1], err);
 }
 
 ic_return_val_e ble_iccs_send_to_stream2(
     const uint8_t *data,
     size_t len,
     uint32_t *err){
-  return ble_iccs_send_to_char(data, len, &m_char_stream_list[2], err);
+  return ble_iccs_send_to_char(data, len, &m_char_stream_list[STREAM2], err);
 }
 
 bool ble_iccs_stream0_ready(){

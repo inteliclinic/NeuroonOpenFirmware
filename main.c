@@ -92,6 +92,8 @@
 #include "ic_driver_actuators.h"
 #include "ic_service_ltc.h"
 
+#include "ic_ble_service.h"
+
 #include "ic_service_time.h"
 
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
@@ -247,7 +249,7 @@ static void power_up_all_systems(void){
   /*}*/
 /*}*/
 
-#define WELCOME_PERIOD pdMS_TO_TICKS(1000)
+#define WELCOME_PERIOD pdMS_TO_TICKS(500)
 #define PERIOD pdMS_TO_TICKS(4000)
 
 static void on_connect(void){
@@ -281,7 +283,7 @@ static void on_disconnect(void){
 
 void showoff(void){
   ic_actuator_set_triangle_func(IC_POWER_LEDS, WELCOME_PERIOD>>2, WELCOME_PERIOD, 63);
-  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
   ic_actuator_set_triangle_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
   vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
   ic_actuator_set_triangle_func(IC_LEFT_GREEN_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
@@ -325,10 +327,13 @@ void bye_bye(void){
 }
 
 static void m_deep_sleep(void){
+  NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);
   RESUME_TASK(m_cleanup_task);
 }
 
 static void cleanup_task (void *arg){
+  NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);
+  sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
   bye_bye();
 
   ic_bluetooth_disable();
@@ -341,36 +346,85 @@ static void cleanup_task (void *arg){
   NRF_POWER->SYSTEMOFF = 1;
 }
 
+/*********************/
+/* AFE&ACC module */
+#if 1
+TaskHandle_t m_stream1_handle = NULL;
+
+static bool m_send_to_stream = false;
+
+static void on_stream_state_change(bool active){
+  NRF_LOG_INFO("{%s}\n",(uint32_t)__func__);
+  m_send_to_stream = active;
+}
+static u_otherDataFrameContainer m_stream1_output_frame;
+
+static void m_acc_measured(acc_data_s data){
+
+  m_stream1_output_frame.frame.time_stamp = xTaskGetTickCount();
+  m_stream1_output_frame.frame.acc[0] = data.x;
+  m_stream1_output_frame.frame.acc[1] = data.y;
+  m_stream1_output_frame.frame.acc[2] = data.z;
+
+  /*NRF_LOG_INFO("x: %d, y: %d, z: %d\n",data.x, data.y, data.z)*/
+
+  if(m_send_to_stream){
+    RESUME_TASK(m_stream1_handle);
+  }
+}
+
+void stream1_task(void *arg){
+  for(;;){
+    ble_iccs_send_to_stream1(
+        m_stream1_output_frame.raw_data,
+        sizeof(u_otherDataFrameContainer),
+        NULL);
+    vTaskSuspend(NULL);
+  }
+}
+
+static void init_acc_afe(void){
+  ble_iccs_connect_to_stream1(on_stream_state_change);
+
+  if(pdPASS != xTaskCreate(stream1_task, "STR1", 128, NULL, 2, &m_stream1_handle)){
+    APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+  }
+  vTaskSuspend(m_stream1_handle);
+
+  ic_acc_module_init(m_acc_measured);
+  NRF_LOG_FLUSH();
+}
+#endif
+/*********************/
+
 static void init_task (void *arg){
   UNUSED_PARAMETER(arg);
-  for(;;){
-    power_up_all_systems();
-    ic_neuroon_exti_init();
-    ic_btn_pwr_long_press_handle_init(m_deep_sleep);
+  power_up_all_systems();
 
-    if(m_welcome != showoff)
-      vTaskDelay(pdMS_TO_TICKS(2000));
+  ic_neuroon_exti_init();
+  if(m_welcome != showoff)
+    vTaskDelay(pdMS_TO_TICKS(1500));
 
-    if(!ic_button_pressed(IC_BUTTON_PWR_BUTTON_PIN) && m_welcome == welcome){
-      power_down_all_systems();
-      NRF_POWER->SYSTEMOFF = 1;
-    }
-
-    ic_ltc_service_init();
-
-    m_welcome();
-
-    ic_ads_service_init();
-    ic_ble_module_init();
-    sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
-    ic_service_timestamp_init();
-    cmd_module_init();
-    /*cmd_task_connect_to_device_cmd(test_device_cmd_handle);*/
-    on_disconnect();
-    vTaskSuspend(NULL);
-    /*vTaskDelete(NULL);*/
-    taskYIELD();
+  if(!ic_button_pressed(IC_BUTTON_PWR_BUTTON_PIN) && m_welcome == welcome){
+    power_down_all_systems();
+    NRF_POWER->SYSTEMOFF = 1;
   }
+
+  ic_ltc_service_init();
+
+  m_welcome();
+  ic_neuroon_exti_init();
+  ic_btn_pwr_long_press_handle_init(m_deep_sleep);
+
+  ic_ads_service_init();
+  init_acc_afe();
+  ic_ble_module_init();
+  sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
+  ic_service_timestamp_init();
+  cmd_module_init();
+  on_disconnect();
+  vTaskDelete(NULL);
+  taskYIELD();
 }
 
 void main_on_ble_evt(ble_evt_t * p_ble_evt){
@@ -400,13 +454,16 @@ int main(void)
     err_code = nrf_drv_clock_init();
     APP_ERROR_CHECK(err_code);
 
-    if(pdPASS != xTaskCreate(init_task, "INIT", 512, NULL, 4, &m_init_task)){
+
+    if(pdPASS != xTaskCreate(init_task, "INIT", 384, NULL, 4, &m_init_task)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
 
-    if(pdPASS != xTaskCreate(cleanup_task, "INIT", 128, NULL, 4, &m_cleanup_task)){
+    if(pdPASS != xTaskCreate(cleanup_task, "INIT", 192, NULL, 4, &m_cleanup_task)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
+    vTaskSuspend(m_cleanup_task);
+
 
     NRF_LOG_INFO("Reset reason: %d; Ret val: %d\n", NRF_POWER->RESETREAS, sd_power_reset_reason_clr(0xFFFFFFFF));
 
@@ -414,7 +471,6 @@ int main(void)
 
     NRF_LOG_INFO("GPREGRET: %d\n", NRF_POWER->GPREGRET);
 
-    vTaskSuspend(m_cleanup_task);
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
     NRF_LOG_INFO("starting scheduler\n");

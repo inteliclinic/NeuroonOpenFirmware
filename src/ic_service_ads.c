@@ -149,7 +149,7 @@ ic_return_val_e ic_ads_service_init(void){
         ads_timer_callback);
 
   if(send_data_task_handle == NULL)
-    if(pdPASS != xTaskCreate(send_data_task, "BLET", 256, NULL, 3, &send_data_task_handle)){
+    if(pdPASS != xTaskCreate(send_data_task, "BLET", 192, NULL, 3, &send_data_task_handle)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
 
