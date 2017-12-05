@@ -41,8 +41,12 @@ ic_return_val_e ic_acc_set_rate(acc_power_mode_e data_rate)
 /**************************************************************************************************************************/
 ic_return_val_e ic_acc_selftest(void)
 {
-  if (ic_acc_do_self_test() != IC_SUCCESS)
-    return IC_ERROR;
+  ic_acc_do_self_test1();
+  vTaskDelay(90);
+  ic_acc_do_self_test2();
+  vTaskDelay(90);
+  ic_acc_do_self_test3();
+  vTaskDelay(90);
 
   return IC_SUCCESS;
 }

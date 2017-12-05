@@ -51,9 +51,25 @@ ic_return_val_e ic_acc_set_data_rate(acc_power_mode_e data_rate)
   return IC_SUCCESS;
 }
 /*************************************************************/
-ic_return_val_e ic_acc_do_self_test()
+ic_return_val_e ic_acc_do_self_test1()
 {
-  if (ic_lis3dh_self_test() != IC_SUCCESS)
+  if (ic_lis3dh_self_test1() != IC_SUCCESS)
+    return IC_ERROR;
+
+  return IC_SUCCESS;
+}
+/*************************************************************/
+ic_return_val_e ic_acc_do_self_test2()
+{
+  if (ic_lis3dh_self_test2() != IC_SUCCESS)
+    return IC_ERROR;
+
+  return IC_SUCCESS;
+}
+/*************************************************************/
+ic_return_val_e ic_acc_do_self_test3()
+{
+  if (ic_lis3dh_self_test3() != IC_SUCCESS)
     return IC_ERROR;
 
   return IC_SUCCESS;

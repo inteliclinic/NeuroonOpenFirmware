@@ -292,7 +292,12 @@ ic_return_val_e ic_lis3dh_get_g_range(uint8_t *range)
   return IC_SUCCESS;
 }
 
-ic_return_val_e ic_lis3dh_self_test()
+#ifdef _DO_SELF_TEST
+
+static acc_data_s m_ave_nost_acc_data = {0};
+static acc_data_s m_ave_st_acc_data = {0};
+
+ic_return_val_e ic_lis3dh_self_test1()
 {
     /*  high-pass filter mode normal  */
   m_config_reg(LIS3DH_REG_CTRL_REG2, 0x00);
@@ -301,68 +306,73 @@ ic_return_val_e ic_lis3dh_self_test()
   m_config_reg(LIS3DH_REG_CTRL_REG4, 0x80);
   m_config_reg(LIS3DH_REG_CTRL_REG1, 0x47);
 
-  if ((lis3dh_bufer[0] & 0b00001000)==0)
-  {
-    __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, NULL);
-    if(_ret_val == IC_SOFTWARE_BUSY)
-      TWI_READ_DATA_FORCED(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, NULL);
-  }
+  return IC_SUCCESS;
+}
 
-  acc_data_s nost_acc_data[5] = {0};
-  acc_data_s st_acc_data[5] = {0};
-
-  for (int i = 0; i < 5;i++)
-  {
-    __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, &nost_acc_data[i]);
-    if(_ret_val == IC_SOFTWARE_BUSY)
-      TWI_READ_DATA_FORCED(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, &nost_acc_data[i]);
-  }
-
-  acc_data_s ave_nost_acc_data = {0};
-    /*  get the average */
-  for (int i = 0; i < 5; i++)
-  {
-    ave_nost_acc_data.x += nost_acc_data[i].x;
-    ave_nost_acc_data.y += nost_acc_data[i].y;
-    ave_nost_acc_data.z += nost_acc_data[i].z;
-  }
-
-  ave_nost_acc_data.x /= 5;
-  ave_nost_acc_data.y /= 5;
-  ave_nost_acc_data.z /= 5;
-
-    /*  enable self-test  */
-  m_config_reg(LIS3DH_REG_CTRL_REG4, 0x82);
-
+ic_return_val_e ic_lis3dh_self_test2()
+{
   __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, NULL);
   if(_ret_val == IC_SOFTWARE_BUSY)
     TWI_READ_DATA_FORCED(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, NULL);
 
+  acc_data_s _nost_acc_data[5] = {0};
 
-  for (int i = 0; i < 5; i++)
+  for (int i = 0; i < 5;i++)
   {
-    __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, &st_acc_data[i]);
+    __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, &_nost_acc_data[i]);
     if(_ret_val == IC_SOFTWARE_BUSY)
-      TWI_READ_DATA_FORCED(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, &st_acc_data[i]);
+      TWI_READ_DATA_FORCED(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, &_nost_acc_data[i]);
   }
 
-  acc_data_s ave_st_acc_data = {0};
     /*  get the average */
   for (int i = 0; i < 5; i++)
   {
-    ave_st_acc_data.x += st_acc_data[i].x;
-    ave_st_acc_data.y += st_acc_data[i].y;
-    ave_st_acc_data.z += st_acc_data[i].z;
+    m_ave_nost_acc_data.x += _nost_acc_data[i].x;
+    m_ave_nost_acc_data.y += _nost_acc_data[i].y;
+    m_ave_nost_acc_data.z += _nost_acc_data[i].z;
   }
 
-  ave_st_acc_data.x /= 5;
-  ave_st_acc_data.y /= 5;
-  ave_st_acc_data.z /= 5;
+  m_ave_nost_acc_data.x /= 5;
+  m_ave_nost_acc_data.y /= 5;
+  m_ave_nost_acc_data.z /= 5;
+
+    /*  enable self-test  */
+  m_config_reg(LIS3DH_REG_CTRL_REG4, 0x82);
+
+  return IC_SUCCESS;
+}
+
+ic_return_val_e ic_lis3dh_self_test3()
+{
+  __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, NULL);
+  if(_ret_val == IC_SOFTWARE_BUSY)
+    TWI_READ_DATA_FORCED(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, NULL);
+
+  acc_data_s _st_acc_data[5] = {0};
+
+  for (int i = 0; i < 5; i++)
+  {
+    __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, &_st_acc_data[i]);
+    if(_ret_val == IC_SOFTWARE_BUSY)
+      TWI_READ_DATA_FORCED(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, &_st_acc_data[i]);
+  }
+
+    /*  get the average */
+  for (int i = 0; i < 5; i++)
+  {
+    m_ave_st_acc_data.x += _st_acc_data[i].x;
+    m_ave_st_acc_data.y += _st_acc_data[i].y;
+    m_ave_st_acc_data.z += _st_acc_data[i].z;
+  }
+
+  m_ave_st_acc_data.x /= 5;
+  m_ave_st_acc_data.y /= 5;
+  m_ave_st_acc_data.z /= 5;
 
 #define MIN_VAL 10
-  if ((abs(abs(ave_st_acc_data.x) - abs(ave_nost_acc_data.x)) < MIN_VAL) &&
-      (abs(abs(ave_st_acc_data.y) - abs(ave_nost_acc_data.y)) < MIN_VAL) &&
-      (abs(abs(ave_st_acc_data.z) - abs(ave_nost_acc_data.z)) < MIN_VAL))
+  if ((abs(abs(m_ave_st_acc_data.x) - abs(m_ave_nost_acc_data.x)) < MIN_VAL) &&
+      (abs(abs(m_ave_st_acc_data.y) - abs(m_ave_nost_acc_data.y)) < MIN_VAL) &&
+      (abs(abs(m_ave_st_acc_data.z) - abs(m_ave_nost_acc_data.z)) < MIN_VAL))
   {
       /*  disable sensor  */
     m_config_reg(LIS3DH_REG_CTRL_REG1, 0x00);
@@ -378,5 +388,7 @@ ic_return_val_e ic_lis3dh_self_test()
       /*  disable selftest  */
     m_config_reg(LIS3DH_REG_CTRL_REG4, 0x00);
   }
-    return IC_ERROR;
+
+  return IC_ERROR;
 }
+#endif
