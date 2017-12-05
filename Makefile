@@ -286,7 +286,7 @@ LDFLAGS += -Wl,--gc-sections
 LDFLAGS += --specs=nano.specs -lc -lnosys
 LDFLAGS += -lm
 
-BOOT_TARGETS:=boot generate_boot_settings merge_boot_settings flash_boot clean_boot nrf51822_xxac_s130_boot
+BOOT_TARGETS:=boot boot_help boot_gen_pub_key boot_gen_prv_key boot_generate_settings boot_merge_settings boot_flash boot_bin boot_clean
 
 ifneq (,$(filter $(BOOT_TARGETS),$(MAKECMDGOALS)))
   include bootloader_secure/makefile.boot
