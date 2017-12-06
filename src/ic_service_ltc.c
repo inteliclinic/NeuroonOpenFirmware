@@ -73,13 +73,6 @@ static ic_return_val_e actuator_set_func(
 
 static void m_device_parse(u_BLECmdPayload payload){
 
-  NRF_LOG_INFO("info: device: %d, func: %d, period: %d, duration: %d\n",
-      payload.device_cmd.device,
-      payload.device_cmd.func_type,
-      payload.device_cmd.func_parameter.periodic_func.period,
-      payload.device_cmd.func_parameter.periodic_func.duration
-      );
-
   __auto_type _period = pdMS_TO_TICKS((payload.device_cmd.func_parameter.periodic_func.period*100));
   __auto_type _duration = pdMS_TO_TICKS((payload.device_cmd.func_parameter.periodic_func.duration*100));
 
@@ -110,8 +103,8 @@ static void m_device_parse(u_BLECmdPayload payload){
   if(payload.device_cmd.device&DEV_LEFT_RED_LED){
     actuator_set_func(
         &m_device_state[ACTUATOR_LEFT_RED_LED],
-        _period,
         payload.device_cmd.func_type,
+        _period,
         _duration,
         payload.device_cmd.intensity.left_red_led);
   }
@@ -344,7 +337,10 @@ static ic_return_val_e actuator_set_func(
   }
   device->cur_period = 0;
   device->cur_duration = 0;
-  device->func = func;
+  if(device->device == ACTUATOR_POWER_LEDS && func != FUN_TYPE_OFF)
+    device->func = FUN_TYPE_BLINK;
+  else
+    device->func = func;
   device->period = period-1;
   device->duration = duration == 0 ? 0 : duration-1;
   if(!device->turned_on){
