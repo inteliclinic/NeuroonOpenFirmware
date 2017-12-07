@@ -53,32 +53,28 @@ static void on_stream_state_change(bool active){
 static void ads_timer_callback(TimerHandle_t xTimer){
   UNUSED_PARAMETER(xTimer);
 
-  static bool _force = false;
-
   __auto_type _semphr_successfull = pdTRUE;
-  TAKE_SEMAPHORE(m_twi_ready, 1, _semphr_successfull);
+  TAKE_SEMAPHORE(m_twi_ready, 8, _semphr_successfull);
   if(_semphr_successfull == pdFALSE){
-    NRF_LOG_INFO("Could not take TWI transaction semaphore(forced)\n");
+    NRF_LOG_INFO("Could not take TWI transaction semaphore\n");
   }
-  switch(ads_get_value(read_callback, _force)){
+  switch(ads_get_value(read_callback, false)){
     case IC_ERROR:
       NRF_LOG_INFO("ads read error!\n");
       break;
     case IC_BUSY:
       NRF_LOG_INFO("ads read busy!(ADS)\n");
-      /*_force = true;*/
+      ads_get_value(read_callback, true);
       break;
     case IC_SOFTWARE_BUSY:
       NRF_LOG_INFO("ads read busy!(SOFT)\n");
       ads_get_value(read_callback, true);
-      _force = true;
       break;
     case IC_DRIVER_BUSY:
       NRF_LOG_INFO("ads read busy!(DRIVER)\n");
       /*_force = true;*/
       break;
     default:
-      _force = false;
       break;
   }
 }
@@ -105,6 +101,7 @@ static void send_data_task(void *arg){
           send_via_ble = false;
           break;
         case IC_BUSY:
+          NRF_LOG_INFO("Ależ dupa!\n");
           continue; // TODO: Fix it. Can kill CPU.
         default:
           /*NRF_LOG_INFO("err: %s\n", (uint32_t)ic_get_nrferr2str(_nrf_error));*/
