@@ -15,42 +15,62 @@
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "ic_driver_button.h"
+
 /*************************************************************/
 ic_return_val_e ic_acc_init(void(*fp)(acc_data_s))
 {
-  uint8_t _val = 0;
-
-  ic_lis3dh_init(fp);
-  ic_lis3dh_set_g_range(LIS3DH_RATE_G_RANGE_4g);
-  ic_lis3dh_get_g_range(&_val);
-
-  return IC_SUCCESS;
+  if (ic_lis3dh_init(fp) == IC_SUCCESS)
+  {
+    ic_lis3dh_set_g_range(LIS3DH_RATE_G_RANGE_4g);
+    return IC_SUCCESS;
+  }
+  return IC_ERROR;
 }
 /*************************************************************/
 ic_return_val_e ic_acc_deinit()
 {
-  ic_lis3dh_uninit();
+  if (ic_lis3dh_uninit() != IC_SUCCESS)
+    return IC_ERROR;
 
   return IC_SUCCESS;
 }
 /*************************************************************/
 ic_return_val_e ic_acc_read(void(*fp)(acc_data_s))
 {
-  ic_lis3dh_read_data(fp);
+  if (ic_lis3dh_read_data(fp) != IC_SUCCESS)
+    return IC_ERROR;
 
   return IC_SUCCESS;
 }
 /*************************************************************/
 ic_return_val_e ic_acc_set_data_rate(acc_power_mode_e data_rate)
 {
-  ic_lis3dh_set_power_mode(data_rate);
+  if (ic_lis3dh_set_power_mode(data_rate) != IC_SUCCESS)
+    return IC_ERROR;
 
   return IC_SUCCESS;
 }
 /*************************************************************/
-ic_return_val_e ic_acc_do_self_test()
+ic_return_val_e ic_acc_do_self_test1()
 {
-  ic_lis3dh_self_test();
+  if (ic_lis3dh_self_test1() != IC_SUCCESS)
+    return IC_ERROR;
+
+  return IC_SUCCESS;
+}
+/*************************************************************/
+ic_return_val_e ic_acc_do_self_test2()
+{
+  if (ic_lis3dh_self_test2() != IC_SUCCESS)
+    return IC_ERROR;
+
+  return IC_SUCCESS;
+}
+/*************************************************************/
+ic_return_val_e ic_acc_do_self_test3()
+{
+  if (ic_lis3dh_self_test3() != IC_SUCCESS)
+    return IC_ERROR;
 
   return IC_SUCCESS;
 }

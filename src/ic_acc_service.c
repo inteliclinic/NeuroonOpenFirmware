@@ -18,59 +18,18 @@
 #include "ic_acc_driver.h"
 #include "ic_acc_service.h"
 
-#define WATCHDOG_TIMER_PERIOD   60
-#define ACC_TIMER_DATA		50
+#define ACC_TIMER_DATA_PERIOD		50
 
-TimerHandle_t acc_wdt_timer;
-TimerHandle_t acc_data_timer;
+TimerHandle_t m_acc_data_timer;
 
-static volatile acc_data_s buffer;
+static volatile acc_data_s m_acc_buffer;
 
 static void(*m_user_cb)(acc_data_s data);
 
-#ifdef _ACC_EXTI_MODE
-/**************************************************************************************************************************/
-void ic_wdt_get_data(acc_data_s data)
-{
-  NRF_LOG_INFO("ACC WDT VAL:\tx: %d, y: %d, z: %d\n",
-    data.x,
-    data.y,
-    data.z);
-}
-/**************************************************************************************************************************/
-void wdt_timer()
-{
-//	NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);
-  if(m_user_cb != NULL)
-    ic_acc_read(m_user_cb);
-}
-/**************************************************************************************************************************/
-void data_callback()
-{
-//	NRF_LOG_INFO("{ %s }\r\n", (uint32_t) __func__);
-
-//	acc_data_s data = {0};
-//	buffer = ic_acc_get_data();
-  NRF_LOG_INFO("ACC VAL:\tx: %d, y: %d, z: %d\n",
-    buffer.x,
-    buffer.y,
-    buffer.z);
-}
-/**************************************************************************************************************************/
-void ic_reset_acc_wdt(acc_data_s data)
-{
-//	NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);
-    /*  pass lis3dh x y z data struct  */
-  buffer = data;
-    /*  reset the watchdog timer  */
-  if (acc_wdt_timer != NULL)
-    if (xTimerResetFromISR(acc_wdt_timer, 0) != pdPASS)
-      NRF_LOG_ERROR("Couldn't reset timer\r\n");
-}
 /**************************************************************************************************************************/
 acc_data_s ic_acc_get_data()
 {
-  return buffer;
+  return m_acc_buffer;
 }
 /**************************************************************************************************************************/
 ic_return_val_e ic_acc_set_rate(acc_power_mode_e data_rate)
@@ -82,82 +41,83 @@ ic_return_val_e ic_acc_set_rate(acc_power_mode_e data_rate)
 /**************************************************************************************************************************/
 ic_return_val_e ic_acc_selftest(void)
 {
-  if (ic_acc_do_self_test() != IC_SUCCESS)
-    return IC_ERROR;
+  ic_acc_do_self_test1();
+  vTaskDelay(90);
+  ic_acc_do_self_test2();
+  vTaskDelay(90);
+  ic_acc_do_self_test3();
+  vTaskDelay(90);
 
   return IC_SUCCESS;
 }
 /**************************************************************************************************************************/
+
+#ifdef _ACC_EXTI_MODE
+/**************************************************************************************************************************/
+#ifdef _CHECK_DATA_TIMER
+
+void data_print_timer_callback()
+{
+//	NRF_LOG_INFO("{ %s }\r\n", (uint32_t) __func__);
+
+  NRF_LOG_INFO("ACC VAL:\tx: %d, y: %d, z: %d\n",
+    m_acc_buffer.x,
+    m_acc_buffer.y,
+    m_acc_buffer.z);
+}
+#endif
+/**************************************************************************************************************************/
+void ic_acc_irq_get_data(acc_data_s data)
+{
+//	NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);
+    /*  pass lis3dh x y z data struct to static buffer */
+  m_acc_buffer = data;
+  if (m_user_cb != NULL)
+    m_user_cb(m_acc_buffer);
+}
+/**************************************************************************************************************************/
 ic_return_val_e ic_acc_module_init(void(*cb)(acc_data_s))
 {
+  m_user_cb = cb;
     /**
      *  init accelerometer module and pass your callback function
-     *  in which you reset watchdog timer (twi multiple data handling problem)
-     *  and get data structure with accelerometer data
+     *  in which you get data structure with accelerometer data
      **/
-  if (ic_acc_init(ic_reset_acc_wdt) != IC_SUCCESS)
+  if (ic_acc_init(ic_acc_irq_get_data) != IC_SUCCESS)
     return IC_ERROR;
 
-  acc_wdt_timer  = xTimerCreate("acc_wdt_timer", WATCHDOG_TIMER_PERIOD, pdTRUE, (void *) 0, wdt_timer);
-  acc_data_timer = xTimerCreate("acc_data_tim", ACC_TIMER_DATA, pdTRUE, (void *) 0, data_callback);
+#ifdef _CHECK_DATA_TIMER
+  m_acc_data_timer = xTimerCreate("acc_data_tim", ACC_TIMER_DATA_PERIOD, pdTRUE, (void *) 0, data_print_timer_callback);
 
-  m_user_cb = cb;
-
-  if (xTimerStart(acc_wdt_timer, 0) != pdPASS)
+  if (xTimerStart(m_acc_data_timer, 0) != pdPASS)
     NRF_LOG_ERROR("Couldn't start acc_timer\r\n");
-  if (xTimerStart(acc_data_timer, 0) != pdPASS)
-    NRF_LOG_ERROR("Couldn't start acc_timer\r\n");
-
+#endif
   return IC_SUCCESS;
 }
 /**************************************************************************************************************************/
 ic_return_val_e ic_acc_module_deinit()
 {
-  ic_acc_deinit();
+  if (ic_acc_deinit() != IC_SUCCESS)
+    return IC_ERROR;
 
-  if (acc_wdt_timer != NULL || (xTimerDelete(acc_wdt_timer, 0) != pdPASS))
+#ifdef _CHECK_DATA_TIMER
+  if (m_acc_data_timer != NULL || xTimerDelete(m_acc_data_timer, 0) != pdPASS)
   {
   	NRF_LOG_ERROR("acc_wdt_timer delete error\r\n")
   	return IC_ERROR;
   }
-  if (acc_data_timer != NULL || xTimerDelete(acc_data_timer, 0) != pdPASS)
-  {
-  	NRF_LOG_ERROR("acc_wdt_timer delete error\r\n")
-  	return IC_ERROR;
-  }
+#endif
   return IC_SUCCESS;
 }
 /*********************************************************************************************************************************/
 #else
 
-void ic_wdt_get_data(acc_data_s data)
-{
-  NRF_LOG_INFO("ACC WDT VAL:\tx: %d, y: %d, z: %d\n",
-    data.x,
-    data.y,
-    data.z);
-}
 /**************************************************************************************************************************/
-void wdt_timer()
+void acc_read_data_timer()
 {
 //	NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);
-
-  ic_acc_read(m_user_cb);
-}
-/**************************************************************************************************************************/
-void ic_reset_acc_wdt(acc_data_s data)
-{
-//	NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);
-		/*	pass lis3dh x y z data struct  */
-  buffer = data;
-		/*  reset the watchdog timer  */
-  if (acc_wdt_timer != NULL)
-  {
-    if (xTimerResetFromISR(acc_wdt_timer, 0) != pdPASS)
-    {
-      NRF_LOG_ERROR("Couldn't reset timer\r\n");
-    }
-  }
+  if(m_user_cb != NULL)
+    ic_acc_read(m_user_cb);
 }
 /**************************************************************************************************************************/
 ic_return_val_e ic_acc_module_init(void(*cb)(acc_data_s))
@@ -170,14 +130,12 @@ ic_return_val_e ic_acc_module_init(void(*cb)(acc_data_s))
   if (ic_acc_init(NULL) != IC_SUCCESS)
     return IC_ERROR;
 
-  acc_wdt_timer  = xTimerCreate("acc_wdt_timer", ACC_TIMER_DATA, pdTRUE, (void *) 0, wdt_timer);
-
   m_user_cb = cb;
+    /*  create timer in which you will be periodically read data  */
+  m_acc_data_timer  = xTimerCreate("acc_wdt_timer", ACC_TIMER_DATA_PERIOD, pdTRUE, (void *) 0, acc_read_data_timer);
 
-  if (xTimerStart(acc_wdt_timer, 0) != pdPASS)
-  {
+  if (xTimerStart(m_acc_data_timer, 0) != pdPASS)
     NRF_LOG_ERROR("Couldn't start acc_timer\r\n");
-  }
 
   return IC_SUCCESS;
 }
@@ -186,7 +144,7 @@ ic_return_val_e ic_acc_module_deinit()
 {
   ic_acc_deinit();
 
-  if (acc_wdt_timer != NULL || (xTimerDelete(acc_wdt_timer, 0) != pdPASS))
+  if (m_acc_data_timer != NULL || (xTimerDelete(m_acc_data_timer, 0) != pdPASS))
   {
     NRF_LOG_ERROR("acc_wdt_timer delete error\r\n")
     return IC_ERROR;
