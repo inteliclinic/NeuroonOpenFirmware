@@ -43,9 +43,9 @@ static TimerHandle_t m_timer_handle = NULL;
 static bool m_module_initialized = true;
 
 static inline void increment_timestamp(void){
-  m_unix_timestamp.sub_timer = xTaskGetTickCount()&0x3FF;
+  m_unix_timestamp.sub_timer = GET_TICK_COUNT()&0x3FF;
   m_unix_timestamp.unix_timestamp++;
-  m_ralative_timestamp.fraction = xTaskGetTickCount()&0x3FF;
+  m_ralative_timestamp.fraction = GET_TICK_COUNT()&0x3FF;
   m_ralative_timestamp.seconds++;
 }
 
@@ -55,22 +55,22 @@ static void timer_callback(TimerHandle_t xTimer){
 }
 
 void ic_relative_timestamp_set(uint32_t timestamp){
-  m_relative_fraction_mem = xTaskGetTickCount()&0x3FF;
+  m_relative_fraction_mem = GET_TICK_COUNT()&0x3FF;
   m_ralative_timestamp.seconds = timestamp;
 }
 
 ic_unix_timestamp_s ic_relative_timestamp_get(){
-  m_ralative_timestamp.fraction = (xTaskGetTickCount()-m_relative_fraction_mem)&0x3FF;
+  m_ralative_timestamp.fraction = (GET_TICK_COUNT()-m_relative_fraction_mem)&0x3FF;
   return m_unix_timestamp;
 }
 
 void ic_unix_timestamp_set(uint64_t timestamp){
-  m_unix_sub_timer_mem = xTaskGetTickCount()&0x3FF;
+  m_unix_sub_timer_mem = GET_TICK_COUNT()&0x3FF;
   m_unix_timestamp.unix_timestamp = timestamp;
 }
 
 ic_unix_timestamp_s ic_unix_timestamp_get(){
-  m_unix_timestamp.sub_timer = (xTaskGetTickCount() - m_unix_sub_timer_mem)&0x3FF;
+  m_unix_timestamp.sub_timer = (GET_TICK_COUNT() - m_unix_sub_timer_mem)&0x3FF;
   return m_unix_timestamp;
 }
 
@@ -82,8 +82,8 @@ ic_return_val_e ic_service_timestamp_init(){
   if(m_timer_handle == NULL)
     m_timer_handle = xTimerCreate("Service Timer", _tics, pdTRUE, (void *)0, timer_callback);
 
-  m_relative_fraction_mem = xTaskGetTickCount()&0x3FF;
-  m_unix_sub_timer_mem = xTaskGetTickCount()&0x3FF;
+  m_relative_fraction_mem = GET_TICK_COUNT()&0x3FF;
+  m_unix_sub_timer_mem = GET_TICK_COUNT()&0x3FF;
   __auto_type _ret_val = pdFAIL;
   START_TIMER(m_timer_handle, 0, _ret_val);
 

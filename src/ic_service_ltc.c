@@ -300,12 +300,12 @@ static void ltc_power_led_timer_callback(TimerHandle_t xTimer){
 }
 
 static void ltc_refresh_task_callback(void *arg){
-  __auto_type last_wake_time = xTaskGetTickCount();
+  __auto_type last_wake_time = GET_TICK_COUNT();
 
   for(;;){
     if(m_active_function_counter < 1){
       vTaskSuspend(NULL);
-      last_wake_time = xTaskGetTickCount();
+      last_wake_time = GET_TICK_COUNT();
     }
 
     REFRESH_ALL(time);

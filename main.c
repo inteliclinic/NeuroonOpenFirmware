@@ -361,7 +361,7 @@ static u_otherDataFrameContainer m_stream1_output_frame;
 
 static void m_acc_measured(acc_data_s data){
 
-  m_stream1_output_frame.frame.time_stamp = xTaskGetTickCount();
+  m_stream1_output_frame.frame.time_stamp = GET_TICK_COUNT();
   m_stream1_output_frame.frame.acc[0] = data.x;
   m_stream1_output_frame.frame.acc[1] = data.y;
   m_stream1_output_frame.frame.acc[2] = data.z;
@@ -447,7 +447,7 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName){
 int main(void)
 {
     // Initialize.
-    __auto_type err_code = NRF_LOG_INIT(xTaskGetTickCount);
+    __auto_type err_code = NRF_LOG_INIT(GET_TICK_COUNT);
     APP_ERROR_CHECK(err_code);
     power_down_all_systems();
 

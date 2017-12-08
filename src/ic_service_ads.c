@@ -113,7 +113,7 @@ static void send_data_task(void *arg){
     }
     else{
       if (measurement_cnt == 0)
-        eeg_packet.frame.time_stamp = xTaskGetTickCount();
+        eeg_packet.frame.time_stamp = GET_TICK_COUNT();
 
       eeg_packet.frame.eeg_data[measurement_cnt++] = m_eeg_measurement;
       GIVE_SEMAPHORE(m_twi_ready);

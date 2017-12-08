@@ -201,6 +201,11 @@ static inline int isr_context(){
 #endif /* SEMAPHORE_H */
 
 #ifdef INC_TASK_H
+
+static inline TickType_t GET_TICK_COUNT(){
+  return isr_context()?xTaskGetTickCountFromISR():xTaskGetTickCount();
+}
+
 #define RESUME_TASK(task)                                                   \
   do{                                                                       \
     if(isr_context()){                                                      \
