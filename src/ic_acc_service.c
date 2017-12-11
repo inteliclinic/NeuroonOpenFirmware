@@ -132,7 +132,8 @@ ic_return_val_e ic_acc_module_init(void(*cb)(acc_data_s))
 
   m_user_cb = cb;
     /*  create timer in which you will be periodically read data  */
-  m_acc_data_timer  = xTimerCreate("acc_wdt_timer", ACC_TIMER_DATA_PERIOD, pdTRUE, (void *) 0, acc_read_data_timer);
+  if (m_acc_data_timer == NULL)
+    m_acc_data_timer  = xTimerCreate("acc_wdt_timer", ACC_TIMER_DATA_PERIOD, pdTRUE, (void *) 0, acc_read_data_timer);
 
   if (xTimerStart(m_acc_data_timer, 0) != pdPASS)
     NRF_LOG_ERROR("Couldn't start acc_timer\r\n");

@@ -109,7 +109,12 @@ ic_return_val_e ic_lis3dh_read_data(void(*fp)(acc_data_s data)){
   if (m_fp_force != NULL)
     return IC_BUSY;
   m_fp_force = fp;
-  TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_read_callback, NULL);
+  __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_read_callback, NULL);
+  if (_ret_val != IC_SUCCESS)
+  {
+    m_fp_force = NULL;
+    return _ret_val;
+  }
   return IC_SUCCESS;
 }
 
@@ -311,9 +316,9 @@ ic_return_val_e ic_lis3dh_self_test1()
 
 ic_return_val_e ic_lis3dh_self_test2()
 {
-  __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, NULL);
+  __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, NULL, NULL);
   if(_ret_val == IC_SOFTWARE_BUSY)
-    TWI_READ_DATA_FORCED(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, NULL);
+    TWI_READ_DATA_FORCED(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, NULL, NULL);
 
   acc_data_s _nost_acc_data[5] = {0};
 
@@ -344,9 +349,9 @@ ic_return_val_e ic_lis3dh_self_test2()
 
 ic_return_val_e ic_lis3dh_self_test3()
 {
-  __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, NULL);
+  __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, NULL, NULL);
   if(_ret_val == IC_SOFTWARE_BUSY)
-    TWI_READ_DATA_FORCED(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, NULL);
+    TWI_READ_DATA_FORCED(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, NULL, NULL);
 
   acc_data_s _st_acc_data[5] = {0};
 
