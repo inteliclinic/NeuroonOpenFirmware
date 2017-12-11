@@ -259,7 +259,7 @@ static void refresh_device(struct device_state_s * device){
   }
 
   if(_ret_val != IC_SUCCESS){
-    NRF_LOG_INFO("Could not refresh device %d: {%s}",
+    NRF_LOG_INFO("Could not refresh device %d: {%s}\n",
         device->device, (uint32_t)g_return_val_string[_ret_val]);
     NRF_LOG_FLUSH();
   }
@@ -311,12 +311,16 @@ static void ltc_power_led_timer_callback(TimerHandle_t xTimer){
 }
 
 static void ltc_refresh_task_callback(void *arg){
-  __auto_type last_wake_time = GET_TICK_COUNT();
+  __auto_type _last_wake_time = GET_TICK_COUNT();
 
   for(;;){
+    if(_last_wake_time == GET_TICK_COUNT()){
+      _last_wake_time = GET_TICK_COUNT();
+    }
+
     if(m_active_function_counter < 1){
       vTaskSuspend(NULL);
-      last_wake_time = GET_TICK_COUNT();
+      _last_wake_time = GET_TICK_COUNT();
     }
 
     REFRESH_ALL(time);
@@ -326,7 +330,7 @@ static void ltc_refresh_task_callback(void *arg){
 
     xTimerReset(m_ltc_refresh_timer_handle, 2);
 
-    vTaskDelayUntil(&last_wake_time, QUANTUM_OF_TIME);
+    vTaskDelayUntil(&_last_wake_time, QUANTUM_OF_TIME);
   }
 }
 
@@ -501,7 +505,7 @@ ic_return_val_e ic_ltc_service_init(){
   if(pdPASS != xTaskCreate(
         ltc_refresh_task_callback,
         "LTCS",
-        128,
+        384,
         NULL,
         IC_IRQ_PRIORITY_LOW,
         &m_ltc_refresh_task_handle))

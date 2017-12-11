@@ -30,6 +30,8 @@
 static TimerHandle_t m_ads_service_timer_handle = NULL;
 static bool m_module_initialized = false;
 
+static uint8_t m_measurement_cnt = 0;
+
 static int16_t m_eeg_measurement;
 static TaskHandle_t send_data_task_handle = NULL;
 
@@ -46,6 +48,7 @@ static void on_stream_state_change(bool active){
   else{
     vTaskSuspend(send_data_task_handle);
     STOP_TIMER  (m_ads_service_timer_handle, 0, _timer_ret_val);
+    m_measurement_cnt = 0;
   }
   UNUSED_PARAMETER(_timer_ret_val);
 }
@@ -80,7 +83,6 @@ static void ads_timer_callback(TimerHandle_t xTimer){
 }
 
 static void send_data_task(void *arg){
-  uint8_t measurement_cnt = 0;
   u_eegDataFrameContainter eeg_packet;
   bool send_via_ble = false;
 
@@ -109,15 +111,15 @@ static void send_data_task(void *arg){
       }
     }
     else{
-      if (measurement_cnt == 0)
+      if (m_measurement_cnt == 0)
         eeg_packet.frame.time_stamp = GET_TICK_COUNT();
 
-      eeg_packet.frame.eeg_data[measurement_cnt++] = m_eeg_measurement;
+      eeg_packet.frame.eeg_data[m_measurement_cnt++] = m_eeg_measurement;
       GIVE_SEMAPHORE(m_twi_ready);
 
-      if(measurement_cnt == sizeof(eeg_packet.frame.eeg_data)/sizeof(eeg_packet.frame.eeg_data[0])){
+      if(m_measurement_cnt >= sizeof(eeg_packet.frame.eeg_data)/sizeof(eeg_packet.frame.eeg_data[0])){
         send_via_ble = true;
-        measurement_cnt = 0;
+        m_measurement_cnt = 0;
         continue;
       }
     }
@@ -146,7 +148,7 @@ ic_return_val_e ic_ads_service_init(void){
         ads_timer_callback);
 
   if(send_data_task_handle == NULL)
-    if(pdPASS != xTaskCreate(send_data_task, "BLET", 192, NULL, 3, &send_data_task_handle)){
+    if(pdPASS != xTaskCreate(send_data_task, "BLET", 256, NULL, 3, &send_data_task_handle)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
 

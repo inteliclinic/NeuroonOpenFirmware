@@ -336,10 +336,11 @@ static void cleanup_task (void *arg){
   sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
   bye_bye();
 
-  ic_bluetooth_disable();
-  ic_ads_service_deinit();
 
   vTaskDelay(1024);
+
+  ic_bluetooth_disable();
+  ic_ads_service_deinit();
 
   power_down_all_systems();
 
@@ -375,15 +376,24 @@ static void m_acc_measured(acc_data_s data){
 
 void stream1_task(void *arg){
   for(;;){
-    ble_iccs_send_to_stream1(
+    __auto_type _ret_val = ble_iccs_send_to_stream1(
         m_stream1_output_frame.raw_data,
         sizeof(u_otherDataFrameContainer),
         NULL);
+
+    switch(_ret_val)
+    {
+      case IC_SUCCESS:
+        break;
+      default:
+        NRF_LOG_INFO("Stream1 error: %s", (uint32_t)g_return_val_string[_ret_val]);
+        break;
+    }
     vTaskSuspend(NULL);
   }
 }
 
-static void init_acc_afe(void){
+void init_acc_afe(void){
   ble_iccs_connect_to_stream1(on_stream_state_change);
 
   if(pdPASS != xTaskCreate(stream1_task, "STR1", 128, NULL, 2, &m_stream1_handle)){

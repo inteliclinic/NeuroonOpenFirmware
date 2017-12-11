@@ -62,6 +62,10 @@ ic_return_val_e ic_set_channel(
 
   __auto_type _ret_val = TWI_SEND_DATA(ltc_twi, m_ltc_channels[channel].bufer, 2, fp, context);
 
+  if(_ret_val != IC_SUCCESS){
+    ic_twi_refresh_bus();
+  }
+
   return _ret_val;
 }
 

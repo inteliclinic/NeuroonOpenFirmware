@@ -145,8 +145,8 @@ void cmd_main_task(void *args){
   if(NULL == cmd_queue){
     NRF_LOG_ERROR("CMD queue init error\n");
     APP_ERROR_HANDLER(NRF_ERROR_INTERNAL);
-  }
   ble_iccs_connect_to_cmd(m_cmd_handle);
+  }
 
   uint8_t i = 0;
   u_cmdFrameContainer tmp_frame;
@@ -191,6 +191,7 @@ void cmd_module_destroy(void){
 }
 
 static void m_cmd_handle(uint8_t *data, size_t len){
+  if(data == NULL || data == (void *)0x01) return; //TODO error is lower(bluetooth driver - here is only a dirty fix
   if(len < sizeof(s_frame)){
     NRF_LOG_ERROR("Uncomplete frame. Number of bytes: %d\n", len);
     return;
