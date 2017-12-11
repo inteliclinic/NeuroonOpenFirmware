@@ -55,8 +55,8 @@ struct transaction_queue_field_s{
  */
 struct transaction_queue_s{
   struct transaction_queue_field_s callback_array[IC_TWI_PENDIG_TRANSACTIONS];
-  uint8_t head;
-  uint8_t tail;
+  uint8_t volatile head;
+  uint8_t volatile tail;
 }m_transaction_queue;
 
 /**
@@ -98,7 +98,7 @@ static inline bool put_queue_top(
   queue->callback_array[queue->head].context = context;
   queue->callback_array[queue->head].transaction = transaction;
   queue->callback_array[queue->head].transaction.p_user_data =
-    &queue->callback_array[queue->head];
+    &(queue->callback_array[queue->head]);
   queue->callback_array[queue->head].transaction.p_transfers =
     queue->callback_array[queue->head].transfers;
   memcpy(
@@ -113,11 +113,17 @@ static inline bool put_queue_top(
   return true;
 }
 
-#define get_queue_last(v) v.callback_array[v.head==0?IC_TWI_PENDIG_TRANSACTIONS-1:v.head-1]
+#define get_queue_last(v) (v).callback_array[(v).head==0?IC_TWI_PENDIG_TRANSACTIONS-1:(v).head-1]
 
-#define get_queue_first(v) v.callback_array[v.tail]
+#define get_queue_first(v) (v).callback_array[(v).tail]
 
-#define is_queue_empty(v) (v.head == v.tail)
+#define is_queue_empty(v) ((v).head == (v).tail)
+
+void clean_queue(struct transaction_queue_s *queue){
+  while(!is_queue_empty(*queue)){
+    pop_element(queue);
+  }
+}
 
 /**
  * @brief TWI IRQ handler
@@ -220,27 +226,28 @@ static ic_return_val_e m_ic_twi_transaction(
   }
 }
 
+static app_twi_transaction_t const * m_nordic_twi_queue[IC_TWI_PENDIG_TRANSACTIONS+1];
+static nrf_drv_twi_config_t m_twi_config = {
+    .frequency          = (nrf_twi_frequency_t)IC_TWI_FREQUENCY,
+    .scl                = IC_TWI_SCL_PIN,
+    .sda                = IC_TWI_SDA_PIN,
+    .interrupt_priority = IC_TWI_IRQ_PRIORITY,
+    .clear_bus_init     = true,
+    .hold_bus_uninit    = true};
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ic_return_val_e ic_twi_init(ic_twi_instance_s * instance){
 
   ASSERT(instance!=NULL);
 
   if(m_curren_state.twi_instance_cnt++ == 0){
-    nrf_drv_twi_config_t _twi_config = NRF_DRV_TWI_DEFAULT_CONFIG;
-    _twi_config.sda                 = IC_TWI_SDA_PIN;
-    _twi_config.scl                 = IC_TWI_SCL_PIN;
-    _twi_config.interrupt_priority  = IC_TWI_IRQ_PRIORITY;
-    _twi_config.frequency           = (nrf_twi_frequency_t)IC_TWI_FREQUENCY;
-    _twi_config.clear_bus_init      = true;
-    _twi_config.hold_bus_uninit     = true;
-
-    uint32_t err_code;
-
-    APP_TWI_INIT(
+    __auto_type err_code = app_twi_init(
         &m_curren_state.nrf_drv_instance,
-        &_twi_config,
+        &m_twi_config,
         IC_TWI_PENDIG_TRANSACTIONS,
-        err_code);
+        m_nordic_twi_queue);
+
     APP_ERROR_CHECK(err_code);
   }
 
@@ -306,4 +313,17 @@ ic_return_val_e ic_twi_read(
       true,
       force);                    // bool read
 
+}
+
+void ic_twi_refresh_bus(){
+  NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);
+  /*NRF_LOG_FLUSH();*/
+
+  app_twi_uninit(&m_curren_state.nrf_drv_instance);
+  clean_queue(&m_transaction_queue);
+  app_twi_init(
+      &m_curren_state.nrf_drv_instance,
+      &m_twi_config,
+      IC_TWI_PENDIG_TRANSACTIONS,
+      m_nordic_twi_queue);
 }

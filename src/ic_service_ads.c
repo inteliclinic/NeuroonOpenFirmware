@@ -30,6 +30,8 @@
 static TimerHandle_t m_ads_service_timer_handle = NULL;
 static bool m_module_initialized = false;
 
+static uint8_t m_measurement_cnt = 0;
+
 static int16_t m_eeg_measurement;
 static TaskHandle_t send_data_task_handle = NULL;
 
@@ -46,6 +48,7 @@ static void on_stream_state_change(bool active){
   else{
     vTaskSuspend(send_data_task_handle);
     STOP_TIMER  (m_ads_service_timer_handle, 0, _timer_ret_val);
+    m_measurement_cnt = 0;
   }
   UNUSED_PARAMETER(_timer_ret_val);
 }
@@ -53,38 +56,33 @@ static void on_stream_state_change(bool active){
 static void ads_timer_callback(TimerHandle_t xTimer){
   UNUSED_PARAMETER(xTimer);
 
-  static bool _force = false;
-
   __auto_type _semphr_successfull = pdTRUE;
-  TAKE_SEMAPHORE(m_twi_ready, 1, _semphr_successfull);
+  TAKE_SEMAPHORE(m_twi_ready, 8, _semphr_successfull);
   if(_semphr_successfull == pdFALSE){
-    NRF_LOG_INFO("Could not take TWI transaction semaphore(forced)\n");
+    NRF_LOG_INFO("Could not take TWI transaction semaphore\n");
   }
-  switch(ads_get_value(read_callback, _force)){
+  switch(ads_get_value(read_callback, false)){
     case IC_ERROR:
       NRF_LOG_INFO("ads read error!\n");
       break;
     case IC_BUSY:
       NRF_LOG_INFO("ads read busy!(ADS)\n");
-      /*_force = true;*/
+      ads_get_value(read_callback, true);
       break;
     case IC_SOFTWARE_BUSY:
       NRF_LOG_INFO("ads read busy!(SOFT)\n");
       ads_get_value(read_callback, true);
-      _force = true;
       break;
     case IC_DRIVER_BUSY:
       NRF_LOG_INFO("ads read busy!(DRIVER)\n");
       /*_force = true;*/
       break;
     default:
-      _force = false;
       break;
   }
 }
 
 static void send_data_task(void *arg){
-  uint8_t measurement_cnt = 0;
   u_eegDataFrameContainter eeg_packet;
   bool send_via_ble = false;
 
@@ -105,6 +103,7 @@ static void send_data_task(void *arg){
           send_via_ble = false;
           break;
         case IC_BUSY:
+          NRF_LOG_INFO("Ależ dupa!\n");
           continue; // TODO: Fix it. Can kill CPU.
         default:
           /*NRF_LOG_INFO("err: %s\n", (uint32_t)ic_get_nrferr2str(_nrf_error));*/
@@ -112,15 +111,15 @@ static void send_data_task(void *arg){
       }
     }
     else{
-      if (measurement_cnt == 0)
+      if (m_measurement_cnt == 0)
         eeg_packet.frame.time_stamp = GET_TICK_COUNT();
 
-      eeg_packet.frame.eeg_data[measurement_cnt++] = m_eeg_measurement;
+      eeg_packet.frame.eeg_data[m_measurement_cnt++] = m_eeg_measurement;
       GIVE_SEMAPHORE(m_twi_ready);
 
-      if(measurement_cnt == sizeof(eeg_packet.frame.eeg_data)/sizeof(eeg_packet.frame.eeg_data[0])){
+      if(m_measurement_cnt >= sizeof(eeg_packet.frame.eeg_data)/sizeof(eeg_packet.frame.eeg_data[0])){
         send_via_ble = true;
-        measurement_cnt = 0;
+        m_measurement_cnt = 0;
         continue;
       }
     }
@@ -149,7 +148,7 @@ ic_return_val_e ic_ads_service_init(void){
         ads_timer_callback);
 
   if(send_data_task_handle == NULL)
-    if(pdPASS != xTaskCreate(send_data_task, "BLET", 192, NULL, 3, &send_data_task_handle)){
+    if(pdPASS != xTaskCreate(send_data_task, "BLET", 256, NULL, 3, &send_data_task_handle)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
 
