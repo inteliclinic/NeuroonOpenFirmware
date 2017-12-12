@@ -274,7 +274,7 @@ static void services_init(void)
   dis_init.manufact_name_str.p_str = (uint8_t *)MANUFACTURER_NAME;
   dis_init.sw_rev_str.length = strlen(NEUROON_OPEN_VERSION);
   dis_init.sw_rev_str.p_str = (uint8_t *)NEUROON_OPEN_VERSION;
-  dis_init.serial_num_str.length = strlen((char*)serial_buf);
+  dis_init.serial_num_str.length = strlen((char*)serial_buf)+1;
   dis_init.serial_num_str.p_str = serial_buf;
   /*dis_init.dis_attr_md*/
 
