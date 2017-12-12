@@ -25,8 +25,13 @@ static uint8_t lis3dh_bufer[10];
 static volatile void (*m_fp)(acc_data_s) = NULL;
 static volatile void (*m_fp_force)(acc_data_s) = NULL;
 
+/**
+ * @brief
+ *
+ * @param e
+ * @param p_context
+ */
 static void acc_twi_callback(ic_return_val_e e, void *p_context){
-//	NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);
   if(e != IC_SUCCESS){
     NRF_LOG_ERROR("{%s}\n",(uint32_t)__func__);
     return;
@@ -63,6 +68,12 @@ static void acc_twi_callback(ic_return_val_e e, void *p_context){
   NRF_LOG_FLUSH();
 }
 
+/**
+ * @brief
+ *
+ * @param e
+ * @param p_context
+ */
 static void acc_twi_read_callback(ic_return_val_e e, void *p_context){
   UNUSED_PARAMETER(e);
   if(m_fp_force != NULL){
@@ -78,6 +89,11 @@ static volatile bool m_lock = false;
 #define UNLOCK  m_lock = false
 #define LOCKED  (m_lock == true)
 
+/**
+ * @brief
+ *
+ * @param edge
+ */
 static void acc_int_callback(enum exti_edge_dir edge){
   ic_return_val_e _ret_val;
   switch(edge){
@@ -164,7 +180,7 @@ ic_return_val_e ic_lis3dh_init (void(*fp)(acc_data_s)){
   if (fp == NULL)
   {
     uint8_t _val = 0x11;
-    
+
     TWI_INIT(LIS3DH);
     __auto_type ret_val  = TWI_READ_DATA(LIS3DH, LIS3DH_REG_WHO_AM_I, &_val, sizeof(_val), NULL, NULL);
     NRF_LOG_INFO("WHO AM I: 0x%X\t ret_val: %d\n", _val==LIS3DH_WHO_AM_I, ret_val);

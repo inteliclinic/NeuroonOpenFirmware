@@ -257,25 +257,9 @@ static void on_connect(void){
   ic_actuator_set_off_func(IC_RIGHT_RED_LED, PERIOD, 0, 0);
   ic_actuator_set_off_func(IC_LEFT_GREEN_LED, PERIOD, 0, 0);
   ic_actuator_set_off_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 0);
-  ic_actuator_set_off_func(IC_LEFT_BLUE_LED, PERIOD, 0, 0);
-  ic_actuator_set_off_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 0);
-
-  ic_actuator_set_triangle_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
-  ic_actuator_set_triangle_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
-  ic_actuator_set_triangle_func(IC_LEFT_GREEN_LED, PERIOD, 0, 63);
-  ic_actuator_set_triangle_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 63);
-  ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, PERIOD, 0, 63);
-  ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 63);
 }
 
 static void on_disconnect(void){
-  ic_actuator_set_off_func(IC_LEFT_RED_LED, PERIOD, 0, 0);
-  ic_actuator_set_off_func(IC_RIGHT_RED_LED, PERIOD, 0, 0);
-  ic_actuator_set_off_func(IC_LEFT_GREEN_LED, PERIOD, 0, 0);
-  ic_actuator_set_off_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 0);
-  ic_actuator_set_off_func(IC_LEFT_BLUE_LED, PERIOD, 0, 0);
-  ic_actuator_set_off_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 0);
-
   ic_actuator_set_triangle_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
   ic_actuator_set_triangle_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
   ic_actuator_set_triangle_func(IC_LEFT_GREEN_LED, PERIOD, 0, 30);
@@ -420,7 +404,6 @@ void init_acc_afe(void){
   vTaskSuspend(m_stream1_handle);
 
   ic_acc_module_init(m_acc_measured);
-  NRF_LOG_FLUSH();
 }
 
 TaskHandle_t m_stream2_handle = NULL;
