@@ -250,16 +250,32 @@ static void power_up_all_systems(void){
 /*}*/
 
 #define WELCOME_PERIOD pdMS_TO_TICKS(500)
-#define PERIOD pdMS_TO_TICKS(4000)
+#define PERIOD pdMS_TO_TICKS(2000)
 
 static void on_connect(void){
   ic_actuator_set_off_func(IC_LEFT_RED_LED, PERIOD, 0, 0);
   ic_actuator_set_off_func(IC_RIGHT_RED_LED, PERIOD, 0, 0);
   ic_actuator_set_off_func(IC_LEFT_GREEN_LED, PERIOD, 0, 0);
   ic_actuator_set_off_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 0);
+  ic_actuator_set_off_func(IC_LEFT_BLUE_LED, PERIOD, 0, 0);
+  ic_actuator_set_off_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 0);
+
+  ic_actuator_set_triangle_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
+  ic_actuator_set_triangle_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
+  ic_actuator_set_triangle_func(IC_LEFT_GREEN_LED, PERIOD, 0, 63);
+  ic_actuator_set_triangle_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 63);
+  ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, PERIOD, 0, 63);
+  ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 63);
 }
 
 static void on_disconnect(void){
+  ic_actuator_set_off_func(IC_LEFT_RED_LED, PERIOD, 0, 0);
+  ic_actuator_set_off_func(IC_RIGHT_RED_LED, PERIOD, 0, 0);
+  ic_actuator_set_off_func(IC_LEFT_GREEN_LED, PERIOD, 0, 0);
+  ic_actuator_set_off_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 0);
+  ic_actuator_set_off_func(IC_LEFT_BLUE_LED, PERIOD, 0, 0);
+  ic_actuator_set_off_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 0);
+
   ic_actuator_set_triangle_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
   ic_actuator_set_triangle_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
   ic_actuator_set_triangle_func(IC_LEFT_GREEN_LED, PERIOD, 0, 30);
@@ -352,12 +368,13 @@ static void cleanup_task (void *arg){
 #if 1
 TaskHandle_t m_stream1_handle = NULL;
 
-static bool m_send_to_stream = false;
+static volatile bool m_send_to_stream1 = false;
 
-static void on_stream_state_change(bool active){
+static void on_stream1_state_change(bool active){
   NRF_LOG_INFO("{%s}\n",(uint32_t)__func__);
-  m_send_to_stream = active;
+  m_send_to_stream1 = active;
 }
+
 static u_otherDataFrameContainer m_stream1_output_frame;
 
 static void m_acc_measured(acc_data_s data){
@@ -369,7 +386,7 @@ static void m_acc_measured(acc_data_s data){
 
   /*NRF_LOG_INFO("x: %d, y: %d, z: %d\n",data.x, data.y, data.z)*/
 
-  if(m_send_to_stream){
+  if(m_send_to_stream1){
     RESUME_TASK(m_stream1_handle);
   }
 }
@@ -394,16 +411,47 @@ void stream1_task(void *arg){
 }
 
 void init_acc_afe(void){
-  ble_iccs_connect_to_stream1(on_stream_state_change);
+  ble_iccs_connect_to_stream1(on_stream1_state_change);
 
   if(pdPASS != xTaskCreate(stream1_task, "STR1", 128, NULL, 2, &m_stream1_handle)){
     APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
   }
+
   vTaskSuspend(m_stream1_handle);
 
   ic_acc_module_init(m_acc_measured);
   NRF_LOG_FLUSH();
 }
+
+TaskHandle_t m_stream2_handle = NULL;
+static volatile bool m_send_to_stream2 = false;
+uint32_t g_twi_err_cnt = 0;
+
+static void on_stream2_state_change(bool active){
+  NRF_LOG_INFO("{%s}\n",(uint32_t)__func__);
+  active ? ({RESUME_TASK(m_stream2_handle);}) : vTaskSuspend(m_stream2_handle);
+  m_send_to_stream2 = active;
+}
+
+void stream2_task(void *arg){
+  static char _buffer[20];
+  for(;;){
+    snprintf(_buffer, sizeof(_buffer), "%ld: %ld", GET_TICK_COUNT(), g_twi_err_cnt);
+    if(m_send_to_stream2) ble_iccs_send_to_stream2((uint8_t *)_buffer, strlen(_buffer)+1, NULL);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  }
+}
+
+static void init_err_stream(void){
+  ble_iccs_connect_to_stream2(on_stream2_state_change);
+
+  if(pdPASS != xTaskCreate(stream2_task, "STR1", 128, NULL, 2, &m_stream2_handle)){
+    APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+  }
+
+  vTaskSuspend(m_stream2_handle);
+}
+
 #endif
 /*********************/
 
@@ -428,6 +476,7 @@ static void init_task (void *arg){
 
   ic_ads_service_init();
   init_acc_afe();
+  init_err_stream();
   ic_ble_module_init();
   sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
   ic_service_timestamp_init();

@@ -22,8 +22,8 @@ TWI_REGISTER(LIS3DH, LIS3DH_SLAVE_ADDR);
 static uint8_t lis3dh_bufer[10];
 
   /*  function pointer for holding acc data and reseting wdt function  */
-static void (*m_fp)(acc_data_s) = NULL;
-static void (*m_fp_force)(acc_data_s) = NULL;
+static volatile void (*m_fp)(acc_data_s) = NULL;
+static volatile void (*m_fp_force)(acc_data_s) = NULL;
 
 static void acc_twi_callback(ic_return_val_e e, void *p_context){
 //	NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);
@@ -112,6 +112,7 @@ ic_return_val_e ic_lis3dh_read_data(void(*fp)(acc_data_s data)){
   __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_read_callback, NULL);
   if (_ret_val != IC_SUCCESS)
   {
+    ic_twi_refresh_bus();
     m_fp_force = NULL;
     return _ret_val;
   }

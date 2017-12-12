@@ -30,9 +30,9 @@
 static TimerHandle_t m_ads_service_timer_handle = NULL;
 static bool m_module_initialized = false;
 
-static uint8_t m_measurement_cnt = 0;
+static volatile uint8_t m_measurement_cnt = 0;
 
-static int16_t m_eeg_measurement;
+static int16_t volatile m_eeg_measurement;
 static TaskHandle_t send_data_task_handle = NULL;
 
 ALLOCK_SEMAPHORE(m_twi_ready);
