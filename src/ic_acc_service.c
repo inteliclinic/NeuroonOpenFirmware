@@ -115,9 +115,9 @@ ic_return_val_e ic_acc_module_deinit()
 /**************************************************************************************************************************/
 void acc_read_data_timer()
 {
-//	NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);
+  static bool _driver_crushed = false;
   if(m_user_cb != NULL)
-    ic_acc_read(m_user_cb);
+    _driver_crushed = ic_acc_read(m_user_cb, _driver_crushed) == IC_SUCCESS;
 }
 /**************************************************************************************************************************/
 ic_return_val_e ic_acc_module_init(void(*cb)(acc_data_s))

@@ -36,7 +36,7 @@ ic_return_val_e ic_acc_deinit(void);
  *
  * @return IC_SUCCESS when everything goes okay
  */
-ic_return_val_e ic_acc_read(void(*fp)(acc_data_s));
+ic_return_val_e ic_acc_read(void(*fp)(acc_data_s), bool force);
 
 /**
  * @brief Set data rate on accelerometer

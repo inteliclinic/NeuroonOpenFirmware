@@ -121,8 +121,8 @@ static void acc_int_callback(enum exti_edge_dir edge){
   }
 }
 
-ic_return_val_e ic_lis3dh_read_data(void(*fp)(acc_data_s data)){
-  if (m_fp_force != NULL)
+ic_return_val_e ic_lis3dh_read_data(void(*fp)(acc_data_s data), bool force){
+  if (m_fp_force != NULL && !force)
     return IC_BUSY;
   m_fp_force = fp;
   __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_read_callback, NULL);

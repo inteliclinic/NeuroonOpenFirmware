@@ -117,7 +117,20 @@
 #define IC_TWI_IRQ_PRIORITY     IC_IRQ_PRIORITY_HIGH
 #define IC_TWI_FREQUENCY        IC_TWI_400KHZ_FREQUENCY
 
-#define IC_TWI_PENDIG_TRANSACTIONS  8
+#define IC_TWI_PENDIG_TRANSACTIONS  10
+
+/** @} */
+
+/*
+ *
+ * ADS
+ *
+ */
+/** @defgroup IC_ADS
+ *  @{
+ */
+
+#define IC_ADS_TICK_PERIOD 8
 
 /** @} */
 
@@ -127,12 +140,6 @@
  *
  */
 
-
-/*
- *
- * SHORTCUTS
- *
- */
 /** @defgroup IC_LTC
  *  @{
  */
@@ -143,6 +150,12 @@
 #define IC_LTC_VIB_MAX_VAL  (0x3F-IC_LTC_VIB_MIN_VAL)
 
 /** @} */
+
+/*
+ *
+ * SHORTCUTS
+ *
+ */
 
 #include "core_cm0.h"
 

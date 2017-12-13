@@ -35,12 +35,9 @@ ic_return_val_e ic_acc_deinit()
   return IC_SUCCESS;
 }
 /*************************************************************/
-ic_return_val_e ic_acc_read(void(*fp)(acc_data_s))
+ic_return_val_e ic_acc_read(void(*fp)(acc_data_s), bool force)
 {
-  if (ic_lis3dh_read_data(fp) != IC_SUCCESS)
-    return IC_ERROR;
-
-  return IC_SUCCESS;
+  return ic_lis3dh_read_data(fp, force) != IC_SUCCESS;
 }
 /*************************************************************/
 ic_return_val_e ic_acc_set_data_rate(acc_power_mode_e data_rate)
