@@ -220,7 +220,7 @@ ic_return_val_e ic_lis3dh_uninit (void);
  * @param fp
  * @return
  */
-ic_return_val_e ic_lis3dh_read_data(void(*fp)(acc_data_s data));
+ic_return_val_e ic_lis3dh_read_data(void(*fp)(acc_data_s data), bool force);
 
 /**
  * @brief Set power mode in lis3dh module

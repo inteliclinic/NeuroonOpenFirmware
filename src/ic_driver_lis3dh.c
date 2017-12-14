@@ -22,11 +22,16 @@ TWI_REGISTER(LIS3DH, LIS3DH_SLAVE_ADDR);
 static uint8_t lis3dh_bufer[10];
 
   /*  function pointer for holding acc data and reseting wdt function  */
-static void (*m_fp)(acc_data_s) = NULL;
-static void (*m_fp_force)(acc_data_s) = NULL;
+static volatile void (*m_fp)(acc_data_s) = NULL;
+static volatile void (*m_fp_force)(acc_data_s) = NULL;
 
+/**
+ * @brief
+ *
+ * @param e
+ * @param p_context
+ */
 static void acc_twi_callback(ic_return_val_e e, void *p_context){
-//	NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);
   if(e != IC_SUCCESS){
     NRF_LOG_ERROR("{%s}\n",(uint32_t)__func__);
     return;
@@ -63,6 +68,12 @@ static void acc_twi_callback(ic_return_val_e e, void *p_context){
   NRF_LOG_FLUSH();
 }
 
+/**
+ * @brief
+ *
+ * @param e
+ * @param p_context
+ */
 static void acc_twi_read_callback(ic_return_val_e e, void *p_context){
   UNUSED_PARAMETER(e);
   if(m_fp_force != NULL){
@@ -78,6 +89,11 @@ static volatile bool m_lock = false;
 #define UNLOCK  m_lock = false
 #define LOCKED  (m_lock == true)
 
+/**
+ * @brief
+ *
+ * @param edge
+ */
 static void acc_int_callback(enum exti_edge_dir edge){
   ic_return_val_e _ret_val;
   switch(edge){
@@ -105,13 +121,14 @@ static void acc_int_callback(enum exti_edge_dir edge){
   }
 }
 
-ic_return_val_e ic_lis3dh_read_data(void(*fp)(acc_data_s data)){
-  if (m_fp_force != NULL)
+ic_return_val_e ic_lis3dh_read_data(void(*fp)(acc_data_s data), bool force){
+  if (m_fp_force != NULL && !force)
     return IC_BUSY;
   m_fp_force = fp;
   __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_read_callback, NULL);
   if (_ret_val != IC_SUCCESS)
   {
+    ic_twi_refresh_bus();
     m_fp_force = NULL;
     return _ret_val;
   }
@@ -163,7 +180,7 @@ ic_return_val_e ic_lis3dh_init (void(*fp)(acc_data_s)){
   if (fp == NULL)
   {
     uint8_t _val = 0x11;
-    
+
     TWI_INIT(LIS3DH);
     __auto_type ret_val  = TWI_READ_DATA(LIS3DH, LIS3DH_REG_WHO_AM_I, &_val, sizeof(_val), NULL, NULL);
     NRF_LOG_INFO("WHO AM I: 0x%X\t ret_val: %d\n", _val==LIS3DH_WHO_AM_I, ret_val);

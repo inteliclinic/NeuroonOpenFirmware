@@ -30,9 +30,9 @@
 static TimerHandle_t m_ads_service_timer_handle = NULL;
 static bool m_module_initialized = false;
 
-static uint8_t m_measurement_cnt = 0;
+static volatile uint8_t m_measurement_cnt = 0;
 
-static int16_t m_eeg_measurement;
+static int16_t volatile m_eeg_measurement;
 static TaskHandle_t send_data_task_handle = NULL;
 
 ALLOCK_SEMAPHORE(m_twi_ready);
@@ -57,7 +57,7 @@ static void ads_timer_callback(TimerHandle_t xTimer){
   UNUSED_PARAMETER(xTimer);
 
   __auto_type _semphr_successfull = pdTRUE;
-  TAKE_SEMAPHORE(m_twi_ready, 8, _semphr_successfull);
+  TAKE_SEMAPHORE(m_twi_ready, IC_ADS_TICK_PERIOD, _semphr_successfull);
   if(_semphr_successfull == pdFALSE){
     NRF_LOG_INFO("Could not take TWI transaction semaphore\n");
   }
@@ -142,7 +142,7 @@ ic_return_val_e ic_ads_service_init(void){
   if(m_ads_service_timer_handle == NULL)
     m_ads_service_timer_handle = xTimerCreate(
         "ADS_TIMER",
-        8,
+        IC_ADS_TICK_PERIOD,
         pdTRUE,
         NULL,
         ads_timer_callback);

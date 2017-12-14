@@ -43,10 +43,6 @@ static volatile uint16_t m_conversion_read_frame = 100;
 
 typedef void (*twi_cb)(void);
 
-void callback_twi(void *context){
-  NRF_LOG_INFO("TWI callback\n");
-}
-
 TWI_REGISTER(ADS, ADS_TWI_ADDRESS);
 
 /**
