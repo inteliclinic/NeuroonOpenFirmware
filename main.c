@@ -387,8 +387,8 @@ void stream1_task(void *arg){
       case IC_SUCCESS:
         break;
       default:
-        NRF_LOG_INFO("Stream1 error: %s", (uint32_t)g_return_val_string[_ret_val]);
-        break;
+        NRF_LOG_INFO("Stream1 error: %s\n", (uint32_t)g_return_val_string[_ret_val]);
+        continue;
     }
     vTaskSuspend(NULL);
   }
