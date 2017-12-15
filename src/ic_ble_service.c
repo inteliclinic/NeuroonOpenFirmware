@@ -215,11 +215,14 @@ static ic_return_val_e ble_iccs_send_to_char(
         case NRF_ERROR_DATA_SIZE:
         case BLE_ERROR_GATTS_SYS_ATTR_MISSING:
           err_code = IC_ERROR;
+          break;
         case NRF_ERROR_BUSY:
         case BLE_ERROR_NO_TX_PACKETS:
           err_code = IC_BUSY;
+          break;
         default:
           err_code = IC_UNKNOWN_ERROR;
+          break;
       }
     }
   }
