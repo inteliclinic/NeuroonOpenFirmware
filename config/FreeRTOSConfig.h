@@ -91,21 +91,24 @@
 
 #define configTICK_SOURCE FREERTOS_USE_RTC
 
-#define configUSE_PREEMPTION 1
+//#define configUSE_DISABLE_TICK_AUTO_CORRECTION_DEBUG 1
+#define configUSE_DISABLE_TICK_AUTO_CORRECTION_DEBUG     0
+
+#define configUSE_PREEMPTION                                                      1
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION                                   0
-#define configUSE_TICKLESS_IDLE 1
+#define configUSE_TICKLESS_IDLE 0
 #define configUSE_TICKLESS_IDLE_SIMPLE_DEBUG                                      1 /* See into vPortSuppressTicksAndSleep source code for explanation */
 #define configCPU_CLOCK_HZ                                                        ( SystemCoreClock )
-#define configTICK_RATE_HZ                                                        1000
-#define configMAX_PRIORITIES                                                      ( 3 )
-#define configMINIMAL_STACK_SIZE                                                  ( 60 )
-#define configTOTAL_HEAP_SIZE                                                     ( 8192 )
-#define configMAX_TASK_NAME_LEN                                                   ( 4 )
+#define configTICK_RATE_HZ                                                        1024
+#define configMAX_PRIORITIES                                                      ( 5 )
+#define configMINIMAL_STACK_SIZE                                                  ( 256 )
+#define configTOTAL_HEAP_SIZE                                                     ( 12600 )
+#define configMAX_TASK_NAME_LEN                                                   ( 10 )
 #define configUSE_16_BIT_TICKS                                                    0
 #define configIDLE_SHOULD_YIELD                                                   1
-#define configUSE_MUTEXES                                                         1
-#define configUSE_RECURSIVE_MUTEXES                                               1
-#define configUSE_COUNTING_SEMAPHORES                                             1
+#define configUSE_MUTEXES                                                         0
+#define configUSE_RECURSIVE_MUTEXES                                               0
+#define configUSE_COUNTING_SEMAPHORES                                             0
 #define configUSE_ALTERNATIVE_API                                                 0    /* Deprecated! */
 #define configQUEUE_REGISTRY_SIZE                                                 2
 #define configUSE_QUEUE_SETS                                                      0
@@ -132,7 +135,7 @@
 #define configUSE_TIMERS 1
 #define configTIMER_TASK_PRIORITY                                                 ( 2 )
 #define configTIMER_QUEUE_LENGTH                                                  32
-#define configTIMER_TASK_STACK_DEPTH                                              ( 80 )
+#define configTIMER_TASK_STACK_DEPTH                                              ( 192 )
 
 /* Tickless Idle configuration. */
 #define configEXPECTED_IDLE_TIME_BEFORE_SLEEP                                     2
@@ -152,15 +155,15 @@
 #define INCLUDE_vTaskPrioritySet                                                  1
 #define INCLUDE_uxTaskPriorityGet                                                 1
 #define INCLUDE_vTaskDelete                                                       1
-#define INCLUDE_vTaskSuspend 1
+#define INCLUDE_vTaskSuspend                                                      1
 #define INCLUDE_xResumeFromISR                                                    1
 #define INCLUDE_vTaskDelayUntil                                                   1
 #define INCLUDE_vTaskDelay                                                        1
 #define INCLUDE_xTaskGetSchedulerState                                            1
 #define INCLUDE_xTaskGetCurrentTaskHandle                                         1
-#define INCLUDE_uxTaskGetStackHighWaterMark                                       1
-#define INCLUDE_xTaskGetIdleTaskHandle                                            1
-#define INCLUDE_xTimerGetTimerDaemonTaskHandle                                    1
+#define INCLUDE_uxTaskGetStackHighWaterMark                                       0
+#define INCLUDE_xTaskGetIdleTaskHandle                                            0
+#define INCLUDE_xTimerGetTimerDaemonTaskHandle                                    0
 #define INCLUDE_pcTaskGetTaskName                                                 1
 #define INCLUDE_eTaskGetState                                                     1
 #define INCLUDE_xEventGroupSetBitFromISR                                          1

@@ -17,6 +17,7 @@
 #include "ble_advdata.h"
 #include "ble_advertising.h"
 #include "ble_conn_params.h"
+#include "ble_db_discovery.h"
 
 #include "softdevice_handler.h"
 #include "app_timer.h"
@@ -25,20 +26,28 @@
 #include "timers.h"
 #include "semphr.h"
 
+
 #include "fstorage.h"
 #include "fds.h"
 
 #include "peer_manager.h"
 #include "ble_dis.h"
+#include "ic_ble_service.h"
 
-#include "ble_hci.h"
-#include "ble_advdata.h"
-#include "ble_advertising.h"
 #include "ble_conn_state.h"
 
+#include "ble_cts_c.h"
+#include "ble_dfu.h"
+
+#include "ic_easy_ltc_driver.h"
+#include "ic_bluetooth.h"
+
 #define NRF_LOG_MODULE_NAME "BLE"
+#define NRF_LOG_LEVEL 5
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
+
+extern void main_on_ble_evt(ble_evt_t * p_ble_evt);
 
 #define IS_SRVC_CHANGED_CHARACT_PRESENT 1                                           /**< Include or not the service_changed characteristic. if not enabled, the server's database cannot be changed for the lifetime of the device*/
 
@@ -52,19 +61,19 @@
 
 #define PERIPHERAL_LINK_COUNT           1                                           /**< Number of peripheral links used by the application. When changing this number remember to adjust the RAM settings*/
 
-#define DEVICE_NAME                     "NeuroonOpen"                           /**< Name of device. Will be included in the advertising data. */
-#define MANUFACTURER_NAME               "Inteliclinic"                       /**< Manufacturer. Will be passed to Device Information Service. */
+#define DEVICE_NAME                     "NeuroOn"                               /**< Name of device. Will be included in the advertising data. */
+#define MANUFACTURER_NAME               "Inteliclinic"                              /**< Manufacturer. Will be passed to Device Information Service. */
 
 #define APP_ADV_INTERVAL                300                                         /**< The advertising interval (in units of 0.625 ms. This value corresponds to 187.5 ms). */
-#define APP_ADV_TIMEOUT_IN_SECONDS      0                                         /**< The advertising timeout in units of seconds. */
+#define APP_ADV_TIMEOUT_IN_SECONDS      0                                           /**< The advertising timeout in units of seconds. */
 
-#define MIN_CONN_INTERVAL               MSEC_TO_UNITS(100, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.1 seconds). */
-#define MAX_CONN_INTERVAL               MSEC_TO_UNITS(200, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (0.2 second). */
+#define MIN_CONN_INTERVAL               MSEC_TO_UNITS(8, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.1 seconds). */
+#define MAX_CONN_INTERVAL               MSEC_TO_UNITS(32, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (0.2 second). */
 #define SLAVE_LATENCY                   0                                           /**< Slave latency. */
 #define CONN_SUP_TIMEOUT                MSEC_TO_UNITS(4000, UNIT_10_MS)             /**< Connection supervisory timeout (4 seconds). */
 
-#define FIRST_CONN_PARAMS_UPDATE_DELAY  APP_TIMER_TICKS(5000, 0)  /**< Time from initiating event (connect or start of notification) to first time sd_ble_gap_conn_param_update is called (5 seconds). */ /*[TODO] PARAMETRYZACJA "0" !!!*/
-#define NEXT_CONN_PARAMS_UPDATE_DELAY   APP_TIMER_TICKS(30000, 0) /**< Time between each call to sd_ble_gap_conn_param_update after the first call (30 seconds). */ /*[TODO] PARAMETRYZACJA "0" !!!*/
+#define FIRST_CONN_PARAMS_UPDATE_DELAY  APP_TIMER_TICKS(5000, 31)  /**< Time from initiating event (connect or start of notification) to first time sd_ble_gap_conn_param_update is called (5 seconds). */ /*[TODO] PARAMETRYZACJA "0" !!!*/
+#define NEXT_CONN_PARAMS_UPDATE_DELAY   APP_TIMER_TICKS(30000, 31) /**< Time between each call to sd_ble_gap_conn_param_update after the first call (30 seconds). */ /*[TODO] PARAMETRYZACJA "0" !!!*/
 #define MAX_CONN_PARAMS_UPDATE_COUNT    3                                           /**< Number of attempts before giving up the connection parameter negotiation. */
 
 #define SEC_PARAM_BOND                  1                                           /**< Perform bonding. */
@@ -77,15 +86,41 @@
 #define SEC_PARAM_MAX_KEY_SIZE          16                                          /**< Maximum encryption key size. */
 
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                            /**< Handle of the current connection. */
-static SemaphoreHandle_t m_ble_event_ready;
+static TaskHandle_t m_ble_tast_handle = NULL;
+static bool m_module_initialized = false;
+
+static bool m_ble_power_down = false;
+
+ALLOCK_SEMAPHORE(m_ble_event_ready);
+
+/*static SemaphoreHandle_t m_ble_event_ready = NULL;*/
 
 /* YOUR_JOB: Declare all services structure your application is using
    static ble_xx_service_t                     m_xxs;
    static ble_yy_service_t                     m_yys;
  */
 
+static ble_dfu_t m_dfus;/* Structure used to identify the DFU service. */
+
+static void ble_dfu_evt_handler(ble_dfu_t * p_dfu, ble_dfu_evt_t * p_evt){
+    switch (p_evt->type){
+        case BLE_DFU_EVT_INDICATION_DISABLED:
+            NRF_LOG_INFO("Indication for BLE_DFU is disabled\r\n");
+            break;
+        case BLE_DFU_EVT_INDICATION_ENABLED:
+            NRF_LOG_INFO("Indication for BLE_DFU is enabled\r\n");
+            break;
+        case BLE_DFU_EVT_ENTERING_BOOTLOADER:
+            NRF_LOG_INFO("Device is entering bootloader mode!\r\n");
+            break;
+        default:
+            NRF_LOG_INFO("Unknown event from ble_dfu\r\n");
+            break;
+    }
+}
+static ble_uuid_t m_adv_uuids[] = {{BLE_UUID_ICCS_CHARACTERISTIC, BLE_UUID_TYPE_VENDOR_BEGIN}};
 // YOUR_JOB: Use UUIDs for service(s) used in your application.
-static ble_uuid_t m_adv_uuids[] = {{BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}}; /**< Universally unique service identifiers. */
+/**< Universally unique service identifiers. */
 
 static void advertising_start(void);
 
@@ -227,14 +262,31 @@ static void services_init(void)
 {
   ble_dis_init_t dis_init;
   memset(&dis_init, 0, sizeof(ble_dis_init_t));
-  dis_init.manufact_name_str.length = 12;
-  dis_init.manufact_name_str.p_str = (uint8_t *)"Inteliclinic";
+  dis_init.manufact_name_str.length = strlen(MANUFACTURER_NAME);
+  dis_init.manufact_name_str.p_str = (uint8_t *)MANUFACTURER_NAME;
+  dis_init.sw_rev_str.length = strlen(NEUROON_OPEN_VERSION);
+  dis_init.sw_rev_str.p_str = (uint8_t *)NEUROON_OPEN_VERSION;
+  /*dis_init.dis_attr_md*/
 
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&dis_init.dis_attr_md.read_perm);
   BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&dis_init.dis_attr_md.write_perm);
   __auto_type err_code = ble_dis_init(&dis_init);
   APP_ERROR_CHECK(err_code);
 
+  ble_iccs_init_t iccs_init;
+  ble_iccs_init(&iccs_init);
+
+  ble_dfu_init_t dfus_init;
+
+  // Initialize the Device Firmware Update Service.
+  memset(&dfus_init, 0, sizeof(dfus_init));
+
+  dfus_init.evt_handler                               = ble_dfu_evt_handler;
+  dfus_init.ctrl_point_security_req_write_perm        = SEC_SIGNED;
+  dfus_init.ctrl_point_security_req_cccd_write_perm   = SEC_SIGNED;
+
+  err_code = ble_dfu_init(&m_dfus, &dfus_init);
+  APP_ERROR_CHECK(err_code);
     /* YOUR_JOB: Add code to initialize the services used by the application.
        uint32_t                           err_code;
        ble_xxs_init_t                     xxs_init;
@@ -349,6 +401,7 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
             break;
 
         case BLE_ADV_EVT_IDLE:
+            NRF_LOG_INFO("Advertising Idle\r\n");
             sleep_mode_enter();
             break;
 
@@ -468,27 +521,25 @@ static void sys_evt_dispatch(uint32_t sys_evt)
  */
 static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
 {
-    /** The Connection state module has to be fed BLE events in order to function correctly
-     * Remember to call ble_conn_state_on_ble_evt before calling any ble_conns_state_* functions. */
-    ble_conn_state_on_ble_evt(p_ble_evt);
-    pm_on_ble_evt(p_ble_evt);
-    ble_conn_params_on_ble_evt(p_ble_evt);
-    on_ble_evt(p_ble_evt);
+  /** The Connection state module has to be fed BLE events in order to function correctly
+   * Remember to call ble_conn_state_on_ble_evt before calling any ble_conns_state_* functions. */
+  ble_conn_state_on_ble_evt(p_ble_evt);
+  pm_on_ble_evt(p_ble_evt);
+  ble_conn_params_on_ble_evt(p_ble_evt);
+  on_ble_evt(p_ble_evt);
+  if(!m_ble_power_down){
     ble_advertising_on_ble_evt(p_ble_evt);
-    /*YOUR_JOB add calls to _on_ble_evt functions from each service your application is using
-       ble_xxs_on_ble_evt(&m_xxs, p_ble_evt);
-       ble_yys_on_ble_evt(&m_yys, p_ble_evt);
-     */
+  }
+  ble_iccs_on_ble_evt(p_ble_evt);
+  main_on_ble_evt(p_ble_evt);
+  ble_dfu_on_ble_evt(&m_dfus, p_ble_evt);
 }
 
 static uint32_t ble_new_event_handler(void)
 {
-    BaseType_t yield_req = pdFALSE;
-
     // The returned value may be safely ignored, if error is returned it only means that
     // the semaphore is already given (raised).
-    UNUSED_VARIABLE(xSemaphoreGiveFromISR(m_ble_event_ready, &yield_req));
-    portYIELD_FROM_ISR(yield_req);
+    GIVE_SEMAPHORE(m_ble_event_ready);
     return NRF_SUCCESS;
 }
 
@@ -500,7 +551,7 @@ static void ble_stack_init(void)
 {
     uint32_t err_code;
 
-    nrf_clock_lf_cfg_t clock_lf_cfg = { .source = NRF_CLOCK_LF_SRC_XTAL,
+    nrf_clock_lf_cfg_t clock_lf_cfg = { .source = NRF_CLOCK_LF_SRC_SYNTH,
       .rc_ctiv = 0,
       .rc_temp_ctiv = 0,
       .xtal_accuracy = NRF_CLOCK_LF_XTAL_ACCURACY_20_PPM};
@@ -513,6 +564,8 @@ static void ble_stack_init(void)
                                                     PERIPHERAL_LINK_COUNT,
                                                     &ble_enable_params);
     APP_ERROR_CHECK(err_code);
+    ble_enable_params.common_enable_params.vs_uuid_count   = 2;
+    /*ble_enable_params.gatts_enable_params.attr_tab_size    = 0x580;*/
 
     // Check the ram settings against the used number of links
     CHECK_RAM_START_ADDR(CENTRAL_LINK_COUNT, PERIPHERAL_LINK_COUNT);
@@ -585,7 +638,7 @@ static void advertising_init(void)
     memset(&advdata, 0, sizeof(advdata));
 
     advdata.name_type               = BLE_ADVDATA_FULL_NAME;
-    advdata.include_appearance      = true;
+    advdata.include_appearance      = false;
     advdata.flags                   = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
     advdata.uuids_complete.uuid_cnt = sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);
     advdata.uuids_complete.p_uuids  = m_adv_uuids;
@@ -608,29 +661,43 @@ static void advertising_start(void)
     APP_ERROR_CHECK(err_code);
 }
 
+static void init_assets(void){
+  // Initialize.
+  ble_stack_init();
+  peer_manager_init(true);
+  gap_params_init();
+  services_init();
+  conn_params_init();
+  advertising_init();
+
+  __auto_type err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
+  APP_ERROR_CHECK(err_code);
+}
+
 static void ble_stack_thread(void * arg)
 {
   UNUSED_PARAMETER(arg);
 
   // Initialize.
-  ble_stack_init();
-  peer_manager_init(false);
-  gap_params_init();
-  advertising_init();
-  services_init();
-  conn_params_init();
-
-  __auto_type err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
-  APP_ERROR_CHECK(err_code);
+/*
+ *  ble_stack_init();
+ *  peer_manager_init(true);
+ *  gap_params_init();
+ *  advertising_init();
+ *  services_init();
+ *  conn_params_init();
+ *
+ *  __auto_type err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
+ *  APP_ERROR_CHECK(err_code);
+ */
 
 
   while (1)
   {
     /* Wait for event from SoftDevice */
-    while (pdFALSE == xSemaphoreTake(m_ble_event_ready, portMAX_DELAY))
-    {
-      // Just wait again in the case when INCLUDE_vTaskSuspend is not enabled
-    }
+    int dummy;
+    TAKE_SEMAPHORE(m_ble_event_ready, portMAX_DELAY, dummy);
+    UNUSED_PARAMETER(dummy);
 
     // This function gets events from the SoftDevice and processes them by calling the function
     // registered by softdevice_ble_evt_handler_set during stack initialization.
@@ -639,12 +706,50 @@ static void ble_stack_thread(void * arg)
   }
 }
 
-void ble_module_init(void){
-  m_ble_event_ready = xSemaphoreCreateBinary();
-  if (NULL == m_ble_event_ready)
-    APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+ic_return_val_e ic_ble_module_init(void){
+  if(m_module_initialized) return IC_SUCCESS;
 
-  // Start execution.
-  if (pdPASS != xTaskCreate(ble_stack_thread, "BLE", 512, NULL, 2, NULL))
-    APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+  INIT_SEMAPHORE_BINARY(m_ble_event_ready);
+
+  init_assets();
+  if (m_ble_tast_handle == NULL){
+
+    // Start execution.
+    if (pdPASS != xTaskCreate(ble_stack_thread, "BLE", 384, NULL, 3, &m_ble_tast_handle))
+      APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+  }
+  else{
+    RESUME_TASK(m_ble_tast_handle);
+  }
+
+  m_module_initialized = true;
+  return IC_SUCCESS;
+}
+
+ic_return_val_e ic_bluetooth_disable(void){
+  if(m_module_initialized == false) return IC_NOT_INIALIZED;
+
+  __auto_type _err_code = IC_SUCCESS;
+
+  m_ble_power_down = true;
+  if(m_conn_handle != BLE_CONN_HANDLE_INVALID){
+    sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+    m_conn_handle = BLE_CONN_HANDLE_INVALID;
+  }
+  else{
+    _err_code = sd_ble_gap_adv_stop();
+    NRF_LOG_INFO("{%s} %d\n", (uint32_t)__func__, _err_code);
+  }
+
+  /*sd_softdevice_disable();*/
+  return _err_code != NRF_SUCCESS ? IC_ERROR : IC_SUCCESS;
+}
+
+ic_return_val_e ic_bluetooth_enable(void){
+  if(m_module_initialized == false) return IC_NOT_INIALIZED;
+  m_ble_power_down = false;
+  pm_peers_delete();
+  ble_advertising_start(BLE_ADV_MODE_FAST);
+
+  return NRF_SUCCESS;
 }

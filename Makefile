@@ -1,11 +1,14 @@
-PROJECT_NAME     := neuroon2.0
-TARGETS          := neuroon2
-OUTPUT_DIRECTORY := _build
+PROJECT_NAME     	:= neuroon2.0
+TARGET          	:= neuroonOpen
+OUTPUT_DIRECTORY	:= _build
 
 SDK_ROOT := sdk
+NUC_ROOT := nuc
 PROJ_DIR := .
 
-$(OUTPUT_DIRECTORY)/neuroon2.out: \
+GIT_VERSION = $(shell git describe --tags --abbrev=5 --dirty=-D)
+
+$(OUTPUT_DIRECTORY)/$(TARGET).out: \
   LINKER_SCRIPT  := linker_script.ld
 
 # Source files common to all targets
@@ -16,8 +19,12 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/util/app_error.c \
   $(SDK_ROOT)/components/libraries/util/app_error_weak.c \
   $(SDK_ROOT)/components/libraries/timer/app_timer_freertos.c \
+  $(SDK_ROOT)/components/libraries/fifo/app_fifo.c \
   $(SDK_ROOT)/components/libraries/util/app_util_platform.c \
+  $(SDK_ROOT)/components/libraries/uart/app_uart_fifo.c \
+  $(SDK_ROOT)/components/libraries/uart/retarget.c \
   $(SDK_ROOT)/components/libraries/crc16/crc16.c \
+  $(SDK_ROOT)/components/libraries/crc32/crc32.c \
   $(SDK_ROOT)/components/libraries/fds/fds.c \
   $(SDK_ROOT)/components/libraries/fstorage/fstorage.c \
   $(SDK_ROOT)/components/libraries/hardfault/hardfault_implementation.c \
@@ -25,15 +32,49 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/util/sdk_errors.c \
   $(SDK_ROOT)/components/libraries/util/sdk_mapped_flags.c \
   $(SDK_ROOT)/components/libraries/sensorsim/sensorsim.c \
+  $(SDK_ROOT)/components/libraries/twi/app_twi.c \
   $(SDK_ROOT)/components/drivers_nrf/clock/nrf_drv_clock.c \
   $(SDK_ROOT)/components/drivers_nrf/common/nrf_drv_common.c \
   $(SDK_ROOT)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
   $(SDK_ROOT)/components/drivers_nrf/uart/nrf_drv_uart.c \
+  $(SDK_ROOT)/components/drivers_nrf/spi_master/nrf_drv_spi.c \
+  $(SDK_ROOT)/components/drivers_nrf/twi_master/nrf_drv_twi.c \
   $(PROJ_DIR)/main.c \
   $(PROJ_DIR)/src/ic_bluetooth.c \
+  $(PROJ_DIR)/src/ic_ble_service.c \
+  $(PROJ_DIR)/src/ic_command_task.c \
+  $(PROJ_DIR)/src/nrf_dfu_flash_buttonless.c \
+  $(PROJ_DIR)/src/ic_driver_uart.c \
+  $(PROJ_DIR)/src/ic_driver_button.c \
+  $(PROJ_DIR)/src/ic_driver_spi.c \
+  $(PROJ_DIR)/src/ic_driver_twi.c\
+  $(PROJ_DIR)/src/ic_driver_ads.c\
+  $(PROJ_DIR)/src/ic_driver_lis3dh.c\
+  $(PROJ_DIR)/src/ic_acc_driver.c\
+  $(PROJ_DIR)/src/ic_acc_service.c\
+  $(PROJ_DIR)/src/ic_service_ads.c\
+  $(PROJ_DIR)/src/ic_service_time.c\
+  $(PROJ_DIR)/src/ic_easy_ltc_driver.c\
+  $(PROJ_DIR)/src/ic_driver_ltc.c\
+  $(PROJ_DIR)/src/ic_service_ltc.c\
+  $(PROJ_DIR)/src/ic_driver_actuators.c\
+  $(PROJ_DIR)/src/ic_nrf_error.c \
+  $(PROJ_DIR)/src/ic_common_types.c \
+  $(NUC_ROOT)/src/ic_characteristics.c \
+  $(NUC_ROOT)/src/ic_crc8.c \
+  $(NUC_ROOT)/src/ic_device.c \
+  $(NUC_ROOT)/src/ic_dfu.c \
+  $(NUC_ROOT)/src/ic_emergency_alarm.c \
+  $(NUC_ROOT)/src/ic_frame_constructor.c \
+  $(NUC_ROOT)/src/ic_frame_handle.c \
+  $(NUC_ROOT)/src/ic_nuc.c \
+  $(NUC_ROOT)/src/ic_pulseoximeter.c \
+  $(NUC_ROOT)/src/ic_response.c \
+  $(NUC_ROOT)/src/ic_status.c \
+  $(NUC_ROOT)/src/ic_version.c \
   $(SDK_ROOT)/external/freertos/source/croutine.c \
   $(SDK_ROOT)/external/freertos/source/event_groups.c \
-  $(SDK_ROOT)/external/freertos/source/portable/MemMang/heap_1.c \
+  $(SDK_ROOT)/external/freertos/source/portable/MemMang/heap_4.c \
   $(SDK_ROOT)/external/freertos/source/list.c \
   $(SDK_ROOT)/external/freertos/portable/GCC/nrf51/port.c \
   $(SDK_ROOT)/external/freertos/portable/CMSIS/nrf51/port_cmsis.c \
@@ -64,7 +105,12 @@ SRC_FILES += \
   $(SDK_ROOT)/components/toolchain/gcc/gcc_startup_nrf51.S \
   $(SDK_ROOT)/components/toolchain/system_nrf51.c \
   $(SDK_ROOT)/components/softdevice/common/softdevice_handler/softdevice_handler.c \
+  $(SDK_ROOT)/components/libraries/scheduler/app_scheduler.c \
   $(SDK_ROOT)/components/ble/ble_services/ble_dis/ble_dis.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_cts_c/ble_cts_c.c \
+  $(SDK_ROOT)/components/ble/ble_db_discovery/ble_db_discovery.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_dfu/ble_dfu.c \
+  $(SDK_ROOT)/components/libraries/bootloader/dfu/nrf_dfu_settings.c \
   #$(SDK_ROOT)/components/boards/boards.c \
   #$(SDK_ROOT)/components/libraries/bsp/bsp.c \
   #$(SDK_ROOT)/components/libraries/bsp/bsp_btn_ble.c \
@@ -74,8 +120,10 @@ SRC_FILES += \
 INC_FOLDERS += \
   $(PROJ_DIR)/inc \
   $(PROJ_DIR)/src \
+  $(NUC_ROOT)/API \
+  $(NUC_ROOT)/API/include \
+  $(NUC_ROOT)/src \
   $(SDK_ROOT)/components/drivers_nrf/comp \
-  $(SDK_ROOT)/components/drivers_nrf/twi_master \
   $(SDK_ROOT)/components/ble/ble_services/ble_ancs_c \
   $(SDK_ROOT)/components/ble/ble_services/ble_ias_c \
   $(SDK_ROOT)/components/softdevice/s130/headers \
@@ -151,6 +199,7 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/drivers_nrf/qdec \
   $(SDK_ROOT)/components/ble/ble_services/ble_cts_c \
   $(SDK_ROOT)/components/drivers_nrf/spi_master \
+  $(SDK_ROOT)/components/drivers_nrf/twi_master \
   $(SDK_ROOT)/components/ble/ble_services/ble_nus \
   $(SDK_ROOT)/components/ble/ble_services/ble_hids \
   $(SDK_ROOT)/components/drivers_nrf/pdm \
@@ -177,6 +226,9 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/softdevice/common/softdevice_handler \
   $(SDK_ROOT)/components/ble/ble_services/ble_hrs \
   $(SDK_ROOT)/components/libraries/log/src \
+  $(SDK_ROOT)/components/libraries/fifo \
+  $(SDK_ROOT)/components/ble/ble_db_discovery \
+  $(SDK_ROOT)/components/libraries/bootloader/dfu
   #$(SDK_ROOT)/components/boards \
   #$(SDK_ROOT)/components/libraries/bsp \
 
@@ -185,24 +237,28 @@ LIB_FILES += \
 
 # C flags common to all targets
 #CFLAGS += -DBOARD_CUSTOM
-CFLAGS += -D__STACK_SIZE=8192
-CFLAGS += -D__HEAP_SIZE=4096
+CFLAGS += -D__STACK_SIZE=4096
+CFLAGS += -D__HEAP_SIZE=0
 CFLAGS += -DFREERTOS
 CFLAGS += -std=gnu11
 CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -DNRF51
 CFLAGS += -DS130
 CFLAGS += -DBLE_STACK_SUPPORT_REQD
-#CFLAGS += -DSWI_DISABLE0
+CFLAGS += -DSWI_DISABLE0
 CFLAGS += -DNRF51822
 CFLAGS += -DNRF_SD_BLE_API_VERSION=2
+CFLAGS += -DNRF_DFU_SETTINGS_VERSION=1
 CFLAGS += -mcpu=cortex-m0
 CFLAGS += -mthumb -mabi=aapcs
-CFLAGS += -Wall -Werror -Og -g3
+CFLAGS += -Wall -Werror -O3 -g0
 CFLAGS += -mfloat-abi=soft
 # keep every function in separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
-CFLAGS += -fno-builtin --short-enums 
+CFLAGS += -fno-builtin --short-enums
+CFLAGS += -DNEUROON_OPEN_VERSION=\"$(GIT_VERSION)\"\
+#CFLAGS += -DDEBUG
+#CFLAGS += -DDEBUG_NRF
 
 # C++ flags common to all targets
 CXXFLAGS += \
@@ -216,6 +272,10 @@ ASMFLAGS += -DBLE_STACK_SUPPORT_REQD
 ASMFLAGS += -DSWI_DISABLE0
 ASMFLAGS += -DNRF51822
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=2
+ASMFLAGS += -D__STACK_SIZE=4096
+ASMFLAGS += -D__HEAP_SIZE=0
+#ASMFLAGS += -DDEBUG
+#ASMFLAGS += -DDEBUG_NRF
 
 # Linker flags
 LDFLAGS += -mthumb -mabi=aapcs -L $(TEMPLATE_PATH) -T$(LINKER_SCRIPT)
@@ -224,30 +284,36 @@ LDFLAGS += -mcpu=cortex-m0
 LDFLAGS += -Wl,--gc-sections
 # use newlib in nano version
 LDFLAGS += --specs=nano.specs -lc -lnosys
+LDFLAGS += -lm
 
+BOOT_TARGETS:=boot boot_help boot_gen_pub_key boot_gen_prv_key boot_generate_settings boot_merge_settings boot_flash boot_bin boot_clean
 
-.PHONY: $(TARGETS) default all clean help flash flash_softdevice
-
+ifneq (,$(filter $(BOOT_TARGETS),$(MAKECMDGOALS)))
+  include bootloader_secure/makefile.boot
+else
+.PHONY: $(TARGET) default all clean help flash flash_softdevice
+	#
 # Default target - first one defined
-default: neuroon2
+default: $(TARGET)
 
 # Print all targets that can be built
 help:
-	@echo following targets are available:
-	@echo 	neuroon2
+	@echo 	following targets are available:
+	@echo 	$(TARGET)
 
 TEMPLATE_PATH := $(SDK_ROOT)/components/toolchain/gcc
 
 include $(SDK_ROOT)/components/toolchain/gcc/Makefile.common
 
-$(foreach target, $(TARGETS), $(call define_target, $(target)))
+$(foreach target, $(TARGET), $(call define_target, $(target)))
 
-bin: $(OUTPUT_DIRECTORY)/neuroon2.out
-	@$(OBJCOPY) -O binary "$(BIN_DIR)/$<" "$(OUTPUT_DIRECTORY)/neuroon2.bin"
+endif
 
+bin: $(OUTPUT_DIRECTORY)/$(TARGET).out
+	@$(OBJCOPY) -O binary "$<" "$(OUTPUT_DIRECTORY)/$(TARGET).bin"
 
 # Flash the program
-flash: $(OUTPUT_DIRECTORY)/neuroon2.hex
+flash: $(OUTPUT_DIRECTORY)/$(TARGET).hex
 	@echo Flashing: $<
 	nrfjprog --program $< -f nrf51 --sectorerase
 	nrfjprog --reset -f nrf51
@@ -255,8 +321,8 @@ flash: $(OUTPUT_DIRECTORY)/neuroon2.hex
 # Flash softdevice
 flash_softdevice:
 	@echo Flashing: s130_nrf51_2.0.1_softdevice.hex
-	nrfjprog --program $(SDK_ROOT)/components/softdevice/s130/hex/s130_nrf51_2.0.1_softdevice.hex -f nrf51 --sectorerase 
+	nrfjprog --program $(SDK_ROOT)/components/softdevice/s130/hex/s130_nrf51_2.0.1_softdevice.hex -f nrf51 --sectorerase
 	nrfjprog --reset -f nrf51
 
 erase:
-	nrfjprog --eraseall -f nrf52
+	nrfjprog --eraseall -f nrf51

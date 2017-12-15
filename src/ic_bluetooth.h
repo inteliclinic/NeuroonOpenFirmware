@@ -13,7 +13,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-void ble_module_init (void);
+#include "ic_common_types.h"
+
 bool rc_start_advertising();
+ic_return_val_e ic_ble_module_init(void);
+ic_return_val_e ic_bluetooth_enable(void);
+ic_return_val_e ic_bluetooth_disable(void);
 
 #endif /* !IC_BLUETOOTH_H */
