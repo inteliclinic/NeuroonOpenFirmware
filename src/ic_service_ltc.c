@@ -76,6 +76,12 @@ static void m_device_parse(u_BLECmdPayload payload){
   __auto_type _period = pdMS_TO_TICKS((payload.device_cmd.func_parameter.periodic_func.period*100));
   __auto_type _duration = pdMS_TO_TICKS((payload.device_cmd.func_parameter.periodic_func.duration*100));
 
+  NRF_LOG_INFO("dev: 0x%X\tfunc: %d\tperiod: %d\tduration: %d\n",
+      payload.device_cmd.device,
+      payload.device_cmd.func_type,
+      payload.device_cmd.func_parameter.periodic_func.period,
+      payload.device_cmd.func_parameter.periodic_func.duration);
+
   if(payload.device_cmd.device&DEV_RIGHT_RED_LED){
     actuator_set_func(
         &m_device_state[ACTUATOR_RIGHT_RED_LED],
@@ -206,7 +212,7 @@ uint8_t(*m_function_map[])(struct device_state_s *) = {
   function_off,
   function_off,
   function_on,
-  NULL,
+  function_triangle, // it is dummy func(should be sinus)
   function_blink,
   function_square,
   function_saw,
@@ -261,7 +267,6 @@ static void refresh_device(struct device_state_s * device){
   if(_ret_val != IC_SUCCESS){
     NRF_LOG_INFO("Could not refresh device %d: {%s}\n",
         device->device, (uint32_t)g_return_val_string[_ret_val]);
-    NRF_LOG_FLUSH();
   }
 }
 
@@ -287,8 +292,8 @@ static void refresh_function(struct device_state_s *device){
 
 static void refresh_activation(struct device_state_s *device){
   if(
-      ((device->desired_val == 0)&&(device->func == FUN_TYPE_OFF)) ||
-      ((device->desired_val == device->intensity)&&(device->func == FUN_TYPE_ON))
+      ((device->desired_val == 0)&&(device->func == FUN_TYPE_OFF))
+      /*|| ((device->desired_val == device->intensity)&&(device->func == FUN_TYPE_ON))*/
     )
   {
     device->turned_on = false;

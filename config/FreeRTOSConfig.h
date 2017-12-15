@@ -102,7 +102,7 @@
 #define configTICK_RATE_HZ                                                        1024
 #define configMAX_PRIORITIES                                                      ( 5 )
 #define configMINIMAL_STACK_SIZE                                                  ( 256 )
-#define configTOTAL_HEAP_SIZE                                                     ( 12264 )
+#define configTOTAL_HEAP_SIZE                                                     ( 12600 )
 #define configMAX_TASK_NAME_LEN                                                   ( 10 )
 #define configUSE_16_BIT_TICKS                                                    0
 #define configIDLE_SHOULD_YIELD                                                   1
@@ -119,7 +119,7 @@
 /* Hook function related definitions. */
 #define configUSE_IDLE_HOOK 1
 #define configUSE_TICK_HOOK                                                       0
-#define configCHECK_FOR_STACK_OVERFLOW                                            2
+#define configCHECK_FOR_STACK_OVERFLOW                                            0
 #define configUSE_MALLOC_FAILED_HOOK                                              0
 
 /* Run time and task stats gathering related definitions. */
@@ -135,7 +135,7 @@
 #define configUSE_TIMERS 1
 #define configTIMER_TASK_PRIORITY                                                 ( 2 )
 #define configTIMER_QUEUE_LENGTH                                                  32
-#define configTIMER_TASK_STACK_DEPTH                                              ( 128 )
+#define configTIMER_TASK_STACK_DEPTH                                              ( 192 )
 
 /* Tickless Idle configuration. */
 #define configEXPECTED_IDLE_TIME_BEFORE_SLEEP                                     2

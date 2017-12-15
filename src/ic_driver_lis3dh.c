@@ -51,21 +51,12 @@ static void acc_twi_callback(ic_return_val_e e, void *p_context){
      __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, NULL);
      if(_ret_val == IC_SOFTWARE_BUSY)
        TWI_READ_DATA_FORCED(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, NULL);
-    /*NRF_LOG_INFO("Read: %s\n",(uint32_t)g_return_val_string[_ret_val]);*/
   }
-//  NRF_LOG_INFO("Going next...\r\n");
   if(m_fp_force != NULL){
     NRF_LOG_INFO("Status: 0x%X\n",lis3dh_bufer[0]);
     m_fp(*(acc_data_s *)&lis3dh_bufer[1]);
     m_fp_force = NULL;
   }
-
-//  NRF_LOG_INFO("x: %d, y: %d, z: %d\n",
-//			((acc_data_s *)&lis3dh_bufer[1])->x,
-//			((acc_data_s *)&lis3dh_bufer[1])->y,
-//			((acc_data_s *)&lis3dh_bufer[1])->z);
-
-  NRF_LOG_FLUSH();
 }
 
 /**
@@ -238,7 +229,6 @@ ic_return_val_e ic_lis3dh_init (void(*fp)(acc_data_s)){
 
     ENABLE_DRDY_INT;
 
-    NRF_LOG_FLUSH();
   }
 
   return IC_SUCCESS;
