@@ -36,7 +36,7 @@ ic_return_val_e ic_acc_deinit(void);
  *
  * @return IC_SUCCESS when everything goes okay
  */
-ic_return_val_e ic_acc_read(void(*fp)(acc_data_s));
+ic_return_val_e ic_acc_read(void(*fp)(acc_data_s), bool force);
 
 /**
  * @brief Set data rate on accelerometer
@@ -56,6 +56,16 @@ ic_return_val_e ic_acc_read(void(*fp)(acc_data_s));
  */
 ic_return_val_e ic_acc_set_data_rate(acc_power_mode_e data_rate);
 
-ic_return_val_e ic_acc_do_self_test();
+/**
+ * @brief Three self-testing functions for LIS3DH module
+ *
+ * It was essential to split testing function into three parts,
+ * because of the necessity to add delay functions in higher (service) layer
+ *
+ * @return
+ */
+ic_return_val_e ic_acc_do_self_test1();
+ic_return_val_e ic_acc_do_self_test2();
+ic_return_val_e ic_acc_do_self_test3();
 
 #endif	// !IC_ACC_DRIVER_H //

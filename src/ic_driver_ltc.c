@@ -60,15 +60,13 @@ ic_return_val_e ic_set_channel(
   m_ltc_channels[channel].bufer[0] = channel;
   m_ltc_channels[channel].bufer[1] = val&0x3F;
 
-  switch(TWI_SEND_DATA(ltc_twi, m_ltc_channels[channel].bufer, 2, fp, context)){
-    case IC_ERROR:
-      return IC_ERROR;
-    case IC_SUCCESS:
-      return IC_SUCCESS;
-    default:
-      return IC_BUSY;
+  __auto_type _ret_val = TWI_SEND_DATA(ltc_twi, m_ltc_channels[channel].bufer, 2, fp, context);
+
+  if(_ret_val != IC_SUCCESS){
+    ic_twi_refresh_bus();
   }
 
+  return _ret_val;
 }
 
 ic_return_val_e ic_enable_channel(uint8_t channel){

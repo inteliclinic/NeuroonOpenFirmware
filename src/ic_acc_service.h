@@ -14,42 +14,33 @@
 #define _ACC_EXTI_MODE
 #undef _ACC_EXTI_MODE
 
+#ifdef _ACC_EXTI_MODE
 /**
- * @brief Reset accelerometer watchdog timer
- *
- * @param data - structure containing x,y,z data
- *
- * Function for reseting timer - just for dealing with TWI problems
- *
+ * Define whether you want to check data using timer
  */
-void ic_reset_acc_wdt(acc_data_s data);
-
-/**
- *
- * @param data
- */
-void ic_wdt_get_data(acc_data_s data);
+#define _CHECK_DATA_TIMER
+#undef _CHECK_DATA_TIMER
+#endif
 
 /**
  * @brief Initialize accelerometer module
  */
 ic_return_val_e ic_acc_module_init(void(*cb)(acc_data_s));
-
+/*********************************************************************************/
 /**
  * @brief Deinitialization accelerometer module
  *
  * @return
  */
 ic_return_val_e ic_acc_module_deinit(void);
-
+/*********************************************************************************/
 /**
  * @brief Get x,y,x data from accelerometer
  *
  * @return acc_data_s structure with x,y,z accelerometer data
  */
 acc_data_s ic_acc_get_data(void);
-
-
+/*********************************************************************************/
 /**
  * @brief Set data rate for accelerometer module
  *
@@ -64,9 +55,16 @@ acc_data_s ic_acc_get_data(void);
  *	 LIS3DH_RATE_400Hz
  *	 LIS3DH_RATE_LP
  *
- * @return IC_SUCCESS if everything goes okay
+ * @return IC_SUCCESS if everything is okay
  */
 ic_return_val_e ic_acc_set_rate(acc_power_mode_e data_rate);
-
+/*********************************************************************************/
+/**
+ * @brief  Do the accelerometer self-test
+ *
+ *  Self-test procedure is given in the lis3dh datasheet
+ *
+ * @return IC_SUCCESS if everything is okay
+ */
 ic_return_val_e ic_acc_selftest(void);
-
+/*********************************************************************************/

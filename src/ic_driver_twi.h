@@ -232,5 +232,6 @@ ic_return_val_e ic_twi_read(
     void *context,
     bool force);
 
+void ic_twi_refresh_bus();
 
 #endif /* !IC_DRIVER_TWI_H */

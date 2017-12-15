@@ -10,6 +10,9 @@
 #ifndef IC_DRIVER_LIS3DH_H
 #define IC_DRIVER_LIS3DH_H
 
+#define _DO_SELF_TEST
+//#undef _DO_SELF_TEST
+
 #include "ic_config.h"
 
 /**
@@ -28,14 +31,14 @@ typedef struct __attribute__((packed)){
  */
 typedef enum
 {
-  LIS3DH_RATE_1Hz       = 0x01,  //!< LIS3DH_RATE_1Hz
+  LIS3DH_RATE_1Hz   = 0x01,  //!< LIS3DH_RATE_1Hz
   LIS3DH_RATE_10Hz	= 0x02,  //!< LIS3DH_RATE_10Hz
   LIS3DH_RATE_25Hz	= 0x03,  //!< LIS3DH_RATE_25Hz
   LIS3DH_RATE_50Hz	= 0x04,  //!< LIS3DH_RATE_50Hz
-  LIS3DH_RATE_100Hz 	= 0x05,  //!< LIS3DH_RATE_100Hz
-  LIS3DH_RATE_200Hz 	= 0x06,  //!< LIS3DH_RATE_200Hz
-  LIS3DH_RATE_400Hz 	= 0x07,  //!< LIS3DH_RATE_400Hz
-  LIS3DH_RATE_LP 	= 0x08   //!< LIS3DH_RATE_LP
+  LIS3DH_RATE_100Hz = 0x05,  //!< LIS3DH_RATE_100Hz
+  LIS3DH_RATE_200Hz = 0x06,  //!< LIS3DH_RATE_200Hz
+  LIS3DH_RATE_400Hz = 0x07,  //!< LIS3DH_RATE_400Hz
+  LIS3DH_RATE_LP    = 0x08   //!< LIS3DH_RATE_LP
 }acc_power_mode_e;
 
 /**
@@ -47,7 +50,7 @@ typedef enum
   LIS3DH_RATE_G_RANGE_2g 	= 0x00,  //!< LIS3DH_RATE_G_RANGE_2g
   LIS3DH_RATE_G_RANGE_4g 	= 0x01,  //!< LIS3DH_RATE_G_RANGE_4g
   LIS3DH_RATE_G_RANGE_8g 	= 0x02,  //!< LIS3DH_RATE_G_RANGE_8g
-  LIS3DH_RATE_G_RANGE_16g       = 0x03   //!< LIS3DH_RATE_G_RANGE_16g
+  LIS3DH_RATE_G_RANGE_16g = 0x03   //!< LIS3DH_RATE_G_RANGE_16g
 }acc_g_range_e;
 
 /**
@@ -217,7 +220,7 @@ ic_return_val_e ic_lis3dh_uninit (void);
  * @param fp
  * @return
  */
-ic_return_val_e ic_lis3dh_read_data(void(*fp)(acc_data_s data));
+ic_return_val_e ic_lis3dh_read_data(void(*fp)(acc_data_s data), bool force);
 
 /**
  * @brief Set power mode in lis3dh module
@@ -259,6 +262,16 @@ ic_return_val_e ic_lis3dh_set_g_range(acc_g_range_e g_range);
  */
 ic_return_val_e ic_lis3dh_get_g_range(uint8_t *range);
 
-ic_return_val_e ic_lis3dh_self_test();
+/**
+ * @brief Three self-testing functions for LIS3DH module
+ *
+ * It was essential to split testing function into three parts,
+ * because of the necessity to add delay functions in higher (service) layer
+ *
+ * @return
+ */
+ic_return_val_e ic_lis3dh_self_test1();
+ic_return_val_e ic_lis3dh_self_test2();
+ic_return_val_e ic_lis3dh_self_test3();
 
 #endif /* !IC_DRIVER_LIS3DH_H */

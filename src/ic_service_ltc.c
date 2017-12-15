@@ -76,6 +76,12 @@ static void m_device_parse(u_BLECmdPayload payload){
   __auto_type _period = pdMS_TO_TICKS((payload.device_cmd.func_parameter.periodic_func.period*100));
   __auto_type _duration = pdMS_TO_TICKS((payload.device_cmd.func_parameter.periodic_func.duration*100));
 
+  NRF_LOG_INFO("dev: 0x%X\tfunc: %d\tperiod: %d\tduration: %d\n",
+      payload.device_cmd.device,
+      payload.device_cmd.func_type,
+      payload.device_cmd.func_parameter.periodic_func.period,
+      payload.device_cmd.func_parameter.periodic_func.duration);
+
   if(payload.device_cmd.device&DEV_RIGHT_RED_LED){
     actuator_set_func(
         &m_device_state[ACTUATOR_RIGHT_RED_LED],
@@ -143,14 +149,14 @@ static void m_device_parse(u_BLECmdPayload payload){
 }
 
 static uint8_t function_ramp_down(struct device_state_s *device){
-  uint8_t _step = 16 * device->beta;
+  uint8_t _step = QUANTUM_OF_TIME * device->beta;
   if (_step == 0) _step = 1;
   return ({int16_t _ret_val =
       device->desired_val - _step; _ret_val<0 ? 0 : _ret_val;});
 }
 
 static uint8_t function_ramp_up(struct device_state_s *device){
-  uint8_t _step = 16 * device->beta;
+  uint8_t _step = QUANTUM_OF_TIME * device->beta;
   if (_step == 0) _step = 1;
   return ({__auto_type _ret_val =
       device->desired_val + _step; _ret_val>device->intensity ? device->intensity : _ret_val;});
@@ -194,7 +200,7 @@ static uint8_t function_square(struct device_state_s *device){
 
 static uint8_t function_blink(struct device_state_s *device){
   uint8_t _ret_val;
-  if(device->cur_period<16){
+  if(device->cur_period<QUANTUM_OF_TIME){
     _ret_val = device->intensity;
   } else {
     _ret_val = 0;
@@ -206,7 +212,7 @@ uint8_t(*m_function_map[])(struct device_state_s *) = {
   function_off,
   function_off,
   function_on,
-  NULL,
+  function_triangle, // it is dummy func(should be sinus)
   function_blink,
   function_square,
   function_saw,
@@ -241,20 +247,26 @@ static void m_power_led_cb(bool b){
 }
 
 static void refresh_device(struct device_state_s * device){
+  __auto_type _ret_val = IC_SUCCESS;
+
   if(device->device == ACTUATOR_POWER_LEDS){
-    if(device->cur_period < 16){
-      ic_actuator_set(ACTUATOR_POWER_LEDS, 63, m_power_led_cb);
+    if(device->cur_period < QUANTUM_OF_TIME){
+      _ret_val = ic_actuator_set(
+          ACTUATOR_POWER_LEDS,
+          63,
+          m_power_led_cb);
     }
   }
   else if(device->refresh_ltc){
-    __auto_type _ret_val = ic_actuator_set(
+    _ret_val = ic_actuator_set(
         device->device,
         device->desired_val,
         device->associated_callback);
+  }
 
-    if(_ret_val != IC_SUCCESS)
-      NRF_LOG_INFO("Could not refresh device %d: {%s}",
-          device->device, (uint32_t)g_return_val_string[_ret_val]);
+  if(_ret_val != IC_SUCCESS){
+    NRF_LOG_INFO("Could not refresh device %d: {%s}\n",
+        device->device, (uint32_t)g_return_val_string[_ret_val]);
   }
 }
 
@@ -280,8 +292,8 @@ static void refresh_function(struct device_state_s *device){
 
 static void refresh_activation(struct device_state_s *device){
   if(
-      ((device->desired_val == 0)&&(device->func == FUN_TYPE_OFF)) ||
-      ((device->desired_val == device->intensity)&&(device->func == FUN_TYPE_ON))
+      ((device->desired_val == 0)&&(device->func == FUN_TYPE_OFF))
+      /*|| ((device->desired_val == device->intensity)&&(device->func == FUN_TYPE_ON))*/
     )
   {
     device->turned_on = false;
@@ -293,19 +305,27 @@ static void ltc_refresh_timer_callback(TimerHandle_t xTimer){
   REFRESH_ALL(device);
 }
 
-static void ltc_power_led_timer_callback(TimerHandle_t xTimer){
-  ic_actuator_set(ACTUATOR_POWER_LEDS, 0, NULL);
+static void m_ltc_turned_off(bool b){
+  UNUSED_PARAMETER(b);
   nrf_gpio_pin_clear(24);
+}
+
+static void ltc_power_led_timer_callback(TimerHandle_t xTimer){
+  ic_actuator_set(ACTUATOR_POWER_LEDS, 0, m_ltc_turned_off);
   /*REFRESH_ALL(device);*/
 }
 
 static void ltc_refresh_task_callback(void *arg){
-  __auto_type last_wake_time = xTaskGetTickCount();
+  __auto_type _last_wake_time = GET_TICK_COUNT();
 
   for(;;){
+    if(_last_wake_time == GET_TICK_COUNT()){
+      _last_wake_time = GET_TICK_COUNT();
+    }
+
     if(m_active_function_counter < 1){
       vTaskSuspend(NULL);
-      last_wake_time = xTaskGetTickCount();
+      _last_wake_time = GET_TICK_COUNT();
     }
 
     REFRESH_ALL(time);
@@ -315,7 +335,7 @@ static void ltc_refresh_task_callback(void *arg){
 
     xTimerReset(m_ltc_refresh_timer_handle, 2);
 
-    vTaskDelayUntil(&last_wake_time, QUANTUM_OF_TIME);
+    vTaskDelayUntil(&_last_wake_time, QUANTUM_OF_TIME);
   }
 }
 
@@ -490,9 +510,9 @@ ic_return_val_e ic_ltc_service_init(){
   if(pdPASS != xTaskCreate(
         ltc_refresh_task_callback,
         "LTCS",
-        128,
+        384,
         NULL,
-        2,
+        IC_IRQ_PRIORITY_LOW,
         &m_ltc_refresh_task_handle))
     APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
 

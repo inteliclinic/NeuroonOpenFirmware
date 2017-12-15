@@ -250,7 +250,7 @@ static void power_up_all_systems(void){
 /*}*/
 
 #define WELCOME_PERIOD pdMS_TO_TICKS(500)
-#define PERIOD pdMS_TO_TICKS(4000)
+#define PERIOD pdMS_TO_TICKS(2000)
 
 static void on_connect(void){
   ic_actuator_set_off_func(IC_LEFT_RED_LED, PERIOD, 0, 0);
@@ -336,10 +336,11 @@ static void cleanup_task (void *arg){
   sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
   bye_bye();
 
-  ic_bluetooth_disable();
-  ic_ads_service_deinit();
 
   vTaskDelay(1024);
+
+  ic_bluetooth_disable();
+  ic_ads_service_deinit();
 
   power_down_all_systems();
 
@@ -351,49 +352,89 @@ static void cleanup_task (void *arg){
 #if 1
 TaskHandle_t m_stream1_handle = NULL;
 
-static bool m_send_to_stream = false;
+static volatile bool m_send_to_stream1 = false;
 
-static void on_stream_state_change(bool active){
+static void on_stream1_state_change(bool active){
   NRF_LOG_INFO("{%s}\n",(uint32_t)__func__);
-  m_send_to_stream = active;
+  m_send_to_stream1 = active;
 }
+
 static u_otherDataFrameContainer m_stream1_output_frame;
 
 static void m_acc_measured(acc_data_s data){
 
-  m_stream1_output_frame.frame.time_stamp = xTaskGetTickCount();
+  m_stream1_output_frame.frame.time_stamp = GET_TICK_COUNT();
   m_stream1_output_frame.frame.acc[0] = data.x;
   m_stream1_output_frame.frame.acc[1] = data.y;
   m_stream1_output_frame.frame.acc[2] = data.z;
 
   /*NRF_LOG_INFO("x: %d, y: %d, z: %d\n",data.x, data.y, data.z)*/
 
-  if(m_send_to_stream){
+  if(m_send_to_stream1){
     RESUME_TASK(m_stream1_handle);
   }
 }
 
 void stream1_task(void *arg){
   for(;;){
-    ble_iccs_send_to_stream1(
+    __auto_type _ret_val = ble_iccs_send_to_stream1(
         m_stream1_output_frame.raw_data,
         sizeof(u_otherDataFrameContainer),
         NULL);
+
+    switch(_ret_val)
+    {
+      case IC_SUCCESS:
+        break;
+      default:
+        NRF_LOG_INFO("Stream1 error: %s", (uint32_t)g_return_val_string[_ret_val]);
+        break;
+    }
     vTaskSuspend(NULL);
   }
 }
 
-static void init_acc_afe(void){
-  ble_iccs_connect_to_stream1(on_stream_state_change);
+void init_acc_afe(void){
+  ble_iccs_connect_to_stream1(on_stream1_state_change);
 
   if(pdPASS != xTaskCreate(stream1_task, "STR1", 128, NULL, 2, &m_stream1_handle)){
     APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
   }
+
   vTaskSuspend(m_stream1_handle);
 
   ic_acc_module_init(m_acc_measured);
-  NRF_LOG_FLUSH();
 }
+
+TaskHandle_t m_stream2_handle = NULL;
+static volatile bool m_send_to_stream2 = false;
+uint32_t g_twi_err_cnt = 0;
+
+static void on_stream2_state_change(bool active){
+  NRF_LOG_INFO("{%s}\n",(uint32_t)__func__);
+  active ? ({RESUME_TASK(m_stream2_handle);}) : vTaskSuspend(m_stream2_handle);
+  m_send_to_stream2 = active;
+}
+
+void stream2_task(void *arg){
+  static char _buffer[20];
+  for(;;){
+    snprintf(_buffer, sizeof(_buffer), "%ld: %ld", GET_TICK_COUNT(), g_twi_err_cnt);
+    if(m_send_to_stream2) ble_iccs_send_to_stream2((uint8_t *)_buffer, strlen(_buffer)+1, NULL);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  }
+}
+
+static void init_err_stream(void){
+  ble_iccs_connect_to_stream2(on_stream2_state_change);
+
+  if(pdPASS != xTaskCreate(stream2_task, "STR1", 128, NULL, 2, &m_stream2_handle)){
+    APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+  }
+
+  vTaskSuspend(m_stream2_handle);
+}
+
 #endif
 /*********************/
 
@@ -418,6 +459,7 @@ static void init_task (void *arg){
 
   ic_ads_service_init();
   init_acc_afe();
+  init_err_stream();
   ic_ble_module_init();
   sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
   ic_service_timestamp_init();
@@ -447,7 +489,7 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName){
 int main(void)
 {
     // Initialize.
-    __auto_type err_code = NRF_LOG_INIT(xTaskGetTickCount);
+    __auto_type err_code = NRF_LOG_INIT(GET_TICK_COUNT);
     APP_ERROR_CHECK(err_code);
     power_down_all_systems();
 
