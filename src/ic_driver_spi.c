@@ -36,10 +36,10 @@ static struct{
                   };
 
 static struct{
-  uint8_t tail;
-  uint8_t head;
+  volatile uint8_t tail;
+  volatile uint8_t head;
   struct{
-    bool occupied;
+    volatile bool occupied;
     ic_spi_instance_s instance;
   }data[MAX_INSTANCES];
 }m_instance_queue;
@@ -161,7 +161,13 @@ ic_return_val_e ic_spi_send(
   instance->transaction_desc.out_buffer = out_buffer;
   instance->transaction_desc.open = open;
 
-  if(!add_instance_to_queue(instance))
+  __auto_type _ret_val = false;
+
+  CRITICAL_REGION_ENTER();
+  _ret_val = add_instance_to_queue(instance);
+  CRITICAL_REGION_EXIT();
+
+  if(!_ret_val)
     return IC_BUSY;
   else{
     instance->active = true;
