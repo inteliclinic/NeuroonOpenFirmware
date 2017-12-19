@@ -96,6 +96,8 @@
 #define IC_SPI_AFE_RESET_PIN   10
 #define IC_SPI_AFE_PDN_PIN   30
 
+#define IC_SPI_PENDIG_TRANSACTIONS  10
+
 /** @} */
 
 /*

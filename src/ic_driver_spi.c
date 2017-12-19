@@ -35,7 +35,7 @@ static struct{
                     .callback         = NULL
                   };
 
-static struct{
+static struct transaction_queue_s{
   volatile uint8_t tail;
   volatile uint8_t head;
   struct{
@@ -44,43 +44,48 @@ static struct{
   }data[MAX_INSTANCES];
 }m_instance_queue;
 
-static bool add_instance_to_queue(ic_spi_instance_s *instance){
+static inline void pop_element(struct transaction_queue_s *queue){
+  if(queue->head != queue->tail){
+    if(++queue->tail==IC_SPI_PENDIG_TRANSACTIONS)
+      queue->tail = 0;
+  }
+}
 
-  if(m_instance_queue.data[m_instance_queue.head].occupied == true)
+static inline bool put_queue_top(
+    struct transaction_queue_s *queue,
+    ic_spi_instance_s *instance)
+{
+  uint8_t _head = queue->head;
+  uint8_t _tail = queue->tail;
+
+  if(++_head == IC_SPI_PENDIG_TRANSACTIONS)
+    _head = 0;
+
+  if(_head == _tail)
     return false;
 
   memcpy(
-      &m_instance_queue.data[m_instance_queue.head].instance,
+      &queue->data[queue->head].instance,
       instance,
-      sizeof(ic_spi_instance_s));
+      sizeof(ic_spi_instance_s)
+      );
 
-  m_instance_queue.data[m_instance_queue.head++].occupied = true;
-
-  if(m_instance_queue.head == MAX_INSTANCES) m_instance_queue.head = 0;
+  if(++queue->head == IC_SPI_PENDIG_TRANSACTIONS)
+    queue->head = 0;
 
   return true;
 }
 
-static ic_spi_instance_s *get_instance(){
+#define get_queue_last(v) &(v).data[(v).head==0?IC_SPI_PENDIG_TRANSACTIONS-1:(v).head-1].instance
 
-  m_instance_queue.tail = m_instance_queue.tail == MAX_INSTANCES ? 0 : m_instance_queue.tail;
+#define get_queue_first(v) &(v).data[(v).tail].instance
 
-  if(m_instance_queue.data[m_instance_queue.tail].occupied == false)
-    return NULL;
+#define is_queue_empty(v) ((v).head == (v).tail)
 
-  m_instance_queue.data[m_instance_queue.tail].occupied = false;
-
-  return &m_instance_queue.data[m_instance_queue.tail++].instance;
-}
-
-static ic_spi_instance_s *show_next(){
-  return m_instance_queue.data[m_instance_queue.tail].occupied == true ?
-    &m_instance_queue.data[m_instance_queue.tail].instance :
-    NULL;
-}
-
-static void clear_queue(){
-  memset(&m_instance_queue, 0, sizeof(m_instance_queue));
+static void clean_queue(struct transaction_queue_s *queue){
+  while(!is_queue_empty(*queue)){
+    pop_element(queue);
+  }
 }
 
 static void spi_event_handler(nrf_drv_spi_evt_t const *p_event){
@@ -88,27 +93,30 @@ static void spi_event_handler(nrf_drv_spi_evt_t const *p_event){
 
   m_current_state.line_busy = false;
 
-  __auto_type _instance = get_instance();
-  if(!_instance->transaction_desc.open)
-    ic_spi_cs_high(_instance);
+  if(!is_queue_empty(m_instance_queue)){
+    __auto_type _instance = get_queue_first(m_instance_queue);
+    if(!_instance->transaction_desc.open)
+      ic_spi_cs_high(_instance);
 
-  _instance->active = false;
+    _instance->active = false;
 
-  if (_instance->callback != NULL){
-    _instance->callback(_instance->context);
-  }
+    if (_instance->callback != NULL){
+      _instance->callback(_instance->context);
+    }
 
-  _instance = show_next();
+    pop_element(&m_instance_queue);
 
-  if (_instance != NULL){
-    m_current_state.line_busy = true;
-    ic_spi_cs_low(_instance);
-    nrf_drv_spi_transfer(
-        &m_current_state.nrf_drv_instance,
-        _instance->transaction_desc.in_buffer,
-        _instance->transaction_desc.in_len,
-        _instance->transaction_desc.out_buffer,
-        _instance->transaction_desc.out_len);
+    if (!is_queue_empty(m_instance_queue)){
+      m_current_state.line_busy = true;
+      _instance = get_queue_first(m_instance_queue);
+      ic_spi_cs_low(_instance);
+      nrf_drv_spi_transfer(
+          &m_current_state.nrf_drv_instance,
+          _instance->transaction_desc.in_buffer,
+          _instance->transaction_desc.in_len,
+          _instance->transaction_desc.out_buffer,
+          _instance->transaction_desc.out_len);
+    }
   }
 }
 
@@ -125,7 +133,7 @@ ic_return_val_e ic_spi_init(ic_spi_instance_s *instance, uint8_t pin){
   nrf_gpio_cfg_output(instance->pin);
 
   if(m_current_state.spi_instance_cnt++ == 0){
-    clear_queue();
+    clean_queue(&m_instance_queue);
     nrf_drv_spi_config_t _spi_config = NRF_DRV_SPI_DEFAULT_CONFIG;
     _spi_config.ss_pin    = NRF_DRV_SPI_PIN_NOT_USED;
     _spi_config.miso_pin  = IC_SPI_MISO_PIN;
@@ -164,7 +172,7 @@ ic_return_val_e ic_spi_send(
   __auto_type _ret_val = false;
 
   CRITICAL_REGION_ENTER();
-  _ret_val = add_instance_to_queue(instance);
+  _ret_val = put_queue_top(&m_instance_queue, instance);
   CRITICAL_REGION_EXIT();
 
   if(!_ret_val)
