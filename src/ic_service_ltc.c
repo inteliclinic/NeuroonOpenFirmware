@@ -162,12 +162,18 @@ static uint8_t function_ramp_up(struct device_state_s *device){
       device->desired_val + _step; _ret_val>device->intensity ? device->intensity : _ret_val;});
 }
 
+uint8_t function_ramp(struct device_state_s *device){
+  uint8_t _step = device->cur_period*device->alpha;
+  return _step;
+  /*if (_step == 0) _step = 1;*/
+}
+
 static uint8_t function_off(struct device_state_s *device){
   return device->device == ACTUATOR_POWER_LEDS ? 0 : function_ramp_down(device);
 }
 
 static uint8_t function_on(struct device_state_s *device){
-  return function_ramp_up(device);
+  return device->intensity;
 }
 
 static uint8_t function_saw(struct device_state_s *device){
@@ -217,14 +223,14 @@ uint8_t(*m_function_map[])(struct device_state_s *) = {
   function_square,
   function_saw,
   function_triangle,
-  NULL
+  function_on
 };
 
 static uint8_t calculate_val(struct device_state_s *device){
   uint8_t _offset = 0;
 
   __auto_type _ret_val = m_function_map[device->func] != NULL ?
-    m_function_map[device->func](device)+_offset : ({NRF_LOG_INFO("Function not implemented\n"); 0;});
+    m_function_map[device->func](device)+_offset : ({/*NRF_LOG_INFO("Function not implemented\n");*/ 0;});
 
   if(device->device == ACTUATOR_VIBRATOR)
     if(device->func != FUN_TYPE_OFF && _ret_val>0)
@@ -347,7 +353,8 @@ static ic_return_val_e actuator_set_func(
     uint8_t intensity)
 {
   device->alpha = (128.0)/(period);
-  if((device->device == ACTUATOR_VIBRATOR) && (func != FUN_TYPE_OFF)) {
+
+  if((device->device == ACTUATOR_VIBRATOR) && (func != FUN_TYPE_OFF)){
     device->intensity = intensity*m_beta_factor_vib1;
     device->beta = device->intensity*m_beta_factor;
   }
@@ -355,20 +362,25 @@ static ic_return_val_e actuator_set_func(
     device->beta = func==FUN_TYPE_OFF ? device->desired_val*m_beta_factor : intensity*m_beta_factor;
     device->intensity = intensity;
   }
+
   device->cur_period = 0;
   device->cur_duration = 0;
+
   if(device->device == ACTUATOR_POWER_LEDS && func != FUN_TYPE_OFF)
     device->func = FUN_TYPE_BLINK;
   else
     device->func = func;
+
   device->period = period-1;
   device->duration = duration == 0 ? 0 : duration-1;
+
   if(!device->turned_on){
     device->turned_on = true;
     if(m_active_function_counter++ == 0){
       RESUME_TASK(m_ltc_refresh_task_handle);
     }
   }
+
   return IC_SUCCESS;
 }
 
