@@ -138,6 +138,20 @@
 
 /*
  *
+ * BQ
+ *
+ */
+
+/** @defgroup IC_BQ
+ *  @{
+ */
+
+#define IC_BQ27742_TWI_ADDRESS 0x55
+
+/** @} */
+
+/*
+ *
  * LTC
  *
  */

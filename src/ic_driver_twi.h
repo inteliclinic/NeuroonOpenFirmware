@@ -52,6 +52,9 @@ typedef struct{
 #define TWI_REGISTER(name, address)                                                               \
   static ic_twi_instance_s name##_twi_instance = {.device_address = address}
 
+#define TWI_REGISTER_VOLATILE(name, address)                                                      \
+  ic_twi_instance_s name##_twi_instance = {.device_address = address}
+
 /**
  * @brief Macro changes devices address
  *
