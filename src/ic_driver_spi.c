@@ -19,8 +19,6 @@
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 
-#define MAX_INSTANCES 5
-
 static struct{
   const nrf_drv_spi_t nrf_drv_instance;
   uint8_t spi_instance_cnt;
@@ -41,7 +39,7 @@ static struct transaction_queue_s{
   struct{
     volatile bool occupied;
     ic_spi_instance_s instance;
-  }data[MAX_INSTANCES];
+  }data[IC_SPI_PENDIG_TRANSACTIONS];
 }m_instance_queue;
 
 static inline void pop_element(struct transaction_queue_s *queue){
