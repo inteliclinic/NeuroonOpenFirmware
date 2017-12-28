@@ -50,6 +50,7 @@ SRC_FILES += \
   $(PROJ_DIR)/src/ic_driver_twi.c\
   $(PROJ_DIR)/src/ic_driver_ads.c\
   $(PROJ_DIR)/src/ic_driver_lis3dh.c\
+  $(PROJ_DIR)/src/ic_driver_bq27742.c\
   $(PROJ_DIR)/src/ic_acc_driver.c\
   $(PROJ_DIR)/src/ic_acc_service.c\
   $(PROJ_DIR)/src/ic_service_ads.c\
