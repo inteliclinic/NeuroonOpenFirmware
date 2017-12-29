@@ -159,11 +159,11 @@ void afe_conf(void)
   afe_set_timing_fast(timing_data, sizeof(timing_data) / sizeof(uint32_t));
     /*	set led current on led1 and led2 (0 - 255)	*/
   afe_set_led_current(LED_CURRENT_MAX / 2, LED_CURRENT_MAX / 2);
-//  /*
+  /*
   uint32_t _temp = 0;
   afe_read_reg(AFE4400_LEDCNTRL, &_temp);
   NRF_LOG_INFO("LED: %lu\r\n", _temp);
-// */
+ */
   /***	set gain
    *
    *	amb_dac - value of cancellation current (0 - 10uA)
@@ -180,10 +180,10 @@ void afe_conf(void)
     .rfLED    = RF_LED_50k
   };
   afe_set_gain(&_tia_amb_value);
-//  /*
+  /*
   afe_read_reg(AFE4400_TIA_AMB_GAIN, &_temp);
   NRF_LOG_INFO("GAIN: %lu\r\n", _temp);
-//  */
+  */
     /*	call begin measure to turn leds and timers on  */
   afe_begin_measure();
 #ifdef _USE_AFE_INT

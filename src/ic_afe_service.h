@@ -57,8 +57,39 @@ ic_return_val_e ic_afe_init(void(*cb)(led_val_s));
  */
 ic_return_val_e ic_afe_deinit(void);
 
+/**
+ * @brief Set gain for afe4400
+ * @param tia_amb_value @ref s_tia_amb_gain:
+ *
+ *  Specific ambient light cancellation amplifier gain, cancellation current and filter corner frequency in AFE4400
+ *    .amb_dac using  @ref e_amb_dac  - ambient DAC value (0 - 10uA)
+ *    .stg2gain using @ref e_stg2gain - stage 2 gain setting (0dB; 3.5dB; 6dB; 9.5dB; 12dB)
+ *    .cfLED using    @ref e_cfLED    - LEDs Cf value
+ *    .rfLED using    @ref e_rfLED    - LEDs Rf value
+ *
+ * @return
+ */
 ic_return_val_e ic_afe_set_gain(s_tia_amb_gain *tia_amb_value);
+
+/**
+ * @brief Set current value on LED1 and LED2
+ * @param led1 - current value on led1 (0-255)
+ * @param led2 - current value on led2 (0-255)
+ *
+ * The nominal value of LED current is given by the equation (page 65 in AFE4400 datasheet):
+ * ( LED[7:0] / 256 ) * Full-Scale Current
+ *
+ * @return
+ */
 ic_return_val_e ic_afe_set_led_current(uint8_t led1, uint8_t led2);
+
+/**
+ * @brief Set timing values in specific registers faster than afe_set_timing_data function
+ * @param tim_array
+ * @param len
+ *
+ * @return
+ */
 ic_return_val_e ic_afe_set_timing(uint32_t *tim_array, size_t len);
 
 #endif /* !_IC_AFE_SERVICE_H */
