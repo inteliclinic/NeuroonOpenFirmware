@@ -46,7 +46,7 @@
  *
  * @return
  */
-ic_return_val_e ic_afe_init(void(*cb)(led_val_s));
+ic_return_val_e ic_afe_init(void(*cb)(s_led_val));
 
 /**
  * @brief Deinitialize AFE4400 module

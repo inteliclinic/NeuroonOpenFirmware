@@ -73,7 +73,7 @@ typedef struct __attribute__((packed))
   uint32_t aled1_val;
   uint32_t diff_led2;
   uint32_t diff_led1;
-}led_val_s;
+}s_led_val;
 
 typedef enum
 {
@@ -82,7 +82,7 @@ typedef enum
   AFE_OPERATION_ON_GOING
 }ic_afe_ret_val;
 
-typedef void (*event_cb_done)(led_val_s);
+typedef void (*event_cb_done)(s_led_val);
 
 /**
  * @brief Register addresses

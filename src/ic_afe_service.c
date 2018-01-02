@@ -27,7 +27,7 @@
 #include "ic_driver_afe4400.h"
 #include "ic_afe_service.h"
 
-#define TIMER_READ_INTERVAL     40
+#define TIMER_READ_INTERVAL     32
 
 
 static TaskHandle_t m_init_thread;
@@ -35,9 +35,9 @@ static TaskHandle_t m_init_thread;
   TimerHandle_t m_read_afeTimer;
 #endif
 
-static void (*m_user_cb)(led_val_s);
+static void (*m_user_cb)(s_led_val);
 
-static led_val_s m_led_val =
+static s_led_val m_led_val =
 {
   .led1_val  = 0,
   .led2_val  = 0,
@@ -48,7 +48,7 @@ static led_val_s m_led_val =
 };
 
 /*********************************************************************************************************************/
-void afe_led_callback(led_val_s led_val)
+void afe_led_callback(s_led_val led_val)
 {
   /*NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);*/
     /*  copy led values to the global variable  */
@@ -128,7 +128,7 @@ static void afe_gpio_deconfiguration(void)
   /* Array with timing values you want to write to specific timing registers
    * It is needed to write timing values in correct sequence (given in datasheet (page 31 table 2))
    */
-uint32_t timing_data[29] =
+uint32_t m_timing_data[29] =
 {
   6050,	7998, 6000, 7999, 50, 1998, 2050, 3998,	2000, 3999, 4050, 5998,
   4, 1999, 2004, 3999, 4004, 5999, 6004, 7999, 0, 3, 2000, 2003, 4000,
@@ -156,7 +156,7 @@ void afe_conf(void)
    * 		 If you give timing values in correct sequence, you do not need to worry about register addresses
    * !!!
    */
-  afe_set_timing_fast(timing_data, sizeof(timing_data) / sizeof(uint32_t));
+  afe_set_timing_fast(m_timing_data, sizeof(m_timing_data) / sizeof(uint32_t));
     /*	set led current on led1 and led2 (0 - 255)	*/
   afe_set_led_current(LED_CURRENT_MAX / 2, LED_CURRENT_MAX / 2);
   /*
@@ -221,7 +221,7 @@ ic_return_val_e ic_afe_set_timing(uint32_t *tim_array, size_t len)
  *
  * @return
  */
-ic_return_val_e ic_afe_init(void(*cb)(led_val_s))
+ic_return_val_e ic_afe_init(void(*cb)(s_led_val))
 {
   /*NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);*/
     /*	configurate gpio for afe4400  */

@@ -76,7 +76,7 @@ void spi_led_callback(void *p_context)
       _led_val[i] |= m_output_buffer[i * 4 + 2] << 8;
       _led_val[i] |= m_output_buffer[i * 4 + 1] << 16;
     }
-    ((event_cb_done)p_context)(*(led_val_s*)_led_val);
+    ((event_cb_done)p_context)(*(s_led_val*)_led_val);
   }
   else
     UNUSED_VARIABLE(p_context);

@@ -391,7 +391,7 @@ void m_acc_measured(acc_data_s data){
 //  }
 }
 
-void m_afe_measured(led_val_s data){
+void m_afe_measured(s_led_val data){
 
 //  m_stream1_output_frame.frame.time_stamp = xTaskGetTickCount();
   m_stream1_output_frame.frame.ir_sample = data.diff_led1;
