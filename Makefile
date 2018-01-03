@@ -12,6 +12,7 @@ $(OUTPUT_DIRECTORY)/$(TARGET).out: \
   LINKER_SCRIPT  := linker_script.ld
 
 # Source files common to all targets
+
 SRC_FILES += \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_frontend.c \
@@ -50,7 +51,7 @@ SRC_FILES += \
   $(PROJ_DIR)/src/ic_driver_twi.c\
   $(PROJ_DIR)/src/ic_driver_ads.c\
   $(PROJ_DIR)/src/ic_driver_lis3dh.c\
-  $(PROJ_DIR)/src/ic_driver_bq27742.c\
+  $(PROJ_DIR)/src/ic_driver_bq27742.cpp\
   $(PROJ_DIR)/src/ic_acc_driver.c\
   $(PROJ_DIR)/src/ic_acc_service.c\
   $(PROJ_DIR)/src/ic_service_ads.c\
@@ -241,7 +242,7 @@ LIB_FILES += \
 CFLAGS += -D__STACK_SIZE=4096
 CFLAGS += -D__HEAP_SIZE=0
 CFLAGS += -DFREERTOS
-CFLAGS += -std=gnu11
+CFLAGS += -std=c11
 CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -DNRF51
 CFLAGS += -DS130
@@ -262,7 +263,23 @@ CFLAGS += -DNEUROON_OPEN_VERSION=\"$(GIT_VERSION)\"\
 #CFLAGS += -DDEBUG_NRF
 
 # C++ flags common to all targets
-CXXFLAGS += \
+CXXFLAGS += -DFREERTOS
+CXXFLAGS += -std=c++14
+CXXFLAGS += -DSOFTDEVICE_PRESENT
+CXXFLAGS += -DNRF51
+CXXFLAGS += -DS130
+CXXFLAGS += -DBLE_STACK_SUPPORT_REQD
+CXXFLAGS += -DSWI_DISABLE0
+CXXFLAGS += -DNRF51822
+CXXFLAGS += -DNRF_SD_BLE_API_VERSION=2
+CXXFLAGS += -DNRF_DFU_SETTINGS_VERSION=1
+CXXFLAGS += -mcpu=cortex-m0
+CXXFLAGS += -mthumb -mabi=aapcs
+CXXFLAGS += -Wall -Werror -O3 -g0
+CXXFLAGS += -mfloat-abi=soft
+# keep every function in separate section, this allows linker to discard unused ones
+CXXFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
+CXXFLAGS += -fno-builtin --short-enums
 
 # Assembler flags common to all targets
 ASMFLAGS += -x assembler-with-cpp
