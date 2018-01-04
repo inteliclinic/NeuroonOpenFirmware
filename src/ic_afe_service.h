@@ -90,6 +90,15 @@ ic_return_val_e ic_afe_set_led_current(uint8_t led1, uint8_t led2);
  *
  * @return
  */
-ic_return_val_e ic_afe_set_timing(uint32_t *tim_array, size_t len);
+ic_return_val_e ic_afe_set_timing(uint16_t *tim_array, size_t len);
+
+/**
+ * @brief Self-test for afe4400 module
+ *  Self-test is necessary for checking whether all used functions
+ *  are working fine and afe module can be used in working way
+ *
+ * @return IC_SUCCESS when self-test went okay
+ */
+ic_return_val_e ic_afe_self_test();
 
 #endif /* !_IC_AFE_SERVICE_H */

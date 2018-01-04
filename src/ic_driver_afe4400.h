@@ -59,7 +59,7 @@ typedef struct __attribute__((packed))
 }afe_send_s;
 
 #define WRITE_OPERATION 0
-#define READ_OPERATION (uint32_t)1<<24
+#define READ_OPERATION (uint32_t)1 << 24
 
 /**
  * @brief Structure for holding led values
@@ -489,7 +489,13 @@ bool afe_set_timing_data(uint8_t regAddr, uint16_t tim_val);
  *
  * @endcode
  */
-void afe_set_timing_fast(uint32_t *timing_data, size_t data_len);
+void afe_set_timing_fast(uint16_t *timing_data, size_t data_len);
+
+/**
+ * @brief Self-test for afe4400 module
+ *
+ */
+//void afe_self_test();
 
 /**
  * @brief Convert uint32_t register value to the uint8_t array for pushing data via SPI in correct order

@@ -128,7 +128,7 @@ static void afe_gpio_deconfiguration(void)
   /* Array with timing values you want to write to specific timing registers
    * It is needed to write timing values in correct sequence (given in datasheet (page 31 table 2))
    */
-uint32_t m_timing_data[29] =
+uint16_t m_timing_data[29] =
 {
   6050,	7998, 6000, 7999, 50, 1998, 2050, 3998,	2000, 3999, 4050, 5998,
   4, 1999, 2004, 3999, 4004, 5999, 6004, 7999, 0, 3, 2000, 2003, 4000,
@@ -140,10 +140,9 @@ void afe_conf(void)
 {
   /*NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);*/
 
-    /*	check diagnostic register to be sure, that everything is okay  */
+  /*  check diagnostic register to be sure, that everything is okay  */
   if (afe_check_diagnostic() != 0)
     NRF_LOG_ERROR("Error has occurred, please check it\r\n");
-
     /*  set default timing values (from afe4400 datasheet)	*/
   /*afe_set_default_timing();*/
   /***
@@ -156,7 +155,7 @@ void afe_conf(void)
    * 		 If you give timing values in correct sequence, you do not need to worry about register addresses
    * !!!
    */
-  afe_set_timing_fast(m_timing_data, sizeof(m_timing_data) / sizeof(uint32_t));
+  afe_set_timing_fast(m_timing_data, sizeof(m_timing_data) / sizeof(uint16_t));
     /*	set led current on led1 and led2 (0 - 255)	*/
   afe_set_led_current(LED_CURRENT_MAX / 2, LED_CURRENT_MAX / 2);
   /*
@@ -208,9 +207,70 @@ ic_return_val_e ic_afe_set_led_current(uint8_t led1, uint8_t led2)
   return IC_SUCCESS;
 }
 /*********************************************************************************************************************/
-ic_return_val_e ic_afe_set_timing(uint32_t *tim_array, size_t len)
+ic_return_val_e ic_afe_set_timing(uint16_t *tim_array, size_t len)
 {
   afe_set_timing_fast(tim_array, len);
+
+  return IC_SUCCESS;
+}
+/*********************************************************************************************************************/
+ic_return_val_e ic_afe_self_test()
+{
+    /*  if timer is created, stop it for self-test function  */
+  if (m_read_afeTimer != NULL)
+    xTimerStop(m_read_afeTimer, 0);
+  /**
+   * Check led current register
+   */
+    /*  set led current temp values  */
+  uint8_t _test_led1 = 64, _test_led2 = 64;
+  afe_set_led_current(_test_led1, _test_led2);
+    /*  turn on led current source  */
+  afe_write_bit_reg(AFE4400_LEDCNTRL, LEDCURR_OFF_BIT, LED_CURRENT_ON);
+  uint32_t _check_val = 0;
+    /*  read led register  */
+  afe_read_reg(AFE4400_LEDCNTRL, &_check_val);
+  if (!(((_check_val & 0xFF) == _test_led1) && (((_check_val >> 8) & 0xFF) == _test_led2)))
+    NRF_LOG_ERROR("Error in checking LEDCNTRL register val\r\n");
+    /*
+     *  set different values in timing register
+     *  you have to remember, that indexing in register starts from 0 !
+     *  (it is necessary to subtract address value )
+     */
+  uint16_t _temp_timing_data[29] = {0};
+  memcpy(_temp_timing_data, m_timing_data, 29);
+  _temp_timing_data[AFE4400_LED2STC - 1] = 6000;
+  _temp_timing_data[AFE4400_LED2ENDC - 1] = 8000;
+  afe_set_timing_fast(_temp_timing_data, sizeof(m_timing_data) / sizeof(uint16_t));
+  afe_read_reg(AFE4400_LED2STC, &_check_val);
+  if (_check_val != 6000)
+    NRF_LOG_ERROR("Error in AFE4400_LED2STC register value\r\n");
+  afe_read_reg(AFE4400_LED2ENDC, &_check_val);
+  if (_check_val != 8000)
+    NRF_LOG_ERROR("Error in AFE4400_LED2ENDC register value\r\n");
+  /**
+   * Check setting gain in afe module
+   */
+  s_tia_amb_gain _tia_amb_value =
+    {
+      .amb_dac  = AMB_DAC_6uA,
+      .stg2gain = STG2GAIN_6dB,
+      .cfLED    = CF_LED_25plus5pF,
+      .rfLED    = RF_LED_100k
+    };
+  afe_set_gain(&_tia_amb_value);
+  afe_read_reg(AFE4400_TIA_AMB_GAIN, &_check_val);
+  if(!(
+      (( _check_val        & 0x07)  == RF_LED_100k)      &&
+      (( _check_val >> 3   & 0x1F)  == CF_LED_25plus5pF) &&
+      (((_check_val >> 8)  & 0x07)  == STG2GAIN_6dB)     &&
+      (((_check_val >> 16) & 0x0F)  == AMB_DAC_6uA)
+    ))
+    NRF_LOG_ERROR("Error in AFE4400_TIA_AMB_GAIN\r\n");
+
+  afe_conf();
+
+  xTimerStart(m_read_afeTimer, 0);
 
   return IC_SUCCESS;
 }

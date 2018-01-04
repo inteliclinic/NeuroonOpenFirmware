@@ -324,7 +324,7 @@ void afe_set_default_timing(void)
   afe_set_timing_data(AFE4400_PRPCOUNT,     7999);
 }
 /**********************************************************************************************************/
-void afe_set_timing_fast(uint32_t *timing_data, size_t data_len)
+void afe_set_timing_fast(uint16_t *timing_data, size_t data_len)
 {
   if (m_semaphore)
   {
@@ -407,6 +407,11 @@ void afe_set_gain(s_tia_amb_gain *tia_amb_value)
 
   afe_write_reg(AFE4400_TIA_AMB_GAIN, _temp_data);
 }
+/**********************************************************************************************************/
+//void afe_self_test()
+//{
+//
+//}
 /**********************************************************************************************************/
 void convert(uint32_t regVal, uint8_t *data)
 {
