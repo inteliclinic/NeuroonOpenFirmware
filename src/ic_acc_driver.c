@@ -22,6 +22,7 @@ ic_return_val_e ic_acc_init(void(*fp)(acc_data_s))
   if (ic_lis3dh_init(fp) == IC_SUCCESS)
   {
     ic_lis3dh_set_g_range(LIS3DH_RATE_G_RANGE_4g);
+    ic_lis3dh_set_power_mode(LIS3DH_RATE_25Hz);
     return IC_SUCCESS;
   }
   return IC_ERROR;
