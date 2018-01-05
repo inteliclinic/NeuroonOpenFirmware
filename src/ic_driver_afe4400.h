@@ -236,7 +236,7 @@ typedef enum __attribute__((packed))
   CF_LED_15plus5pF 	= 0x02,  //!< CF_LED_15plus5pF
   CF_LED_25plus5pF 	= 0x04,  //!< CF_LED_25plus5pF
   CF_LED_50plus5pF 	= 0x08,  //!< CF_LED_50plus5pF
-CF_LED_150plus5pF   = 0xF1   //!< CF_LED_150plus5pF
+  CF_LED_150plus5pF = 0xF1   //!< CF_LED_150plus5pF
 }e_cf_LED;
 
 /**
@@ -250,7 +250,7 @@ typedef enum __attribute__((packed))
   RF_LED_50k,          //!< RF_LED_50k
   RF_LED_25k,          //!< RF_LED_25k
   RF_LED_10k,          //!< RF_LED_10k
-RF_LED_1M            //!< RF_LED_1M
+  RF_LED_1M            //!< RF_LED_1M
 }e_rf_LED;
 
 /**
@@ -262,8 +262,8 @@ typedef struct __attribute__((packed))
 {
   e_amb_dac 	amb_dac;
   e_stg2gain 	stg2gain;
-  e_cf_LED 	cfLED;
-  e_rf_LED 	rfLED;
+  e_cf_LED 	  cfLED;
+  e_rf_LED 	  rfLED;
 }s_tia_amb_gain;
 
 /**
