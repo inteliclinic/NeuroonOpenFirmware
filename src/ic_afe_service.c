@@ -64,12 +64,14 @@ void afe_led_callback(s_led_val led_val)
 */
 }
 /*********************************************************************************************************************/
+#ifndef _USE_AFE_INT
 void afe_readCallback()
 {
     /*NRF_LOG_INFO("{ %s: %p }\r\n", (uint32_t)__func__, (uint32_t)m_user_cb);*/
   if (m_user_cb != NULL)
     afe_read_led_reg(m_user_cb);
 }
+#endif
 /*********************************************************************************************************************/
 #ifdef _USE_AFE_INT
 /**
@@ -85,11 +87,11 @@ void afe_readCallback()
  * and what polarity action was set
  *
  */
-void irq_function_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
+void irq_afe_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t action)
 {
 //  NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);
-//  interrupt_counter++;	// counter just for checking interrupts number
-  afe_read_led_reg(afe_led_callback);
+  if (m_user_cb != NULL)
+    afe_read_led_reg(m_user_cb);
 }
 /*********************************************************************************************************************/
                           /***********************	GPIO INTERRUPT INIT  **************************************/
@@ -99,7 +101,7 @@ void gpio_interrupt_init()
   nrf_drv_gpiote_in_uninit(AFE4400_RDY_PIN);
 
   nrf_drv_gpiote_in_config_t in_config = GPIOTE_CONFIG_IN_SENSE_LOTOHI(true);
-  __auto_type err_code = nrf_drv_gpiote_in_init(AFE4400_RDY_PIN, &in_config, irq_function_handler);
+  __auto_type err_code = nrf_drv_gpiote_in_init(AFE4400_RDY_PIN, &in_config, irq_afe_handler);
   NRF_LOG_INFO("CHECK ERR: %d\r\n", err_code);
   APP_ERROR_CHECK(err_code);
 }
@@ -216,9 +218,11 @@ ic_return_val_e ic_afe_set_timing(uint16_t *tim_array, size_t len)
 /*********************************************************************************************************************/
 ic_return_val_e ic_afe_self_test()
 {
+#ifndef _USE_AFE_INT
     /*  if timer is created, stop it for self-test function  */
   if (m_read_afeTimer != NULL)
     xTimerStop(m_read_afeTimer, 0);
+#endif
   /**
    * Check led current register
    */
@@ -269,9 +273,9 @@ ic_return_val_e ic_afe_self_test()
     NRF_LOG_ERROR("Error in AFE4400_TIA_AMB_GAIN\r\n");
 
   afe_conf();
-
+#ifndef _USE_AFE_INT
   xTimerStart(m_read_afeTimer, 0);
-
+#endif
   return IC_SUCCESS;
 }
 /*********************************************************************************************************************/
