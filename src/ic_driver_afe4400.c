@@ -75,8 +75,8 @@ void spi_led_callback(void *p_context)
       _led_val[i]  = m_output_buffer[i * 4 + 3];
       _led_val[i] |= m_output_buffer[i * 4 + 2] << 8;
       _led_val[i] |= m_output_buffer[i * 4 + 1] << 16;
-        /*  two MSB can be ignored  */
-      _led_val[i] &= ~(0xC00000);
+        /*  two MSB can be ignored, but we're using 24-bit word format  */
+      /*_led_val[i] &= ~(0xC00000);*/
     }
     ((event_cb_done)p_context)(*(s_led_val*)_led_val);
   }
