@@ -289,7 +289,7 @@ ic_return_val_e ic_afe_init(void(*cb)(s_led_val))
 {
   /*NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);*/
     /*	configurate gpio for afe4400  */
-  /*afe_gpio_configuration();*/
+  afe_gpio_configuration();
 #ifdef _USE_AFE_INT
     /*  initialize interrupt for adc RDY pin  */
   gpio_interrupt_init();
