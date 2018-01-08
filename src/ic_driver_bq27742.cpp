@@ -23,15 +23,21 @@
 #include "timers.h"
 #include "semphr.h"
 
-#define NRF_LOG_MODULE_NAME "APP"
+extern "C" {
+#define NRF_LOG_MODULE_NAME "BQ"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
+}
+
+#include "nrf_delay.h"
+
+#include "ic_driver_bq27742.h"
 
 const float BQ27742_CC_GAIN=4.768/54.931;
 const float BQ27742_CC_DELTA=5677445.0/54.810;
 
-/*#define FORCE_ENDIANNESS __ORDER_LITTLE_ENDIAN__*/
-#define FORCE_ENDIANNESS __ORDER_BIG_ENDIAN__
+#define FORCE_ENDIANNESS __ORDER_LITTLE_ENDIAN__
+//#define FORCE_ENDIANNESS __ORDER_BIG_ENDIAN__
 
 template <class T>
 static constexpr auto swapBytes(T val){
@@ -81,17 +87,25 @@ constexpr T ensureEndianness (T a) {
 
 #define GET_DATA_STRUCT(name) name##_instance.data_struct.payload
 
+#define BQ27742_US_WAIT_TIME 66
+
 #define BQ_SEND_DATA(subclass_id, flash_block, flash_data_access, block_data_access, data, size) do{  \
   uint8_t _reg_value [BQ27742_DATA_FLASH_BLOCK_SIZE] = {0};                                           \
   set_bq_register(BQ27742_BLOCK_DATA_CONTROL, flash_data_access);                                     \
   set_bq_register(BQ27742_DATA_FLASH_CLASS, subclass_id);                                             \
   set_bq_register(BQ27742_DATA_FLASH_BLOCK, flash_block);                                             \
   set_bq_register_var(block_data_access, data, size);                                                 \
+  nrf_delay_us(BQ27742_US_WAIT_TIME);                                                                 \
   TWI_READ_DATA(BQ, BQ27742_BLOCK_DATA, _reg_value, sizeof(_reg_value), NULL, NULL);                  \
   uint32_t _flash_data_sum = 0;                                                                       \
-  for (int i = 0; i < BQ27742_DATA_FLASH_BLOCK_SIZE; i++) _flash_data_sum += _reg_value[i];           \
-  uint8_t checksum = 255 - (uint8_t)(_flash_data_sum);                                                \
-  set_bq_register(BQ27742_BLOCK_DATA_CS, checksum);                                                   \
+  for (int i = 0; i < BQ27742_DATA_FLASH_BLOCK_SIZE; i++){                                            \
+    _flash_data_sum += _reg_value[i];                                                                 \
+  }                                                                                                   \
+  NRF_LOG_INFO("_flash_data_sum: 0x%X\n", _flash_data_sum);                                           \
+  NRF_LOG_INFO("255 - _flash_data_sum: 0x%X\n", 255 - _flash_data_sum);                               \
+  uint8_t _checksum = 255 - (uint8_t)(_flash_data_sum);                                               \
+  NRF_LOG_INFO("_checksum: 0x%X\n", _checksum);                                                       \
+  set_bq_register(BQ27742_BLOCK_DATA_CS, _checksum);                                                  \
   vTaskDelay(pdMS_TO_TICKS(BQ27742_REGISTER_WRITE_DELAY));                                            \
 }while(0)
 
@@ -101,7 +115,7 @@ static ic_return_val_e set_bq_register_var(const uint8_t reg_addr, const uint8_t
   uint8_t _buffer[len+1];
   _buffer[0] = reg_addr;
 
-  for(auto i = 1ul; i<len+1; ++i){
+  for(size_t i = 1; i<len+1; ++i){
     _buffer[i] = *reg_val++;
   }
 
@@ -784,6 +798,33 @@ namespace bqSubclassData{
   };
 }
 
+void lightRED(){
+  ic_actuator_set_on_func(IC_LEFT_RED_LED, 0, 0, 63);
+  ic_actuator_set_off_func(IC_LEFT_GREEN_LED, 0, 0, 63);
+  ic_actuator_set_off_func(IC_LEFT_BLUE_LED, 0, 0, 63);
+}
+
+void lightGREEN(){
+  ic_actuator_set_on_func(IC_LEFT_GREEN_LED, 0, 0, 63);
+  ic_actuator_set_off_func(IC_LEFT_RED_LED, 0, 0, 63);
+  ic_actuator_set_off_func(IC_LEFT_BLUE_LED, 0, 0, 63);
+}
+
+void lightBLUE(){
+  ic_actuator_set_on_func(IC_LEFT_BLUE_LED, 0, 0, 63);
+  ic_actuator_set_off_func(IC_LEFT_GREEN_LED, 0, 0, 63);
+  ic_actuator_set_off_func(IC_LEFT_RED_LED, 0, 0, 63);
+}
+
+uint8_t ledFuncPtr = 0;
+static void(*ledFuncArray[])(void) = {lightRED, lightGREEN, lightBLUE};
+
+void lightOFF(){
+  ic_actuator_set_off_func(IC_LEFT_BLUE_LED, 0, 0, 63);
+  ic_actuator_set_off_func(IC_LEFT_GREEN_LED, 0, 0, 63);
+  ic_actuator_set_off_func(IC_LEFT_RED_LED, 0, 0, 63);
+}
+
 template <class T>
 static void bq27742_program_flash(
     T &dataStruct,
@@ -798,60 +839,11 @@ static void bq27742_program_flash(
       reinterpret_cast<const uint8_t *>(&dataStruct),
       sizeof(dataStruct)
       );
-}
-
-void bq27742_program_flash_subclass_data_104()
-{
-  DEFINE_DATA_STRUCT(data_104, {
-    uint32_t cc_gain;
-    uint32_t cc_delta;
-    uint16_t cc_offset;
-    uint8_t board_offset;
-    uint8_t int_temp_offset;
-    uint8_t ext_temp_offset;
-    uint8_t pack_v_offset;
-  });
-
-  GET_DATA_STRUCT(data_104).cc_gain         = float_to_bq_format(BQ27742_CC_GAIN);
-  GET_DATA_STRUCT(data_104).cc_delta        = float_to_bq_format(BQ27742_CC_DELTA);
-  GET_DATA_STRUCT(data_104).cc_offset       = BQ27742_CC_OFFSET_;
-  GET_DATA_STRUCT(data_104).board_offset    = BQ27742_BOARD_OFFSET_;
-  GET_DATA_STRUCT(data_104).int_temp_offset = BQ27742_INT_TEMP_OFFSET;
-  GET_DATA_STRUCT(data_104).ext_temp_offset = BQ27742_EXT_TEMP_OFFSET;
-  GET_DATA_STRUCT(data_104).pack_v_offset   = BQ27742_PACK_V_OFFSET;
-
-  GET_DATA_STRUCT(data_104).cc_gain =
-    ensureEndianness(GET_DATA_STRUCT(data_104).cc_gain);
-  GET_DATA_STRUCT(data_104).cc_delta =
-    ensureEndianness(GET_DATA_STRUCT(data_104).cc_delta);
-  GET_DATA_STRUCT(data_104).cc_offset =
-    ensureEndianness(GET_DATA_STRUCT(data_104).cc_offset);
-  GET_DATA_STRUCT(data_104).board_offset =
-    ensureEndianness(GET_DATA_STRUCT(data_104).board_offset);
-  GET_DATA_STRUCT(data_104).int_temp_offset =
-    ensureEndianness(GET_DATA_STRUCT(data_104).int_temp_offset);
-  GET_DATA_STRUCT(data_104).ext_temp_offset =
-    ensureEndianness(GET_DATA_STRUCT(data_104).ext_temp_offset);
-  GET_DATA_STRUCT(data_104).pack_v_offset =
-    ensureEndianness(GET_DATA_STRUCT(data_104).pack_v_offset);
-
-  set_bq_register(BQ27742_BLOCK_DATA_CONTROL, 0x00);
-  set_bq_register(BQ27742_DATA_FLASH_CLASS, 104);
-  set_bq_register(BQ27742_DATA_FLASH_BLOCK, 0x00);
-
-  uint8_t _reg_value [BQ27742_DATA_FLASH_BLOCK_SIZE] = {0};
-
-  TWI_SEND_DATA(BQ, GET_RAW_DATA(data_104), sizeof(GET_RAW_DATA(data_104)), NULL, NULL);
-  TWI_READ_DATA(BQ, BQ27742_BLOCK_DATA, _reg_value, sizeof(_reg_value), NULL, NULL);
-
-  uint32_t _flash_date_sum = 0;
-  for (auto i = 0ul; i < sizeof(_reg_value); ++i)
-    _flash_date_sum +=_reg_value[i];
-
-  uint8_t _checksum = 255 - (uint8_t)(_flash_date_sum);
-  set_bq_register(BQ27742_BLOCK_DATA_CS, _checksum);
-
-  vTaskDelay(pdMS_TO_TICKS(BQ27742_REGISTER_WRITE_DELAY));
+  ledFuncArray[ledFuncPtr]();
+  if(++ledFuncPtr>=sizeof(ledFuncArray)/sizeof(ledFuncArray[0])){
+    ledFuncPtr = 0;
+  }
+  vTaskDelay(pdMS_TO_TICKS(5));
 }
 
 /**
@@ -860,7 +852,7 @@ void bq27742_program_flash_subclass_data_104()
  *  param[in] subcommand: data subcommand code
  *  param[out] read control data
  */
-uint16_t bq27742_read_control_data (uint16_t subcommand)
+static uint16_t bq27742_read_control_data (uint16_t subcommand)
 {
   uint16_t return_value =0;
 
@@ -877,12 +869,12 @@ uint16_t bq27742_read_control_data (uint16_t subcommand)
  * @brief read data from control status register
  *  param[out] register value
  */
-uint16_t bq27742_control_status_read(void)
+static uint16_t bq27742_control_status_read(void)
 {
   return bq27742_read_control_data(BQ27742_CONTROL_STATUS);
 }
 
-static bool bq27742_unsaled_set(void)
+bool bq27742_unsealed_set(void)
 {
   uint8_t key1 [] = {0x14, 0x04};
   uint8_t key2 [] = {0x72, 0x36};
@@ -891,26 +883,18 @@ static bool bq27742_unsaled_set(void)
   vTaskDelay(pdMS_TO_TICKS(1));
   set_bq_register_var(BQ27742_CONTROL, key2, sizeof(key2));
   vTaskDelay(pdMS_TO_TICKS(1));
-
-  return (bq27742_control_status_read() & (1<<BQ_FULL_SEALED_MODE)) ? true : false;
+  auto _controlStatus = bq27742_control_status_read();
+  return (!(_controlStatus & (1<<BQ_SEALED_MODE))) ? true : false;
 }
 
-static bool bq27742_sealed_set ()
+bool bq27742_sealed_set ()
 {
-	uint16_t check_value = 0;
-	uint16_t sealed_value = 1<<BQ_FULL_SEALED_MODE | 1<<BQ_SEALED_MODE;
-
-        uint16_t _seal = ensureEndianness(static_cast<uint16_t>(BQ27742_SEALED));
-
-	bq27742_write_control_data(BQ27742_SEALED);
-	ic_delay_ms(1);
-
-	check_value = bq27742_control_status_read();
-
-	if (check_value && sealed_value)
-		return true;
-	else
-		return false;
+  auto _seal = ensureEndianness(static_cast<uint16_t>(BQ27742_SEALED));
+  set_bq_register_var(BQ27742_CONTROL, reinterpret_cast<uint8_t *>(&_seal), sizeof(_seal));
+  vTaskDelay(pdMS_TO_TICKS(1));
+  auto _controlStatus = bq27742_control_status_read();
+  NRF_LOG_INFO("Control Status(sealed): 0x%X\n", _controlStatus);
+  return (_controlStatus & ((1<<BQ_SEALED_MODE)|(1<<BQ_FULL_SEALED_MODE))) ? true : false;
 }
 
 /**
@@ -928,548 +912,12 @@ bool bq27742_full_access_set(void)
   set_bq_register_var(BQ27742_CONTROL, key2, sizeof(key2));
   vTaskDelay(pdMS_TO_TICKS(BQ27742_REGISTER_WRITE_DELAY));
 
-  return (bq27742_control_status_read() & (1<<BQ_FULL_SEALED_MODE)) ? true : false;
-}
-
-void bq27742_program_flash_subclass_safety(){
-  DEFINE_DATA_STRUCT(safety, {
-      uint16_t  ov_prot_trshold;
-      uint8_t   ov_prot_delay;
-      uint16_t  ov_prot_recovery;
-      uint16_t  uv_prot_threshold;
-      uint8_t   uv_prot_delay;
-      uint16_t  uv_prot_recovery;
-      uint16_t  body_diode_threshold;
-      uint16_t  ot_chg;
-      uint8_t   ot_chg_time;
-      uint16_t  ot_chg_recovery;
-      uint16_t  ot_dsg;
-      uint8_t   ot_dsg_time;
-      uint16_t  ot_dsg_recovery;
-      });
-
-  GET_DATA_STRUCT(safety).ov_prot_trshold       = BQ27742_OV_PROT_THRESHOLD;
-  GET_DATA_STRUCT(safety).ov_prot_delay         = BQ27742_OV_PROT_DELAY;
-  GET_DATA_STRUCT(safety).ov_prot_recovery      = BQ27742_OV_PROT_RECOVERY;
-  GET_DATA_STRUCT(safety).uv_prot_threshold     = BQ27742_UV_PROT_THRESHOLD;
-  GET_DATA_STRUCT(safety).uv_prot_delay         = BQ27742_UV_PROT_DELAY;
-  GET_DATA_STRUCT(safety).uv_prot_recovery      = BQ27742_UV_PROT_RECOVERY;
-  GET_DATA_STRUCT(safety).body_diode_threshold  = BQ27742_BODY_DIODE_THRESHOLD;
-  GET_DATA_STRUCT(safety).ot_chg                = BQ27742_OT_CHG;
-  GET_DATA_STRUCT(safety).ot_chg_time           = BQ27742_OT_CHG_TIME;
-  GET_DATA_STRUCT(safety).ot_chg_recovery       = BQ27742_OT_CHG_RECOVERY;
-  GET_DATA_STRUCT(safety).ot_dsg                = BQ27742_OT_DSG;
-  GET_DATA_STRUCT(safety).ot_dsg_time           = BQ27742_OT_DSG_TIME;
-  GET_DATA_STRUCT(safety).ot_dsg_recovery       = BQ27742_OT_DSG_RECOVERY;
-
-  GET_DATA_STRUCT(safety).ov_prot_trshold       = ensureEndianness(GET_DATA_STRUCT(safety).ov_prot_trshold);
-  GET_DATA_STRUCT(safety).ov_prot_delay         = ensureEndianness(GET_DATA_STRUCT(safety).ov_prot_delay);
-  GET_DATA_STRUCT(safety).ov_prot_recovery      = ensureEndianness(GET_DATA_STRUCT(safety).ov_prot_recovery);
-  GET_DATA_STRUCT(safety).uv_prot_threshold     = ensureEndianness(GET_DATA_STRUCT(safety).uv_prot_threshold);
-  GET_DATA_STRUCT(safety).uv_prot_delay         = ensureEndianness(GET_DATA_STRUCT(safety).uv_prot_delay);
-  GET_DATA_STRUCT(safety).uv_prot_recovery      = ensureEndianness(GET_DATA_STRUCT(safety).uv_prot_recovery);
-  GET_DATA_STRUCT(safety).body_diode_threshold  = ensureEndianness(GET_DATA_STRUCT(safety).body_diode_threshold);
-  GET_DATA_STRUCT(safety).ot_chg                = ensureEndianness(GET_DATA_STRUCT(safety).ot_chg);
-  GET_DATA_STRUCT(safety).ot_chg_time           = ensureEndianness(GET_DATA_STRUCT(safety).ot_chg_time);
-  GET_DATA_STRUCT(safety).ot_chg_recovery       = ensureEndianness(GET_DATA_STRUCT(safety).ot_chg_recovery);
-  GET_DATA_STRUCT(safety).ot_dsg                = ensureEndianness(GET_DATA_STRUCT(safety).ot_dsg);
-  GET_DATA_STRUCT(safety).ot_dsg_time           = ensureEndianness(GET_DATA_STRUCT(safety).ot_dsg_time);
-  GET_DATA_STRUCT(safety).ot_dsg_recovery       = ensureEndianness(GET_DATA_STRUCT(safety).ot_dsg_recovery);
-
-  bq27742_data_flash_write(
-      BQ27742_SAFETY_CLASS_ID,
-      0x00,
-      0x00,
-      GET_RAW_DATA(safety),
-      sizeof(GET_RAW_DATA(safety))
-      );
-}
-
-void bq27742_program_flash_subclass_charge(){
-
-  DEFINE_DATA_STRUCT(charge, {
-      uint16_t charging_voltage;
-      });
-
-  GET_DATA_STRUCT(charge).charging_voltage         = BQ27742_CHARGING_VOLTAGE_;
-
-  GET_DATA_STRUCT(charge).charging_voltage         = ensureEndianness(GET_DATA_STRUCT(charge).charging_voltage);
-
-  bq27742_data_flash_write(
-      BQ27742_CHARGE_CLASS_ID,
-      0x00,
-      0x00,
-      GET_RAW_DATA(charge),
-      sizeof(GET_RAW_DATA(charge))
-      );
-
-}
-
-void bq27742_program_flash_subclass_charge_termination()
-{
-  DEFINE_DATA_STRUCT(charge_termination,  {
-      uint16_t  taper_current;
-      uint16_t  min_taper_capacity;
-      uint16_t  taper_voltage;
-      uint8_t   current_taper_window;
-      uint8_t   tca_set;
-      uint8_t   tca_clear_procent;
-      uint8_t   fc_set_procent;
-      uint8_t   fc_clear_procent;
-      uint16_t  dodateoc_delta_t;
-      });
-
-  GET_DATA_STRUCT(charge_termination).taper_current         = BQ27742_TAPER_CURRENT;
-  GET_DATA_STRUCT(charge_termination).min_taper_capacity    = BQ27742_MIN_TAPER_CAPACITY;
-  GET_DATA_STRUCT(charge_termination).taper_voltage         = BQ27742_TAPER_VOLTAGE;
-  GET_DATA_STRUCT(charge_termination).current_taper_window  = BQ27742_CURRENT_TAPER_WINDOW;
-  GET_DATA_STRUCT(charge_termination).tca_set               = BQ27742_TCA_SET;
-  GET_DATA_STRUCT(charge_termination).tca_clear_procent     = BQ27742_TCA_CLEAR_PROCENT;
-  GET_DATA_STRUCT(charge_termination).fc_set_procent        = BQ27742_FC_SET_PROCENT;
-  GET_DATA_STRUCT(charge_termination).fc_clear_procent      = BQ27742_FC_CLEAR_PROCENT;
-  GET_DATA_STRUCT(charge_termination).dodateoc_delta_t      = BQ27742_DODATEOC_DELTA_T;
-
-  GET_DATA_STRUCT(charge_termination).taper_current         = ensureEndianness(GET_DATA_STRUCT(charge_termination).taper_current);
-  GET_DATA_STRUCT(charge_termination).min_taper_capacity    = ensureEndianness(GET_DATA_STRUCT(charge_termination).min_taper_capacity);
-  GET_DATA_STRUCT(charge_termination).taper_voltage         = ensureEndianness(GET_DATA_STRUCT(charge_termination).taper_voltage);
-  GET_DATA_STRUCT(charge_termination).current_taper_window  = ensureEndianness(GET_DATA_STRUCT(charge_termination).current_taper_window);
-  GET_DATA_STRUCT(charge_termination).tca_set               = ensureEndianness(GET_DATA_STRUCT(charge_termination).tca_set);
-  GET_DATA_STRUCT(charge_termination).tca_clear_procent     = ensureEndianness(GET_DATA_STRUCT(charge_termination).tca_clear_procent);
-  GET_DATA_STRUCT(charge_termination).fc_set_procent        = ensureEndianness(GET_DATA_STRUCT(charge_termination).fc_set_procent);
-  GET_DATA_STRUCT(charge_termination).fc_clear_procent      = ensureEndianness(GET_DATA_STRUCT(charge_termination).fc_clear_procent);
-  GET_DATA_STRUCT(charge_termination).dodateoc_delta_t      = ensureEndianness(GET_DATA_STRUCT(charge_termination).dodateoc_delta_t);
-
-  bq27742_data_flash_write(
-      36,
-      0x00,
-      0x00,
-      GET_RAW_DATA(charge_termination),
-      sizeof(GET_RAW_DATA(charge_termination)));
-}
-
-void bq27742_program_flash_subclass_JEITA()
-{
-  DEFINE_DATA_STRUCT(jeita, {
-      uint8_t  t1_temp;
-      uint8_t  t2_temp;
-      uint8_t  t3_temp;
-      uint8_t  t4_temp;
-      uint8_t  t5_temp;
-      uint8_t  temp_hys;
-      uint16_t t1_t2_chg_voltage;
-      uint16_t t2_t3_chg_voltage;
-      uint16_t t3_t4_chg_voltage;
-      uint16_t t4_t5_chg_voltage;
-      uint8_t  t1_t2_chg_current;
-      uint8_t  t2_t3_chg_current;
-      uint8_t  t3_t4_chg_current;
-      uint8_t  t4_t5_chg_current;
-      });
-
-  GET_DATA_STRUCT(jeita).t1_temp            = BQ27742_T1_TEMP;
-  GET_DATA_STRUCT(jeita).t2_temp            = BQ27742_T2_TEMP;
-  GET_DATA_STRUCT(jeita).t3_temp            = BQ27742_T3_TEMP;
-  GET_DATA_STRUCT(jeita).t4_temp            = BQ27742_T4_TEMP;
-  GET_DATA_STRUCT(jeita).t5_temp            = BQ27742_T5_TEMP;
-  GET_DATA_STRUCT(jeita).temp_hys           = BQ27742_TEMP_HYS;
-  GET_DATA_STRUCT(jeita).t1_t2_chg_voltage  = BQ27742_T1_T2_CHG_VOLTAGE;
-  GET_DATA_STRUCT(jeita).t2_t3_chg_voltage  = BQ27742_T2_T3_CHG_VOLTAGE;
-  GET_DATA_STRUCT(jeita).t3_t4_chg_voltage  = BQ27742_T3_T4_CHG_VOLTAGE;
-  GET_DATA_STRUCT(jeita).t4_t5_chg_voltage  = BQ27742_T4_T5_CHG_VOLTAGE;
-  GET_DATA_STRUCT(jeita).t1_t2_chg_current  = BQ27742_T1_T2_CHG_CURRENT;
-  GET_DATA_STRUCT(jeita).t2_t3_chg_current  = BQ27742_T2_T3_CHG_CURRENT;
-  GET_DATA_STRUCT(jeita).t3_t4_chg_current  = BQ27742_T3_T4_CHG_CURRENT;
-  GET_DATA_STRUCT(jeita).t4_t5_chg_current  = BQ27742_T4_T5_CHG_CURRENT;
-
-  GET_DATA_STRUCT(jeita).t1_temp            = ensureEndianness(GET_DATA_STRUCT(jeita).t1_temp);
-  GET_DATA_STRUCT(jeita).t2_temp            = ensureEndianness(GET_DATA_STRUCT(jeita).t2_temp);
-  GET_DATA_STRUCT(jeita).t3_temp            = ensureEndianness(GET_DATA_STRUCT(jeita).t3_temp);
-  GET_DATA_STRUCT(jeita).t4_temp            = ensureEndianness(GET_DATA_STRUCT(jeita).t4_temp);
-  GET_DATA_STRUCT(jeita).t5_temp            = ensureEndianness(GET_DATA_STRUCT(jeita).t5_temp);
-  GET_DATA_STRUCT(jeita).temp_hys           = ensureEndianness(GET_DATA_STRUCT(jeita).temp_hys);
-  GET_DATA_STRUCT(jeita).t1_t2_chg_voltage  = ensureEndianness(GET_DATA_STRUCT(jeita).t1_t2_chg_voltage);
-  GET_DATA_STRUCT(jeita).t2_t3_chg_voltage  = ensureEndianness(GET_DATA_STRUCT(jeita).t2_t3_chg_voltage);
-  GET_DATA_STRUCT(jeita).t3_t4_chg_voltage  = ensureEndianness(GET_DATA_STRUCT(jeita).t3_t4_chg_voltage);
-  GET_DATA_STRUCT(jeita).t4_t5_chg_voltage  = ensureEndianness(GET_DATA_STRUCT(jeita).t4_t5_chg_voltage);
-  GET_DATA_STRUCT(jeita).t1_t2_chg_current  = ensureEndianness(GET_DATA_STRUCT(jeita).t1_t2_chg_current);
-  GET_DATA_STRUCT(jeita).t2_t3_chg_current  = ensureEndianness(GET_DATA_STRUCT(jeita).t2_t3_chg_current);
-  GET_DATA_STRUCT(jeita).t3_t4_chg_current  = ensureEndianness(GET_DATA_STRUCT(jeita).t3_t4_chg_current);
-  GET_DATA_STRUCT(jeita).t4_t5_chg_current  = ensureEndianness(GET_DATA_STRUCT(jeita).t4_t5_chg_current);
-
-  bq27742_data_flash_write(
-      BQ27742_JEITA_CLASS_ID,
-      0x00,
-      0x00,
-      GET_RAW_DATA(jeita),
-      sizeof(GET_RAW_DATA(jeita)));
+  auto _controlStatus = bq27742_control_status_read();
+  return (!(_controlStatus & (1<<BQ_FULL_SEALED_MODE))) ? true : false;
 }
 
 
-void bq27742_program_flash_subclass_data()
-{
-
-  #define BQ_DATA_SUBCLASS 0x26
-  //trzeba tak zrobić, bo jest przerwa w bloku
-  uint16_t _bq27742_design_voltage = BQ27742_DESIGN_VOLTAGE;
-  _bq27742_design_voltage = ensureEndianness(_bq27742_design_voltage);
-
-  bq27742_data_flash_write(
-      BQ_DATA_SUBCLASS,
-      0,
-      0,
-      (uint8_t *)&_bq27742_design_voltage,
-      sizeof(_bq27742_design_voltage));
-
-  DEFINE_DATA_STRUCT(data, {
-    uint16_t  cycle_count;
-    uint16_t  cc_threshold;
-    uint16_t  design_capacity;
-    uint16_t  design_energy;
-    uint16_t  soh_load_i;
-    uint8_t   tdd_soh_percent;
-    uint16_t  isd_current;
-    uint8_t   isd_i_filter;
-    uint8_t   min_isd_time;
-    uint8_t   design_energy_scale;
-  });
-
-  GET_DATA_STRUCT(data).cycle_count         = BQ27742_CYCLE_COUNT_;
-  GET_DATA_STRUCT(data).cc_threshold        = BQ27742_CC_THRESHOLD;
-  GET_DATA_STRUCT(data).design_capacity     = BQ27742_DESIGN_CAPACITY_;
-  GET_DATA_STRUCT(data).design_energy       = BQ27742_DESIGN_ENERGY;
-  GET_DATA_STRUCT(data).soh_load_i          = BQ27742_SOH_LOAD_I;
-  GET_DATA_STRUCT(data).tdd_soh_percent     = BQ27742_TDD_SOH_PERCENT;
-  GET_DATA_STRUCT(data).isd_current         = BQ27742_ISD_CURRENT;
-  GET_DATA_STRUCT(data).isd_i_filter        = BQ27742_ISD_I_FILTER;
-  GET_DATA_STRUCT(data).min_isd_time        = BQ27742_MIN_ISD_TIME;
-  GET_DATA_STRUCT(data).design_energy_scale = BQ27742_DESIGN_ENERGY_SCALE;
-
-  GET_DATA_STRUCT(data).cycle_count          = ensureEndianness(GET_DATA_STRUCT(data).cycle_count);
-  GET_DATA_STRUCT(data).cc_threshold         = ensureEndianness(GET_DATA_STRUCT(data).cc_threshold);
-  GET_DATA_STRUCT(data).design_capacity      = ensureEndianness(GET_DATA_STRUCT(data).design_capacity);
-  GET_DATA_STRUCT(data).design_energy        = ensureEndianness(GET_DATA_STRUCT(data).design_energy);
-  GET_DATA_STRUCT(data).soh_load_i           = ensureEndianness(GET_DATA_STRUCT(data).soh_load_i);
-  GET_DATA_STRUCT(data).tdd_soh_percent      = ensureEndianness(GET_DATA_STRUCT(data).tdd_soh_percent);
-  GET_DATA_STRUCT(data).isd_current          = ensureEndianness(GET_DATA_STRUCT(data).isd_current);
-  GET_DATA_STRUCT(data).isd_i_filter         = ensureEndianness(GET_DATA_STRUCT(data).isd_i_filter);
-  GET_DATA_STRUCT(data).min_isd_time         = ensureEndianness(GET_DATA_STRUCT(data).min_isd_time);
-  GET_DATA_STRUCT(data).design_energy_scale  = ensureEndianness(GET_DATA_STRUCT(data).design_energy_scale);
-
-  bq27742_data_flash_write(
-      BQ_DATA_SUBCLASS,
-      0x00,
-      0x08,
-      GET_RAW_DATA(data),
-      sizeof(GET_RAW_DATA(data)));
-}
-
-void bq27742_program_flash_subclass_discharge()
-{
-  DEFINE_DATA_STRUCT(discharge, {
-      uint16_t soc1_set_threshold;
-      uint16_t soc1_clear_threshold;
-      uint16_t socf_set_threshold;
-      uint16_t socf_clear_threshold;
-      uint16_t bl_set_volt_threshold;
-      uint8_t  bl_set_volt_time;
-      uint16_t bl_clear_volt_threshold;
-      uint16_t bh_set_volt_threshold;
-      uint8_t  bh_volt_time;
-      uint16_t bh_clear_volt_threshold;
-      });
-
-  GET_DATA_STRUCT(discharge).soc1_set_threshold       = BQ27742_SOC1_SET_THRESHOLD;
-  GET_DATA_STRUCT(discharge).soc1_clear_threshold     = BQ27742_SOC1_CLEAR_THRESHOLD;
-  GET_DATA_STRUCT(discharge).socf_set_threshold       = BQ27742_SOCF_SET_THRESHOLD;
-  GET_DATA_STRUCT(discharge).socf_clear_threshold     = BQ27742_SOCF_CLEAR_THRESHOLD;
-  GET_DATA_STRUCT(discharge).bl_set_volt_threshold    = BQ27742_BL_SET_VOLT_THRESHOLD;
-  GET_DATA_STRUCT(discharge).bl_set_volt_time         = BQ27742_BL_SET_VOLT_TIME;
-  GET_DATA_STRUCT(discharge).bl_clear_volt_threshold  = BQ27742_BL_CLEAR_VOLT_THRESHOLD;
-  GET_DATA_STRUCT(discharge).bh_set_volt_threshold    = BQ27742_BH_SET_VOLT_THRESHOLD;
-  GET_DATA_STRUCT(discharge).bh_volt_time             = BQ27742_BH_VOLT_TIME;
-  GET_DATA_STRUCT(discharge).bh_clear_volt_threshold  = BQ27742_BH_CLEAR_VOLT_THRESHOLD;
-
-  GET_DATA_STRUCT(discharge).soc1_set_threshold       =
-    ensureEndianness(GET_DATA_STRUCT(discharge).soc1_set_threshold);
-  GET_DATA_STRUCT(discharge).soc1_clear_threshold     =
-    ensureEndianness(GET_DATA_STRUCT(discharge).soc1_clear_threshold);
-  GET_DATA_STRUCT(discharge).socf_set_threshold       =
-    ensureEndianness(GET_DATA_STRUCT(discharge).socf_set_threshold);
-  GET_DATA_STRUCT(discharge).socf_clear_threshold     =
-    ensureEndianness(GET_DATA_STRUCT(discharge).socf_clear_threshold);
-  GET_DATA_STRUCT(discharge).bl_set_volt_threshold    =
-    ensureEndianness(GET_DATA_STRUCT(discharge).bl_set_volt_threshold);
-  GET_DATA_STRUCT(discharge).bl_set_volt_time         =
-    ensureEndianness(GET_DATA_STRUCT(discharge).bl_set_volt_time);
-  GET_DATA_STRUCT(discharge).bl_clear_volt_threshold  =
-    ensureEndianness(GET_DATA_STRUCT(discharge).bl_clear_volt_threshold);
-  GET_DATA_STRUCT(discharge).bh_set_volt_threshold    =
-    ensureEndianness(GET_DATA_STRUCT(discharge).bh_set_volt_threshold);
-  GET_DATA_STRUCT(discharge).bh_volt_time             =
-    ensureEndianness(GET_DATA_STRUCT(discharge).bh_volt_time);
-  GET_DATA_STRUCT(discharge).bh_clear_volt_threshold  =
-    ensureEndianness(GET_DATA_STRUCT(discharge).bh_clear_volt_threshold);
-
-  bq27742_data_flash_write(
-      BQ27742_DISCHARGE_CLASS_ID,      // subclass_id
-      0x00,                         // flash_block
-      0x00,                         // offset
-      GET_RAW_DATA(discharge),           // value
-      sizeof(GET_RAW_DATA(discharge)));  // len
-}
-
-void bq27742_program_flash_subclass_manufacturer_data(){
-  DEFINE_DATA_STRUCT(manu_data, {
-      uint16_t pack_lot_code;
-      uint16_t pcb_lot_code;
-      uint16_t firmware_version;
-      uint16_t hardware_revision;
-      uint16_t cell_revision;
-      uint16_t df_config_version;
-      });
-
-  GET_DATA_STRUCT(manu_data).pack_lot_code      = BQ27742_PACK_LOT_CODE;
-  GET_DATA_STRUCT(manu_data).pcb_lot_code       = BQ27742_PCB_LOT_CODE;
-  GET_DATA_STRUCT(manu_data).firmware_version   = BQ27742_FIRMWARE_VERSION;
-  GET_DATA_STRUCT(manu_data).hardware_revision  = BQ27742_HARDWARE_REVISION;
-  GET_DATA_STRUCT(manu_data).cell_revision      = BQ27742_CELL_REVISION;
-  GET_DATA_STRUCT(manu_data).df_config_version  = BQ27742_DF_CONFIG_VERSION;
-
-  GET_DATA_STRUCT(manu_data).pack_lot_code      =
-    ensureEndianness(GET_DATA_STRUCT(manu_data).pack_lot_code);
-  GET_DATA_STRUCT(manu_data).pcb_lot_code       =
-    ensureEndianness(GET_DATA_STRUCT(manu_data).pcb_lot_code);
-  GET_DATA_STRUCT(manu_data).firmware_version   =
-    ensureEndianness(GET_DATA_STRUCT(manu_data).firmware_version);
-  GET_DATA_STRUCT(manu_data).hardware_revision  =
-    ensureEndianness(GET_DATA_STRUCT(manu_data).hardware_revision);
-  GET_DATA_STRUCT(manu_data).cell_revision      =
-    ensureEndianness(GET_DATA_STRUCT(manu_data).cell_revision);
-  GET_DATA_STRUCT(manu_data).df_config_version  =
-    ensureEndianness(GET_DATA_STRUCT(manu_data).df_config_version);
-
-  bq27742_data_flash_write(
-      BQ27742_MANUFACTURER_DATA_CLASS_ID,  // subclass_id
-      0x00,                             // flash_block
-      0x00,                             // offset
-      GET_RAW_DATA(manu_data),          // value
-      sizeof(GET_RAW_DATA(manu_data))); // len
-}
-
-void bq27742_program_flash_subclass_integrity_data()
-{
-  DEFINE_DATA_STRUCT(integrity_data, {
-    uint16_t all_df_checksum;
-    uint16_t static_chem_df_checksum;
-    uint16_t static_df_checksum;
-    uint16_t prot_checksum;
-  });
-
-  GET_DATA_STRUCT(integrity_data).all_df_checksum          = BQ27742_ALL_DF_CHECKSUM;
-  GET_DATA_STRUCT(integrity_data).static_chem_df_checksum  = BQ27742_STATIC_CHEM_DF_CHECKSUM;
-  GET_DATA_STRUCT(integrity_data).static_df_checksum       = BQ27742_STATIC_DF_CHECKSUM;
-  GET_DATA_STRUCT(integrity_data).prot_checksum            = BQ27742_PROT_CHECKSUM;
-
-  GET_DATA_STRUCT(integrity_data).all_df_checksum          =
-    ensureEndianness(GET_DATA_STRUCT(integrity_data).all_df_checksum);
-  GET_DATA_STRUCT(integrity_data).static_chem_df_checksum  =
-    ensureEndianness(GET_DATA_STRUCT(integrity_data).static_chem_df_checksum);
-  GET_DATA_STRUCT(integrity_data).static_df_checksum       =
-    ensureEndianness(GET_DATA_STRUCT(integrity_data).static_df_checksum);
-  GET_DATA_STRUCT(integrity_data).prot_checksum            =
-    ensureEndianness(GET_DATA_STRUCT(integrity_data).prot_checksum);
-
-  bq27742_data_flash_write(
-      BQ27742_INTEGRITY_CLASS_ID,                // subclass_id
-      0x00,                                   // flash_block
-      0x06,                                   // offset
-      GET_RAW_DATA(integrity_data),                // value
-      sizeof(GET_RAW_DATA(integrity_data)));  // len
-}
-
-void bq27742_program_flash_subclass_lifetime_data()
-{
-  DEFINE_DATA_STRUCT(lifetime_data, {
-    uint16_t max_temp;
-    uint16_t min_temp;
-    uint16_t max_pack_voltage;
-    uint16_t min_pack_voltage;
-    uint16_t max_chg_current;
-    uint16_t max_dsg_current;
-  });
-
-  GET_DATA_STRUCT(lifetime_data).max_temp          = BQ27742_LIFETIME_MAX_TEMP;
-  GET_DATA_STRUCT(lifetime_data).min_temp          = BQ27742_LIFETIME_MIN_TEMP;
-  GET_DATA_STRUCT(lifetime_data).max_pack_voltage  = BQ27742_LIFETIME_MAX_PACK_VOLTAGE;
-  GET_DATA_STRUCT(lifetime_data).min_pack_voltage  = BQ27742_LIFETIME_MIN_PACK_VOLTAGE;
-  GET_DATA_STRUCT(lifetime_data).max_chg_current   = BQ27742_LIFETIME_MAX_CHG_CURRENT;
-  GET_DATA_STRUCT(lifetime_data).max_dsg_current   = BQ27742_LIFETIME_MAX_DSG_CURRENT;
-
-  GET_DATA_STRUCT(lifetime_data).max_temp          =
-    ensureEndianness(GET_DATA_STRUCT(lifetime_data).max_temp);
-  GET_DATA_STRUCT(lifetime_data).min_temp          =
-    ensureEndianness(GET_DATA_STRUCT(lifetime_data).min_temp);
-  GET_DATA_STRUCT(lifetime_data).max_pack_voltage  =
-    ensureEndianness(GET_DATA_STRUCT(lifetime_data).max_pack_voltage);
-  GET_DATA_STRUCT(lifetime_data).min_pack_voltage  =
-    ensureEndianness(GET_DATA_STRUCT(lifetime_data).min_pack_voltage);
-  GET_DATA_STRUCT(lifetime_data).max_chg_current   =
-    ensureEndianness(GET_DATA_STRUCT(lifetime_data).max_chg_current);
-  GET_DATA_STRUCT(lifetime_data).max_dsg_current   =
-    ensureEndianness(GET_DATA_STRUCT(lifetime_data).max_dsg_current);
-
-  bq27742_data_flash_write(
-      BQ27742_LIFETIME_DATA_CLASS_ID,          // subclass_id
-      0x00,                                 // flash_block
-      0x00,                                 // offset
-      GET_RAW_DATA(lifetime_data),          // value
-      sizeof(GET_RAW_DATA(lifetime_data))); // len
-}
-
-void bq27742_program_flash_subclass_lifetime_temp_samples()
-{
-  DEFINE_DATA_STRUCT(lifetime_temp_samples, {
-      uint16_t lt_flash_cnt;
-      uint8_t  lt_afe_status;
-      });
-
-  GET_DATA_STRUCT(lifetime_temp_samples).lt_flash_cnt   = BQ27742_LT_FLASH_CNT;
-  GET_DATA_STRUCT(lifetime_temp_samples).lt_afe_status  = BQ27742_LT_AFE_STATUS;
-
-  GET_DATA_STRUCT(lifetime_temp_samples).lt_flash_cnt   =
-    ensureEndianness(GET_DATA_STRUCT(lifetime_temp_samples).lt_flash_cnt);
-  GET_DATA_STRUCT(lifetime_temp_samples).lt_afe_status  =
-    ensureEndianness(GET_DATA_STRUCT(lifetime_temp_samples).lt_afe_status);
-
-  bq27742_data_flash_write(
-      BQ27742_LIFETIME_TEMP_SAMPLES_CLASS_ID,  // subclass_id
-      0x00,                                 // flash_block
-      0x00,                                 // offset
-      GET_RAW_DATA(lifetime_temp_samples),          // value
-      sizeof(GET_RAW_DATA(lifetime_temp_samples))); // len
-}
-
-void bq27742_program_flash_subclass_registers()
-{
-  DEFINE_DATA_STRUCT(registers, {
-      uint16_t pack_configuration;
-      uint8_t  pack_configuration_b;
-      uint8_t  pack_configuration_c;
-      uint8_t  pack_configuration_d;
-      uint8_t  prot_oc_config;
-      uint8_t  prot_ov_config;
-      });
-
-  GET_DATA_STRUCT(registers).pack_configuration    = BQ27742_PACK_CONFIGURATION;
-  GET_DATA_STRUCT(registers).pack_configuration_b  = BQ27742_PACK_CONFIGURATION_B;
-  GET_DATA_STRUCT(registers).pack_configuration_c  = BQ27742_PACK_CONFIGURATION_C;
-  GET_DATA_STRUCT(registers).pack_configuration_d  = BQ27742_PACK_CONFIGURATION_D;
-  GET_DATA_STRUCT(registers).prot_oc_config        = BQ27742_PROT_OC_CONFIG;
-  GET_DATA_STRUCT(registers).prot_ov_config        = BQ27742_PROT_OV_CONFIG;
-
-  GET_DATA_STRUCT(registers).pack_configuration    =
-    ensureEndianness(GET_DATA_STRUCT(registers).pack_configuration);
-  GET_DATA_STRUCT(registers).pack_configuration_b  =
-    ensureEndianness(GET_DATA_STRUCT(registers).pack_configuration_b);
-  GET_DATA_STRUCT(registers).pack_configuration_c  =
-    ensureEndianness(GET_DATA_STRUCT(registers).pack_configuration_c);
-  GET_DATA_STRUCT(registers).pack_configuration_d  =
-    ensureEndianness(GET_DATA_STRUCT(registers).pack_configuration_d);
-  GET_DATA_STRUCT(registers).prot_oc_config        =
-    ensureEndianness(GET_DATA_STRUCT(registers).prot_oc_config);
-  GET_DATA_STRUCT(registers).prot_ov_config        =
-    ensureEndianness(GET_DATA_STRUCT(registers).prot_ov_config);
-
-  bq27742_data_flash_write(
-      BQ27742_REGISTERS_CLASS_ID,          // subclass_id
-      0x00,                             // flash_block
-      0x00,                             // offset
-      GET_RAW_DATA(registers),          // value
-      sizeof(GET_RAW_DATA(registers))); // len
-}
-
-void bq27742_program_flash_subclass_lifetime_resolution()
-{
-  //uint8_t subclass_id=66;
-  //uint8_t flash_block=0;
-  //uint8_t offset=0;
-
-  DEFINE_DATA_STRUCT(lifetime_res, {
-      uint8_t lt_temp_res;
-      uint8_t lt_v_res;
-      uint8_t lt_cur_res;
-      uint16_t lt_update_time;
-      uint16_t flash_update_ok_voltage;
-      });
-
-  GET_DATA_STRUCT(lifetime_res).lt_temp_res             = BQ27742_LT_TEMP_RES;
-  GET_DATA_STRUCT(lifetime_res).lt_v_res                = BQ27742_LT_V_RES;
-  GET_DATA_STRUCT(lifetime_res).lt_cur_res              = BQ27742_LT_CUR_RES;
-  GET_DATA_STRUCT(lifetime_res).lt_update_time          = BQ27742_LT_UPDATE_TIME;
-  GET_DATA_STRUCT(lifetime_res).flash_update_ok_voltage = BQ27742_FLASH_UPDATE_OK_VOLTAGE;
-
-  GET_DATA_STRUCT(lifetime_res).lt_temp_res             =
-    ensureEndianness(GET_DATA_STRUCT(lifetime_res).lt_temp_res);
-  GET_DATA_STRUCT(lifetime_res).lt_v_res                =
-    ensureEndianness(GET_DATA_STRUCT(lifetime_res).lt_v_res);
-  GET_DATA_STRUCT(lifetime_res).lt_cur_res              =
-    ensureEndianness(GET_DATA_STRUCT(lifetime_res).lt_cur_res);
-  GET_DATA_STRUCT(lifetime_res).lt_update_time          =
-    ensureEndianness(GET_DATA_STRUCT(lifetime_res).lt_update_time);
-  GET_DATA_STRUCT(lifetime_res).flash_update_ok_voltage =
-    ensureEndianness(GET_DATA_STRUCT(lifetime_res).flash_update_ok_voltage);
-
-  bq27742_data_flash_write(
-      BQ27742_LIFETIME_RES_CLASS_ID,           // subclass_id
-      0x00,                                 // flash_block
-      0x00,                                 // offset
-      GET_RAW_DATA(lifetime_res),           // value
-      sizeof(GET_RAW_DATA(lifetime_res)));  // len
-}
-
-void bq27742_program_flash_subclass_power()
-{
-  DEFINE_DATA_STRUCT(power ,{
-      uint16_t flash_update_ok_voltage;
-      uint16_t sleep_current;
-      });
-
-  GET_DATA_STRUCT(power).flash_update_ok_voltage  = BQ27742_FLASH_UPDATE_OK_VOLTAGE;
-  GET_DATA_STRUCT(power).sleep_current            = BQ27742_SLEEP_CURRENT;
-
-  GET_DATA_STRUCT(power).flash_update_ok_voltage  =
-    ensureEndianness(GET_DATA_STRUCT(power).flash_update_ok_voltage);
-  GET_DATA_STRUCT(power).sleep_current            =
-    ensureEndianness(GET_DATA_STRUCT(power).sleep_current);
-
-  bq27742_data_flash_write(
-      BQ27742_POWER_CLASS_ID,          // subclass_id
-      0x00,                         // flash_block
-      0x00,                         // offset
-      GET_RAW_DATA(power),          // value
-      sizeof(GET_RAW_DATA(power))); // len
-
-  uint16_t _bq27742_shutdown_v = BQ27742_SHUTDOWN_V;
-  _bq27742_shutdown_v = ensureEndianness(_bq27742_shutdown_v);
-
-  uint8_t _bq27742_fs_wait = BQ27742_FS_WAIT;
-
-  bq27742_data_flash_write(
-      BQ27742_POWER_CLASS_ID,
-      0x00,
-      0x0A,
-      reinterpret_cast<uint8_t *>(&_bq27742_shutdown_v),
-      sizeof(_bq27742_shutdown_v));
-
-  bq27742_data_flash_write(
-      BQ27742_POWER_CLASS_ID,
-      0x00,
-      0x0C,
-      reinterpret_cast<uint8_t *>(&_bq27742_fs_wait),
-      sizeof(_bq27742_fs_wait));
-}
-
-static void bq27742_program_flash_subclass_if_cfg1(void){
+ void bq27742_program_flash_subclass_if_cfg1(void){
   bq27742_program_flash(bqSubclassData::load_select,                 BQ27742_IT_CFG_CLASS_ID, 0x00, 0x00);
   bq27742_program_flash(bqSubclassData::load_mode,                   BQ27742_IT_CFG_CLASS_ID, 0x00, 0x01);
   bq27742_program_flash(bqSubclassData::max_res_factor,              BQ27742_IT_CFG_CLASS_ID, 0x00, 0x11);
@@ -1509,38 +957,82 @@ static void bq27742_program_flash_subclass_if_cfg1(void){
   bq27742_program_flash(bqSubclassData::max_current_interrupt_step,  BQ27742_IT_CFG_CLASS_ID, 0x03, 0x10);
 }
 
-void ic_bq_flash_image(){
-  bq27742_unsaled_set();
-  bq27742_full_access_set();
+#include "ic_service_ltc.h"
 
+
+static uint16_t bq27742_device_type_read(){
+  uint16_t _output = 0x00;
+  vTaskDelay(pdMS_TO_TICKS(1));
+  TWI_READ_DATA(BQ, BQ27742_CONTROL, reinterpret_cast<uint8_t *>(_output), sizeof(_output), NULL, NULL);
+  NRF_LOG_INFO("Output: 0x%X vs static: 0x%X\n", _output,
+      0xFFFF&BQ27742_DEVICE_TYPE_VALUE);
+  return 0x00;
+}
+
+void ic_bq_flash_image(){
+  TWI_INIT(BQ);
+  NRF_LOG_INFO("Control Status: 0x%X\n", bq27742_control_status_read());
+  auto _unsealed = bq27742_unsealed_set();
+  auto _fullAccess = bq27742_full_access_set();
+  lightGREEN();
+  NRF_LOG_INFO("Control Status: 0x%X\n", bq27742_control_status_read());
+  NRF_LOG_INFO("Unsealed: %s, FullAccess: %s\n",
+      (uint32_t)(_unsealed?"true":"false"),
+      (uint32_t)(_fullAccess?"true":"false"));
+  vTaskDelay(5);
+
+  bq27742_device_type_read();
+
+#if 1
   bq27742_program_flash(bqSubclassData::safety, BQ27742_SAFETY_CLASS_ID);
   bq27742_program_flash(bqSubclassData::charge, BQ27742_CHARGE_CLASS_ID);
   bq27742_program_flash(bqSubclassData::charge_termination, BQ27742_CHARGE_TERMINATION_CLASS_ID);
+
+  #ifdef BQ_ADVANCED
   bq27742_program_flash(bqSubclassData::jeita, BQ27742_JEITA_CLASS_ID);
+  #endif
+
   bq27742_program_flash(bqSubclassData::design_voltage, BQ27742_DATA_CLASS_ID);
   bq27742_program_flash(bqSubclassData::data, BQ27742_DATA_CLASS_ID, 0x00, 0x08);
   bq27742_program_flash(bqSubclassData::discharge, BQ27742_DISCHARGE_CLASS_ID);
+
+  #ifdef BQ_ADVANCED
   bq27742_program_flash(bqSubclassData::manu_data, BQ27742_MANUFACTURER_DATA_CLASS_ID);
+  #endif
+
   bq27742_program_flash(bqSubclassData::integrity_data, BQ27742_INTEGRITY_CLASS_ID);
   bq27742_program_flash(bqSubclassData::lifetime_data, BQ27742_LIFETIME_DATA_CLASS_ID);
   bq27742_program_flash(bqSubclassData::lifetime_temp_samples, BQ27742_LIFETIME_TEMP_SAMPLES_CLASS_ID);
   bq27742_program_flash(bqSubclassData::registers, BQ27742_REGISTERS_CLASS_ID);
+
+  #ifdef BQ_ADVANCED
   bq27742_program_flash(bqSubclassData::lifetime_res, BQ27742_LIFETIME_RES_CLASS_ID);
   bq27742_program_flash(bqSubclassData::power, BQ27742_POWER_CLASS_ID);
   bq27742_program_flash(bqSubclassData::shutdown_v, BQ27742_POWER_CLASS_ID, 0x00, 0x0A);
   bq27742_program_flash(bqSubclassData::fs_wait, BQ27742_POWER_CLASS_ID, 0x00, 0x0C);
   bq27742_program_flash(bqSubclassData::manufacturer_info1, BQ27742_MANUFACTURER_INFO_CLASS_ID);
   bq27742_program_flash(bqSubclassData::manufacturer_info2, BQ27742_MANUFACTURER_INFO_CLASS_ID, 0x01, 0x00);
-
   bq27742_program_flash_subclass_if_cfg1();
-
   bq27742_program_flash(bqSubclassData::current_thresholds, BQ27742_CURRENT_TRESHOLD_CLASS_ID);
+  #endif
+
   bq27742_program_flash(bqSubclassData::state, BQ27742_STATE_CLASS_ID);
   bq27742_program_flash(bqSubclassData::chem_id, BQ27742_CHEM_ID_CLASS_ID);
   bq27742_program_flash(bqSubclassData::chem_id, BQ27742_CHEM_ID_CLASS_ID);
   bq27742_program_flash(bqSubclassData::r_a0, BQ27742_R_A0_CLASS_ID);
   bq27742_program_flash(bqSubclassData::r_a0x, BQ27742_R_A0X_CLASS_ID);
   bq27742_program_flash(bqSubclassData::calibration, BQ27742_CALIBRATION_CLASS_ID);
+
+  #ifdef BQ_ADVANCED
   bq27742_program_flash(bqSubclassData::current, BQ27742_CURRENT_CLASS_ID);
   bq27742_program_flash(bqSubclassData::codes, BQ27742_CODES_CLASS_ID);
+  #endif
+
+#endif
+
+  auto _sealed = bq27742_sealed_set();
+  lightOFF();
+  NRF_LOG_INFO("Sealed: %s\n",
+      (uint32_t)(_sealed?"true":"false"));
+  vTaskDelay(5);
 }
