@@ -36,8 +36,8 @@ extern "C" {
 const float BQ27742_CC_GAIN=4.768/54.931;
 const float BQ27742_CC_DELTA=5677445.0/54.810;
 
-#define FORCE_ENDIANNESS __ORDER_LITTLE_ENDIAN__
-//#define FORCE_ENDIANNESS __ORDER_BIG_ENDIAN__
+//#define FORCE_ENDIANNESS __ORDER_LITTLE_ENDIAN__
+#define FORCE_ENDIANNESS __ORDER_BIG_ENDIAN__
 
 template <class T>
 static constexpr auto swapBytes(T val){
@@ -198,12 +198,12 @@ raw : 0};
 
   tmp_val=(std::pow(2.0,(8-exp))*mod_val)-128.0;
 
-  ret_val.byte[3]=exp+128;
-  ret_val.byte[2]=(uint8_t)tmp_val;
-  tmp_val=256*(tmp_val-ret_val.byte[2]);
+  ret_val.byte[0]=exp+128;
   ret_val.byte[1]=(uint8_t)tmp_val;
+  tmp_val=256*(tmp_val-ret_val.byte[2]);
+  ret_val.byte[2]=(uint8_t)tmp_val;
   tmp_val=256*(tmp_val-ret_val.byte[1]);
-  ret_val.byte[0]=(uint8_t)tmp_val;
+  ret_val.byte[3]=(uint8_t)tmp_val;
 
   if(val<0)
     ret_val.byte[2] |= 0x80;
@@ -224,8 +224,8 @@ namespace bqSubclassData{
       uint8_t ext_temp_offset;
       uint8_t pack_v_offset;
   }data104 ={
-    cc_gain         :ensureEndianness(float_to_bq_format(BQ27742_CC_GAIN)),
-    cc_delta        :ensureEndianness(float_to_bq_format(BQ27742_CC_DELTA)),
+    cc_gain         :float_to_bq_format(BQ27742_CC_GAIN),
+    cc_delta        :float_to_bq_format(BQ27742_CC_DELTA),
     cc_offset       :ensureEndianness(static_cast<uint16_t>(BQ27742_CC_OFFSET_)),
     board_offset    :ensureEndianness(static_cast<uint8_t>(BQ27742_BOARD_OFFSET_)),
     int_temp_offset :ensureEndianness(static_cast<uint8_t>(BQ27742_INT_TEMP_OFFSET)),
@@ -234,96 +234,96 @@ namespace bqSubclassData{
   };
 
   BQ_STRUCT{
-    uint16_t  ov_prot_treshold;
-    uint8_t   ov_prot_delay;
-    uint16_t  ov_prot_recovery;
-    uint16_t  uv_prot_threshold;
-    uint8_t   uv_prot_delay;
-    uint16_t  uv_prot_recovery;
-    uint16_t  body_diode_threshold;
-    uint16_t  ot_chg;
-    uint8_t   ot_chg_time;
-    uint16_t  ot_chg_recovery;
-    uint16_t  ot_dsg;
-    uint8_t   ot_dsg_time;
-    uint16_t  ot_dsg_recovery;
+    int16_t ov_prot_treshold;
+    uint8_t ov_prot_delay;
+    int16_t ov_prot_recovery;
+    int16_t uv_prot_threshold;
+    uint8_t uv_prot_delay;
+    int16_t uv_prot_recovery;
+    int16_t body_diode_threshold;
+    int16_t ot_chg;
+    uint8_t ot_chg_time;
+    int16_t ot_chg_recovery;
+    int16_t ot_dsg;
+    uint8_t ot_dsg_time;
+    int16_t ot_dsg_recovery;
   }safety = {
-    ov_prot_treshold      : ensureEndianness(static_cast<uint16_t>(BQ27742_OV_PROT_THRESHOLD)),
+    ov_prot_treshold      : ensureEndianness(static_cast<int16_t>(BQ27742_OV_PROT_THRESHOLD)),
     ov_prot_delay         : ensureEndianness(static_cast<uint8_t>(BQ27742_OV_PROT_DELAY)),
-    ov_prot_recovery      : ensureEndianness(static_cast<uint16_t>(BQ27742_OV_PROT_RECOVERY)),
-    uv_prot_threshold     : ensureEndianness(static_cast<uint16_t>(BQ27742_UV_PROT_THRESHOLD)),
+    ov_prot_recovery      : ensureEndianness(static_cast<int16_t>(BQ27742_OV_PROT_RECOVERY)),
+    uv_prot_threshold     : ensureEndianness(static_cast<int16_t>(BQ27742_UV_PROT_THRESHOLD)),
     uv_prot_delay         : ensureEndianness(static_cast<uint8_t>(BQ27742_UV_PROT_DELAY)),
-    uv_prot_recovery      : ensureEndianness(static_cast<uint16_t>(BQ27742_UV_PROT_RECOVERY)),
-    body_diode_threshold  : ensureEndianness(static_cast<uint16_t>(BQ27742_BODY_DIODE_THRESHOLD)),
-    ot_chg                : ensureEndianness(static_cast<uint16_t>(BQ27742_OT_CHG)),
+    uv_prot_recovery      : ensureEndianness(static_cast<int16_t>(BQ27742_UV_PROT_RECOVERY)),
+    body_diode_threshold  : ensureEndianness(static_cast<int16_t>(BQ27742_BODY_DIODE_THRESHOLD)),
+    ot_chg                : ensureEndianness(static_cast<int16_t>(BQ27742_OT_CHG)),
     ot_chg_time           : ensureEndianness(static_cast<uint8_t>(BQ27742_OT_CHG_TIME)),
-    ot_chg_recovery       : ensureEndianness(static_cast<uint16_t>(BQ27742_OT_CHG_RECOVERY)),
-    ot_dsg                : ensureEndianness(static_cast<uint16_t>(BQ27742_OT_DSG)),
+    ot_chg_recovery       : ensureEndianness(static_cast<int16_t>(BQ27742_OT_CHG_RECOVERY)),
+    ot_dsg                : ensureEndianness(static_cast<int16_t>(BQ27742_OT_DSG)),
     ot_dsg_time           : ensureEndianness(static_cast<uint8_t>(BQ27742_OT_DSG_TIME)),
-    ot_dsg_recovery       : ensureEndianness(static_cast<uint16_t>(BQ27742_OT_DSG_RECOVERY))
+    ot_dsg_recovery       : ensureEndianness(static_cast<int16_t>(BQ27742_OT_DSG_RECOVERY))
   };
 
   BQ_STRUCT{
-    uint16_t charging_voltage;
+    int16_t charging_voltage;
   }charge = {
-    charging_voltage :ensureEndianness(static_cast<uint16_t>(BQ27742_CHARGING_VOLTAGE_))
+    charging_voltage :ensureEndianness(static_cast<int16_t>(BQ27742_CHARGING_VOLTAGE_))
   };
 
   BQ_STRUCT{
-    uint16_t  taper_current;
-    uint16_t  min_taper_capacity;
-    uint16_t  taper_voltage;
-    uint8_t   current_taper_window;
-    uint8_t   tca_set;
-    uint8_t   tca_clear_procent;
-    uint8_t   fc_set_procent;
-    uint8_t   fc_clear_procent;
-    uint16_t  dodateoc_delta_t;
+    int16_t taper_current;
+    int16_t min_taper_capacity;
+    int16_t taper_voltage;
+    uint8_t current_taper_window;
+    int8_t  tca_set;
+    int8_t  tca_clear_procent;
+    int8_t  fc_set_procent;
+    int8_t  fc_clear_procent;
+    int16_t dodateoc_delta_t;
   }charge_termination = {
-    taper_current         : ensureEndianness(static_cast<uint16_t>(BQ27742_TAPER_CURRENT)),
-    min_taper_capacity    : ensureEndianness(static_cast<uint16_t>(BQ27742_MIN_TAPER_CAPACITY)),
-    taper_voltage         : ensureEndianness(static_cast<uint16_t>(BQ27742_TAPER_VOLTAGE)),
+    taper_current         : ensureEndianness(static_cast<int16_t>(BQ27742_TAPER_CURRENT)),
+    min_taper_capacity    : ensureEndianness(static_cast<int16_t>(BQ27742_MIN_TAPER_CAPACITY)),
+    taper_voltage         : ensureEndianness(static_cast<int16_t>(BQ27742_TAPER_VOLTAGE)),
     current_taper_window  : ensureEndianness(static_cast<uint8_t>(BQ27742_CURRENT_TAPER_WINDOW)),
-    tca_set               : ensureEndianness(static_cast<uint8_t>(BQ27742_TCA_SET)),
-    tca_clear_procent     : ensureEndianness(static_cast<uint8_t>(BQ27742_TCA_CLEAR_PROCENT)),
-    fc_set_procent        : ensureEndianness(static_cast<uint8_t>(BQ27742_FC_SET_PROCENT)),
-    fc_clear_procent      : ensureEndianness(static_cast<uint8_t>(BQ27742_FC_CLEAR_PROCENT)),
-    dodateoc_delta_t      : ensureEndianness(static_cast<uint16_t>(BQ27742_DODATEOC_DELTA_T))
+    tca_set               : ensureEndianness(static_cast<int8_t>(BQ27742_TCA_SET)),
+    tca_clear_procent     : ensureEndianness(static_cast<int8_t>(BQ27742_TCA_CLEAR_PROCENT)),
+    fc_set_procent        : ensureEndianness(static_cast<int8_t>(BQ27742_FC_SET_PROCENT)),
+    fc_clear_procent      : ensureEndianness(static_cast<int8_t>(BQ27742_FC_CLEAR_PROCENT)),
+    dodateoc_delta_t      : ensureEndianness(static_cast<int16_t>(BQ27742_DODATEOC_DELTA_T))
   };
 
   BQ_STRUCT{
-    uint8_t  t1_temp;
-    uint8_t  t2_temp;
-    uint8_t  t3_temp;
-    uint8_t  t4_temp;
-    uint8_t  t5_temp;
-    uint8_t  temp_hys;
-    uint16_t t1_t2_chg_voltage;
-    uint16_t t2_t3_chg_voltage;
-    uint16_t t3_t4_chg_voltage;
-    uint16_t t4_t5_chg_voltage;
-    uint8_t  t1_t2_chg_current;
-    uint8_t  t2_t3_chg_current;
-    uint8_t  t3_t4_chg_current;
-    uint8_t  t4_t5_chg_current;
+    int8_t  t1_temp;
+    int8_t  t2_temp;
+    int8_t  t3_temp;
+    int8_t  t4_temp;
+    int8_t  t5_temp;
+    int8_t  temp_hys;
+    int16_t t1_t2_chg_voltage;
+    int16_t t2_t3_chg_voltage;
+    int16_t t3_t4_chg_voltage;
+    int16_t t4_t5_chg_voltage;
+    uint8_t t1_t2_chg_current;
+    uint8_t t2_t3_chg_current;
+    uint8_t t3_t4_chg_current;
+    uint8_t t4_t5_chg_current;
   }jeita = {
-    t1_temp            : ensureEndianness(static_cast<uint8_t>(BQ27742_T1_TEMP)),
-    t2_temp            : ensureEndianness(static_cast<uint8_t>(BQ27742_T2_TEMP)),
-    t3_temp            : ensureEndianness(static_cast<uint8_t>(BQ27742_T3_TEMP)),
-    t4_temp            : ensureEndianness(static_cast<uint8_t>(BQ27742_T4_TEMP)),
-    t5_temp            : ensureEndianness(static_cast<uint8_t>(BQ27742_T5_TEMP)),
-    temp_hys           : ensureEndianness(static_cast<uint8_t>(BQ27742_TEMP_HYS)),
-    t1_t2_chg_voltage  : ensureEndianness(static_cast<uint16_t>(BQ27742_T1_T2_CHG_VOLTAGE)),
-    t2_t3_chg_voltage  : ensureEndianness(static_cast<uint16_t>(BQ27742_T2_T3_CHG_VOLTAGE)),
-    t3_t4_chg_voltage  : ensureEndianness(static_cast<uint16_t>(BQ27742_T3_T4_CHG_VOLTAGE)),
-    t4_t5_chg_voltage  : ensureEndianness(static_cast<uint16_t>(BQ27742_T4_T5_CHG_VOLTAGE)),
+    t1_temp            : ensureEndianness(static_cast<int8_t>(BQ27742_T1_TEMP)),
+    t2_temp            : ensureEndianness(static_cast<int8_t>(BQ27742_T2_TEMP)),
+    t3_temp            : ensureEndianness(static_cast<int8_t>(BQ27742_T3_TEMP)),
+    t4_temp            : ensureEndianness(static_cast<int8_t>(BQ27742_T4_TEMP)),
+    t5_temp            : ensureEndianness(static_cast<int8_t>(BQ27742_T5_TEMP)),
+    temp_hys           : ensureEndianness(static_cast<int8_t>(BQ27742_TEMP_HYS)),
+    t1_t2_chg_voltage  : ensureEndianness(static_cast<int16_t>(BQ27742_T1_T2_CHG_VOLTAGE)),
+    t2_t3_chg_voltage  : ensureEndianness(static_cast<int16_t>(BQ27742_T2_T3_CHG_VOLTAGE)),
+    t3_t4_chg_voltage  : ensureEndianness(static_cast<int16_t>(BQ27742_T3_T4_CHG_VOLTAGE)),
+    t4_t5_chg_voltage  : ensureEndianness(static_cast<int16_t>(BQ27742_T4_T5_CHG_VOLTAGE)),
     t1_t2_chg_current  : ensureEndianness(static_cast<uint8_t>(BQ27742_T1_T2_CHG_CURRENT)),
     t2_t3_chg_current  : ensureEndianness(static_cast<uint8_t>(BQ27742_T2_T3_CHG_CURRENT)),
     t3_t4_chg_current  : ensureEndianness(static_cast<uint8_t>(BQ27742_T3_T4_CHG_CURRENT)),
     t4_t5_chg_current  : ensureEndianness(static_cast<uint8_t>(BQ27742_T4_T5_CHG_CURRENT))
   };
 
-  static const uint16_t design_voltage = ensureEndianness(static_cast<uint16_t>(BQ27742_DESIGN_VOLTAGE));
+  static const int16_t design_voltage = ensureEndianness(static_cast<uint16_t>(BQ27742_DESIGN_VOLTAGE));
 
   BQ_STRUCT{
     uint16_t  cycle_count;
@@ -968,6 +968,8 @@ static uint16_t bq27742_device_type_read(){
       0xFFFF&BQ27742_DEVICE_TYPE_VALUE);
   return 0x00;
 }
+
+#define BQ_ADVANCED
 
 void ic_bq_flash_image(){
   TWI_INIT(BQ);
