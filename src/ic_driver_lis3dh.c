@@ -180,7 +180,7 @@ ic_return_val_e ic_lis3dh_init (void(*fp)(acc_data_s)){
 
     uint8_t _reg_val_combo[][2] =
     {
-      {LIS3DH_REG_CTRL_REG1, LIS3DH_CTRL_REG1_25HZ_RATE|
+      {LIS3DH_REG_CTRL_REG1,
        LIS3DH_CTRL_REG1_XEN|LIS3DH_CTRL_REG1_YEN|LIS3DH_CTRL_REG1_ZEN},
       {LIS3DH_REG_CTRL_REG2, 0x00},
       {LIS3DH_REG_CTRL_REG3, 0x00},
@@ -212,11 +212,11 @@ ic_return_val_e ic_lis3dh_init (void(*fp)(acc_data_s)){
 
     uint8_t _reg_val_combo[][2] =
     {
-      {LIS3DH_REG_CTRL_REG1, LIS3DH_CTRL_REG1_25HZ_RATE|
+      {LIS3DH_REG_CTRL_REG1,
        LIS3DH_CTRL_REG1_XEN|LIS3DH_CTRL_REG1_YEN|LIS3DH_CTRL_REG1_ZEN},
       {LIS3DH_REG_CTRL_REG2, 0x00},
       {LIS3DH_REG_CTRL_REG3, 0x00},
-      {LIS3DH_REG_CTRL_REG4, 0x00},
+      {LIS3DH_REG_CTRL_REG4, 0X00},
       {LIS3DH_REG_CTRL_REG5, 0x00},
       {LIS3DH_REG_CTRL_REG6, 0x00}
 
@@ -250,7 +250,7 @@ ic_return_val_e ic_lis3dh_set_power_mode(acc_power_mode_e power_mode)
   __auto_type ret_val  = TWI_READ_DATA(LIS3DH, LIS3DH_REG_CTRL_REG1, &_val, sizeof(_val), NULL, NULL);
   if(ret_val != IC_SUCCESS)
     NRF_LOG_ERROR("TWI problem: %s\n", (uint32_t)g_return_val_string[ret_val]);
-  _val &= ~(0x0F);
+  _val &= ~(0xF0);
   _val |= power_mode << 4;
 
   m_config_reg(LIS3DH_REG_CTRL_REG1, _val);
