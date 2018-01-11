@@ -292,12 +292,12 @@ ic_return_val_e ic_afe_init(void(*cb)(s_led_val))
   /*afe_gpio_configuration();*/
 #ifdef _USE_AFE_INT
     /*  initialize interrupt for adc RDY pin  */
-  gpio_interrupt_init();
+  gpio_interrupt_init(); // TODO: delete!
 #endif
     /*  init afe4400  */
   afe_init();
     /*  configurate afe4400 to start measure  */
-  afe_conf();
+  afe_conf(); // TODO: Move to init
 
   if (cb != NULL)
     m_user_cb = cb;
@@ -323,9 +323,9 @@ ic_return_val_e ic_afe_deinit(void)
     /*  deconfigurate afe4400 module  */
   afe_deinit();
     /* deconfigurate gpio used for afe4400  */
-  afe_gpio_deconfiguration();
+  afe_gpio_deconfiguration(); // TODO: move it to deinit
     /*  disable NVIC  */
-  NVIC_DisableIRQ(GPIOTE_IRQn);
+  /*NVIC_DisableIRQ(GPIOTE_IRQn);*/ // TODO: delete it
     /*	delete afe_wait task	*/
   if (m_init_thread != NULL)
     vTaskDelete(m_init_thread);
