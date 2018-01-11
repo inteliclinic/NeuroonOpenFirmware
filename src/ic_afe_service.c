@@ -27,7 +27,7 @@
 #include "ic_driver_afe4400.h"
 #include "ic_afe_service.h"
 
-#define TIMER_READ_INTERVAL     32
+#define TIMER_READ_INTERVAL     64
 
 
 static TaskHandle_t m_init_thread;

@@ -84,6 +84,7 @@
 #include "ic_service_ads.h"
 
 #include "ic_acc_service.h"
+#include "ic_afe_service.h"
 
 #include "ic_config.h"
 #include "ic_easy_ltc_driver.h"
@@ -346,6 +347,8 @@ static void cleanup_task (void *arg){
 
   ic_bluetooth_disable();
   ic_ads_service_deinit();
+  ic_acc_deinit();
+  ic_afe_deinit();
 
   power_down_all_systems();
 
@@ -366,17 +369,31 @@ static void on_stream1_state_change(bool active){
 
 static u_otherDataFrameContainer m_stream1_output_frame;
 
-static void m_acc_measured(acc_data_s data){
+static volatile bool m_acc_measured = false;
+
+static void m_acc_measured_callback(acc_data_s data){
 
   m_stream1_output_frame.frame.time_stamp = GET_TICK_COUNT();
   m_stream1_output_frame.frame.acc[0] = data.x;
   m_stream1_output_frame.frame.acc[1] = data.y;
   m_stream1_output_frame.frame.acc[2] = data.z;
 
+  m_acc_measured = true;
+
   /*NRF_LOG_INFO("x: %d, y: %d, z: %d\n",data.x, data.y, data.z)*/
 
-  if(m_send_to_stream1){
-    RESUME_TASK(m_stream1_handle);
+}
+
+static void m_afe_measured_callback(s_led_val data){
+
+  m_stream1_output_frame.frame.ir_sample = data.diff_led1;
+  m_stream1_output_frame.frame.red_sample = data.diff_led2;
+
+  if(m_acc_measured){
+    m_acc_measured = !m_acc_measured;
+    if(m_send_to_stream1){
+      RESUME_TASK(m_stream1_handle);
+    }
   }
 }
 
@@ -408,7 +425,8 @@ void init_acc_afe(void){
 
   vTaskSuspend(m_stream1_handle);
 
-  ic_acc_module_init(m_acc_measured);
+  ic_acc_module_init(m_acc_measured_callback);
+  ic_afe_init(m_afe_measured_callback);
 }
 
 TaskHandle_t m_stream2_handle = NULL;
@@ -502,7 +520,7 @@ int main(void)
     APP_ERROR_CHECK(err_code);
 
 
-    if(pdPASS != xTaskCreate(init_task, "INIT", 384, NULL, 4, &m_init_task)){
+    if(pdPASS != xTaskCreate(init_task, "INIT", 310, NULL, 4, &m_init_task)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
 

@@ -18,7 +18,7 @@
 #include "ic_acc_driver.h"
 #include "ic_acc_service.h"
 
-#define ACC_TIMER_DATA_PERIOD		30
+#define ACC_TIMER_DATA_PERIOD		64
 
 TimerHandle_t m_acc_data_timer;
 

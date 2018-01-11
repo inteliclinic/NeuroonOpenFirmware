@@ -51,6 +51,8 @@ SRC_FILES += \
   $(PROJ_DIR)/src/ic_driver_twi.c\
   $(PROJ_DIR)/src/ic_driver_ads.c\
   $(PROJ_DIR)/src/ic_driver_lis3dh.c\
+  $(PROJ_DIR)/src/ic_afe_service.c\
+  $(PROJ_DIR)/src/ic_driver_afe4400.c\
   $(PROJ_DIR)/src/ic_driver_bq27742.cpp\
   $(PROJ_DIR)/src/ic_acc_driver.c\
   $(PROJ_DIR)/src/ic_acc_service.c\
