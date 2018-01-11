@@ -13,6 +13,10 @@
 #include <stdint.h>
 #include "ic_common_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief 
  */
@@ -163,5 +167,8 @@ ic_return_val_e ic_actuator_set_ramp_func(
  */
 ic_return_val_e ic_ltc_service_init();
 
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif /* !IC_SERVICE_LTC_H */

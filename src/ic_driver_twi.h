@@ -9,6 +9,11 @@
 
 #ifndef IC_DRIVER_TWI_H
 #define IC_DRIVER_TWI_H
+
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 #include <stdint.h>
 #include <stddef.h>
 
@@ -37,7 +42,7 @@ typedef void (*ic_twi_event_cb)(ic_return_val_e twi_return, void *context);
  */
 typedef struct{
   bool active;                        /** Is line ocupated by device */
-  uint8_t device_address;             /** Devices TWI address */
+  const uint8_t device_address;             /** Devices TWI address */
 }ic_twi_instance_s;
 
 /**
@@ -49,8 +54,16 @@ typedef struct{
  * @param name Name of instance.
  *
  */
+#ifdef __cplusplus
+#define TWI_REGISTER(name, address)                                                               \
+  static ic_twi_instance_s name##_twi_instance = {active : false, device_address : address}
+#else
 #define TWI_REGISTER(name, address)                                                               \
   static ic_twi_instance_s name##_twi_instance = {.device_address = address}
+#endif
+
+#define TWI_REGISTER_VOLATILE(name, address)                                                      \
+  ic_twi_instance_s name##_twi_instance = {.device_address = address}
 
 /**
  * @brief Macro changes devices address
@@ -233,5 +246,9 @@ ic_return_val_e ic_twi_read(
     bool force);
 
 void ic_twi_refresh_bus();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !IC_DRIVER_TWI_H */
