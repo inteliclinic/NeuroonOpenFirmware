@@ -37,9 +37,13 @@ static void acc_twi_callback(ic_return_val_e e, void *p_context){
     return;
   }
 
+  acc_data_s _temp_data = {0};
   if (m_fp != NULL)
   {
-    m_fp(*(acc_data_s *)&lis3dh_bufer[1]);
+    _temp_data.x = (lis3dh_bufer[1] & 0xF0) | (lis3dh_bufer[2]) << 8;
+    _temp_data.y = (lis3dh_bufer[3] & 0xF0) | (lis3dh_bufer[4]) << 8;
+    _temp_data.z = (lis3dh_bufer[5] & 0xF0) | (lis3dh_bufer[6]) << 8;
+    m_fp(*(acc_data_s *)&_temp_data);
   }
   else
     NRF_LOG_INFO("ERROR with wdt timer\r\n");
@@ -54,7 +58,10 @@ static void acc_twi_callback(ic_return_val_e e, void *p_context){
   }
   if(m_fp_force != NULL){
     NRF_LOG_INFO("Status: 0x%X\n",lis3dh_bufer[0]);
-    m_fp(*(acc_data_s *)&lis3dh_bufer[1]);
+    _temp_data.x = (lis3dh_bufer[1] & 0xF0) | (lis3dh_bufer[2]) << 8;
+    _temp_data.y = (lis3dh_bufer[3] & 0xF0) | (lis3dh_bufer[4]) << 8;
+    _temp_data.z = (lis3dh_bufer[5] & 0xF0) | (lis3dh_bufer[6]) << 8;
+    m_fp(*(acc_data_s *)&_temp_data);
     m_fp_force = NULL;
   }
 }
@@ -69,7 +76,11 @@ static void acc_twi_read_callback(ic_return_val_e e, void *p_context){
   UNUSED_PARAMETER(e);
   if(m_fp_force != NULL){
 //    NRF_LOG_INFO("Status: 0x%X\n",lis3dh_bufer[0]);
-    m_fp_force(*(acc_data_s *)&lis3dh_bufer[1]);
+    acc_data_s _temp_data = {0};
+    _temp_data.x = (lis3dh_bufer[1] & 0xF0) | (lis3dh_bufer[2]) << 8;
+    _temp_data.y = (lis3dh_bufer[3] & 0xF0) | (lis3dh_bufer[4]) << 8;
+    _temp_data.z = (lis3dh_bufer[5] & 0xF0) | (lis3dh_bufer[6]) << 8;
+    m_fp_force(*(acc_data_s *)&_temp_data);
     m_fp_force = NULL;
   }
 }
