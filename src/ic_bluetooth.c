@@ -256,16 +256,35 @@ static void gap_params_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
+
+
 /**@brief Function for initializing services that will be used by the application.
  */
 static void services_init(void)
 {
+  ble_gap_addr_t _mac;
   ble_dis_init_t dis_init;
+  sd_ble_gap_address_get(&_mac);
+
+  static uint8_t m_serial_buf[IC_CHAR_MAX_LEN];
+  uint8_t _n = 0;
+
+  for(int i=0; i<sizeof(_mac.addr); ++i){
+    _n += snprintf((char *)(&m_serial_buf[_n]), sizeof(m_serial_buf)-_n, "%x", _mac.addr[i]);
+  }
+
+  NRF_LOG_INFO("%s\n", (uint32_t)m_serial_buf);
+
   memset(&dis_init, 0, sizeof(ble_dis_init_t));
+
   dis_init.manufact_name_str.length = strlen(MANUFACTURER_NAME);
   dis_init.manufact_name_str.p_str = (uint8_t *)MANUFACTURER_NAME;
+
   dis_init.sw_rev_str.length = strlen(NEUROON_OPEN_VERSION);
   dis_init.sw_rev_str.p_str = (uint8_t *)NEUROON_OPEN_VERSION;
+
+  dis_init.serial_num_str.length = strlen((char*)m_serial_buf);
+  dis_init.serial_num_str.p_str = m_serial_buf;
   /*dis_init.dis_attr_md*/
 
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&dis_init.dis_attr_md.read_perm);
@@ -636,8 +655,8 @@ static void advertising_init(void)
 
     // Build advertising data struct to pass into @ref ble_advertising_init.
     memset(&advdata, 0, sizeof(advdata));
-
     advdata.name_type               = BLE_ADVDATA_FULL_NAME;
+
     advdata.include_appearance      = false;
     advdata.flags                   = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
     advdata.uuids_complete.uuid_cnt = sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);

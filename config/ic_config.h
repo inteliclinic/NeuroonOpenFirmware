@@ -14,6 +14,9 @@
 #include "app_util_platform.h"
 #include "ic_common_types.h"
 
+
+#define IC_CHAR_MAX_LEN 20
+
 #ifndef NEUROON_OPEN_VERSION
 #define APP_VERSION "NILL"
 #else
