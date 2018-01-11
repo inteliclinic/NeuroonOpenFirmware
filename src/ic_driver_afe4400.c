@@ -29,7 +29,7 @@ static volatile bool m_semaphore = true;
 SPI_REGISTER(afe_spi_write);
 
 //static uint8_t m_input_buffer[sizeof(afe_send_s)];
-static uint8_t m_output_buffer[64];
+static uint8_t m_output_buffer[128];
 static uint8_t m_input_buffer[128] = {0};
 //static afe_send_s *m_data_to_send = (afe_send_s*)m_input_buffer;
 /**********************************************************************************************************/

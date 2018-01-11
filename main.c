@@ -398,7 +398,6 @@ void m_afe_measured(s_led_val data){
   m_stream1_output_frame.frame.red_sample = data.diff_led2;
 
   NRF_LOG_INFO("LED1: %lu, LED2: %lu\n\r",data.diff_led1, data.diff_led2);
-  NRF_LOG_FLUSH();
 
 //  if(m_acc_mesured_complete == true)
 //  {
