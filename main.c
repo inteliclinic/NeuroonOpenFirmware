@@ -96,8 +96,6 @@
 
 #include "ic_service_time.h"
 
-#include "ic_driver_bq27742.h"
-
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE         4                                           /**< Size of timer operation queues. */
 
@@ -340,9 +338,7 @@ static void m_deep_sleep(void){
 
 static void cleanup_task (void *arg){
   NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);
-  uint32_t _reset_reason = 0x00;
-  sd_power_reset_reason_get(&_reset_reason);
-  sd_power_reset_reason_clr(_reset_reason);
+  sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
   bye_bye();
 
 
@@ -434,7 +430,7 @@ void stream2_task(void *arg){
   }
 }
 
-void init_err_stream(void){
+static void init_err_stream(void){
   ble_iccs_connect_to_stream2(on_stream2_state_change);
 
   if(pdPASS != xTaskCreate(stream2_task, "STR1", 128, NULL, 2, &m_stream2_handle)){
@@ -446,7 +442,6 @@ void init_err_stream(void){
 
 #endif
 /*********************/
-#define FLASH_BQ
 
 static void init_task (void *arg){
   UNUSED_PARAMETER(arg);
@@ -467,19 +462,14 @@ static void init_task (void *arg){
   ic_neuroon_exti_init();
   ic_btn_pwr_long_press_handle_init(m_deep_sleep);
 
-  /*
-   *ic_ads_service_init();
-   *init_acc_afe();
-   *init_err_stream();
-   *ic_ble_module_init();
-   */
-  /*sd_power_reset_reason_clr(NRF_POWER->RESETREAS);*/
-  /*ic_service_timestamp_init();*/
-  /*cmd_module_init();*/
-  #ifdef FLASH_BQ
-  ic_bq_flash_image();
-  #endif
-  /*on_disconnect();*/
+  ic_ads_service_init();
+  init_acc_afe();
+  init_err_stream();
+  ic_ble_module_init();
+  sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
+  ic_service_timestamp_init();
+  cmd_module_init();
+  on_disconnect();
   vTaskDelete(NULL);
   taskYIELD();
 }
@@ -511,6 +501,7 @@ int main(void)
     err_code = nrf_drv_clock_init();
     APP_ERROR_CHECK(err_code);
 
+
     if(pdPASS != xTaskCreate(init_task, "INIT", 384, NULL, 4, &m_init_task)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
@@ -518,13 +509,15 @@ int main(void)
     if(pdPASS != xTaskCreate(cleanup_task, "INIT", 192, NULL, 4, &m_cleanup_task)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
-
     vTaskSuspend(m_cleanup_task);
+
+
+    NRF_LOG_INFO("Reset reason: %d; Ret val: %d\n", NRF_POWER->RESETREAS, sd_power_reset_reason_clr(0xFFFFFFFF));
 
     m_welcome = NRF_POWER->RESETREAS & (0x01<<16) ? welcome : showoff;
 
-    NRF_LOG_INFO("Reset reason: 0b%b\n", NRF_POWER->RESETREAS);
-    NRF_POWER->RESETREAS = 0x00;
+    NRF_LOG_INFO("GPREGRET: %d\n", NRF_POWER->GPREGRET);
+
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
     NRF_LOG_INFO("starting scheduler\n");
