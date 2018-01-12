@@ -90,62 +90,40 @@ void acc_convert_data(acc_data_s *acc_data, acc_resolution_e acc_resolution)
    *
    * (( OUT_X_L | OUT_X_H << 8 ) >> (16 - acc_resolution))  | 0xFC00)
    */
+  uint16_t _temp_shift = 0;
+
   switch(acc_resolution)
   {
     case LIS3DH_RES_8BIT:
     {
-      if ((lis3dh_bufer[2] & 0x80))
-        acc_data->x = (((lis3dh_bufer[1]) | (lis3dh_bufer[2]) << 8) >> 8) | 0xFF00;
-      else
-        acc_data->x = (((lis3dh_bufer[1]) | (lis3dh_bufer[2]) << 8) >> 8) & ~(0xFF00);
-      if ((lis3dh_bufer[4] & 0x80))
-        acc_data->y = (((lis3dh_bufer[3]) | (lis3dh_bufer[4]) << 8) >> 8) | 0xFF00;
-      else
-        acc_data->y = (((lis3dh_bufer[3]) | (lis3dh_bufer[4]) << 8) >> 8) & ~(0xFF00);
-      if ((lis3dh_bufer[6] & 0x80))
-        acc_data->z = (((lis3dh_bufer[5]) | (lis3dh_bufer[6]) << 8) >> 8) | 0xFF00;
-      else
-        acc_data->z = (((lis3dh_bufer[5]) | (lis3dh_bufer[6]) << 8) >> 8) & ~(0xFF00);
-
+      _temp_shift = 0xFF00;
       break;
     }
     case LIS3DH_RES_10BIT:
     {
-      if ((lis3dh_bufer[2] & 0x80))
-        acc_data->x = (((lis3dh_bufer[1]) | (lis3dh_bufer[2]) << 8) >> 6) | 0xFC00;
-      else
-        acc_data->x = (((lis3dh_bufer[1]) | (lis3dh_bufer[2]) << 8) >> 6) & ~(0xFC00);
-      if ((lis3dh_bufer[4] & 0x80))
-        acc_data->y = (((lis3dh_bufer[3]) | (lis3dh_bufer[4]) << 8) >> 6) | 0xFC00;
-      else
-        acc_data->y = (((lis3dh_bufer[3]) | (lis3dh_bufer[4]) << 8) >> 6) & ~(0xFC00);
-      if ((lis3dh_bufer[6] & 0x80))
-        acc_data->z = (((lis3dh_bufer[5]) | (lis3dh_bufer[6]) << 8) >> 6) | 0xFC00;
-      else
-        acc_data->z = (((lis3dh_bufer[5]) | (lis3dh_bufer[6]) << 8) >> 6) & ~(0xFC00);
-
+      _temp_shift = 0xFC00;
       break;
     }
     case LIS3DH_RES_12BIT:
     {
-      if ((lis3dh_bufer[2] & 0x80))
-        acc_data->x = (((lis3dh_bufer[1]) | (lis3dh_bufer[2]) << 8) >> 4) | 0xF000;
-      else
-        acc_data->x = (((lis3dh_bufer[1]) | (lis3dh_bufer[2]) << 8) >> 4) & ~(0xF000);
-      if ((lis3dh_bufer[4] & 0x80))
-        acc_data->y = (((lis3dh_bufer[3]) | (lis3dh_bufer[4]) << 8) >> 4) | 0xF000;
-      else
-        acc_data->y = (((lis3dh_bufer[3]) | (lis3dh_bufer[4]) << 8) >> 4) & ~(0xF000);
-      if ((lis3dh_bufer[6] & 0x80))
-        acc_data->z = (((lis3dh_bufer[5]) | (lis3dh_bufer[6]) << 8) >> 4) | 0xF000;
-      else
-        acc_data->z = (((lis3dh_bufer[5]) | (lis3dh_bufer[6]) << 8) >> 4) & ~(0xF000);
-
+      _temp_shift = 0xF000;
       break;
     }
     default:
       NRF_LOG_ERROR("Wrong ACC_RESOLUTION\r\n");
   }
+  if ((lis3dh_bufer[2] & 0x80))
+    acc_data->x = (((lis3dh_bufer[1]) | (lis3dh_bufer[2]) << 8) >> (16 - acc_resolution)) | _temp_shift;
+  else
+    acc_data->x = (((lis3dh_bufer[1]) | (lis3dh_bufer[2]) << 8) >> (16 - acc_resolution)) & ~(_temp_shift);
+  if ((lis3dh_bufer[4] & 0x80))
+    acc_data->y = (((lis3dh_bufer[3]) | (lis3dh_bufer[4]) << 8) >> (16 - acc_resolution)) | _temp_shift;
+  else
+    acc_data->y = (((lis3dh_bufer[3]) | (lis3dh_bufer[4]) << 8) >> (16 - acc_resolution)) & ~(_temp_shift);
+  if ((lis3dh_bufer[6] & 0x80))
+    acc_data->z = (((lis3dh_bufer[5]) | (lis3dh_bufer[6]) << 8) >> (16 - acc_resolution)) | _temp_shift;
+  else
+    acc_data->z = (((lis3dh_bufer[5]) | (lis3dh_bufer[6]) << 8) >> (16 - acc_resolution)) & ~(_temp_shift);
 }
 
 static volatile bool m_lock = false;
