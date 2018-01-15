@@ -53,6 +53,12 @@ typedef enum
   LIS3DH_RATE_G_RANGE_16g = 0x03   //!< LIS3DH_RATE_G_RANGE_16g
 }acc_g_range_e;
 
+typedef enum __attribute__((packed))
+{
+  LIS3DH_RES_8BIT = 0x08,
+  LIS3DH_RES_10BIT = 0x0A,
+  LIS3DH_RES_12BIT = 0x0C,
+}acc_resolution_e;
 /**
  * @brief Register address map
  *
@@ -273,5 +279,7 @@ ic_return_val_e ic_lis3dh_get_g_range(uint8_t *range);
 ic_return_val_e ic_lis3dh_self_test1();
 ic_return_val_e ic_lis3dh_self_test2();
 ic_return_val_e ic_lis3dh_self_test3();
+
+void acc_convert_data(acc_data_s *acc_data, acc_resolution_e acc_resolution);
 
 #endif /* !IC_DRIVER_LIS3DH_H */

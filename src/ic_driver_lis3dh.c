@@ -37,15 +37,17 @@ static void acc_twi_callback(ic_return_val_e e, void *p_context){
     return;
   }
 
+  acc_data_s _temp_data = {0};
   if (m_fp != NULL)
   {
-    m_fp(*(acc_data_s *)&lis3dh_bufer[1]);
+    acc_convert_data(&_temp_data, LIS3DH_RES_12BIT);
+    m_fp(*(acc_data_s *)&_temp_data);
   }
   else
     NRF_LOG_INFO("ERROR with wdt timer\r\n");
 
-  if(p_context != NULL)
-    p_context = (acc_data_s *)&lis3dh_bufer[1];
+//  if(p_context != NULL)
+//    p_context = (acc_data_s *)&lis3dh_bufer[1];
 
   if((lis3dh_bufer[0] & 0b00001000)==0){
      __auto_type _ret_val = TWI_READ_DATA(LIS3DH, LIS3DH_REG_STATUS_REG|LIS3DH_INC_REG, lis3dh_bufer, 7, acc_twi_callback, NULL);
@@ -54,7 +56,8 @@ static void acc_twi_callback(ic_return_val_e e, void *p_context){
   }
   if(m_fp_force != NULL){
     NRF_LOG_INFO("Status: 0x%X\n",lis3dh_bufer[0]);
-    m_fp(*(acc_data_s *)&lis3dh_bufer[1]);
+    acc_convert_data(&_temp_data, LIS3DH_RES_12BIT);
+    m_fp(*(acc_data_s *)&_temp_data);
     m_fp_force = NULL;
   }
 }
@@ -69,9 +72,58 @@ static void acc_twi_read_callback(ic_return_val_e e, void *p_context){
   UNUSED_PARAMETER(e);
   if(m_fp_force != NULL){
 //    NRF_LOG_INFO("Status: 0x%X\n",lis3dh_bufer[0]);
-    m_fp_force(*(acc_data_s *)&lis3dh_bufer[1]);
+    acc_data_s _temp_data = {0};
+    acc_convert_data(&_temp_data, LIS3DH_RES_12BIT);
+    m_fp_force(*(acc_data_s *)&_temp_data);
     m_fp_force = NULL;
   }
+}
+
+void acc_convert_data(acc_data_s *acc_data, acc_resolution_e acc_resolution)
+{
+  /**
+   * data in little endian
+   *
+   * - combine MSB and LSB registers to 2bytes of data
+   * - shift data due to measuring resolution
+   * - OR / AND operation (depends on sign value in MSB)
+   *
+   * (( OUT_X_L | OUT_X_H << 8 ) >> (16 - acc_resolution))  | 0xFC00)
+   */
+  uint16_t _temp_shift = 0;
+
+  switch(acc_resolution)
+  {
+    case LIS3DH_RES_8BIT:
+    {
+      _temp_shift = 0xFF00;
+      break;
+    }
+    case LIS3DH_RES_10BIT:
+    {
+      _temp_shift = 0xFC00;
+      break;
+    }
+    case LIS3DH_RES_12BIT:
+    {
+      _temp_shift = 0xF000;
+      break;
+    }
+    default:
+      NRF_LOG_ERROR("Wrong ACC_RESOLUTION\r\n");
+  }
+  if ((lis3dh_bufer[2] & 0x80))
+    acc_data->x = (((lis3dh_bufer[1]) | (lis3dh_bufer[2]) << 8) >> (16 - acc_resolution)) | _temp_shift;
+  else
+    acc_data->x = (((lis3dh_bufer[1]) | (lis3dh_bufer[2]) << 8) >> (16 - acc_resolution)) & ~(_temp_shift);
+  if ((lis3dh_bufer[4] & 0x80))
+    acc_data->y = (((lis3dh_bufer[3]) | (lis3dh_bufer[4]) << 8) >> (16 - acc_resolution)) | _temp_shift;
+  else
+    acc_data->y = (((lis3dh_bufer[3]) | (lis3dh_bufer[4]) << 8) >> (16 - acc_resolution)) & ~(_temp_shift);
+  if ((lis3dh_bufer[6] & 0x80))
+    acc_data->z = (((lis3dh_bufer[5]) | (lis3dh_bufer[6]) << 8) >> (16 - acc_resolution)) | _temp_shift;
+  else
+    acc_data->z = (((lis3dh_bufer[5]) | (lis3dh_bufer[6]) << 8) >> (16 - acc_resolution)) & ~(_temp_shift);
 }
 
 static volatile bool m_lock = false;
@@ -184,7 +236,7 @@ ic_return_val_e ic_lis3dh_init (void(*fp)(acc_data_s)){
        LIS3DH_CTRL_REG1_XEN|LIS3DH_CTRL_REG1_YEN|LIS3DH_CTRL_REG1_ZEN},
       {LIS3DH_REG_CTRL_REG2, 0x00},
       {LIS3DH_REG_CTRL_REG3, 0x00},
-      {LIS3DH_REG_CTRL_REG4, 0x00},
+      {LIS3DH_REG_CTRL_REG4, LIS3DH_CTRL_REG4_HR},
       {LIS3DH_REG_CTRL_REG5, 0x00},
       {LIS3DH_REG_CTRL_REG6, 0x00}
 
@@ -216,7 +268,7 @@ ic_return_val_e ic_lis3dh_init (void(*fp)(acc_data_s)){
        LIS3DH_CTRL_REG1_XEN|LIS3DH_CTRL_REG1_YEN|LIS3DH_CTRL_REG1_ZEN},
       {LIS3DH_REG_CTRL_REG2, 0x00},
       {LIS3DH_REG_CTRL_REG3, 0x00},
-      {LIS3DH_REG_CTRL_REG4, 0X00},
+      {LIS3DH_REG_CTRL_REG4, LIS3DH_CTRL_REG4_HR},
       {LIS3DH_REG_CTRL_REG5, 0x00},
       {LIS3DH_REG_CTRL_REG6, 0x00}
 
