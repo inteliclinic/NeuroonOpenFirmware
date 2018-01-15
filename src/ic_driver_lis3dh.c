@@ -40,7 +40,7 @@ static void acc_twi_callback(ic_return_val_e e, void *p_context){
   acc_data_s _temp_data = {0};
   if (m_fp != NULL)
   {
-    acc_convert_data(&_temp_data, LIS3DH_RES_10BIT);
+    acc_convert_data(&_temp_data, LIS3DH_RES_12BIT);
     m_fp(*(acc_data_s *)&_temp_data);
   }
   else
@@ -56,7 +56,7 @@ static void acc_twi_callback(ic_return_val_e e, void *p_context){
   }
   if(m_fp_force != NULL){
     NRF_LOG_INFO("Status: 0x%X\n",lis3dh_bufer[0]);
-    acc_convert_data(&_temp_data, LIS3DH_RES_10BIT);
+    acc_convert_data(&_temp_data, LIS3DH_RES_12BIT);
     m_fp(*(acc_data_s *)&_temp_data);
     m_fp_force = NULL;
   }
@@ -73,7 +73,7 @@ static void acc_twi_read_callback(ic_return_val_e e, void *p_context){
   if(m_fp_force != NULL){
 //    NRF_LOG_INFO("Status: 0x%X\n",lis3dh_bufer[0]);
     acc_data_s _temp_data = {0};
-    acc_convert_data(&_temp_data, LIS3DH_RES_10BIT);
+    acc_convert_data(&_temp_data, LIS3DH_RES_12BIT);
     m_fp_force(*(acc_data_s *)&_temp_data);
     m_fp_force = NULL;
   }
@@ -236,7 +236,7 @@ ic_return_val_e ic_lis3dh_init (void(*fp)(acc_data_s)){
        LIS3DH_CTRL_REG1_XEN|LIS3DH_CTRL_REG1_YEN|LIS3DH_CTRL_REG1_ZEN},
       {LIS3DH_REG_CTRL_REG2, 0x00},
       {LIS3DH_REG_CTRL_REG3, 0x00},
-      {LIS3DH_REG_CTRL_REG4, 0x00},
+      {LIS3DH_REG_CTRL_REG4, LIS3DH_CTRL_REG4_HR},
       {LIS3DH_REG_CTRL_REG5, 0x00},
       {LIS3DH_REG_CTRL_REG6, 0x00}
 
@@ -268,7 +268,7 @@ ic_return_val_e ic_lis3dh_init (void(*fp)(acc_data_s)){
        LIS3DH_CTRL_REG1_XEN|LIS3DH_CTRL_REG1_YEN|LIS3DH_CTRL_REG1_ZEN},
       {LIS3DH_REG_CTRL_REG2, 0x00},
       {LIS3DH_REG_CTRL_REG3, 0x00},
-      {LIS3DH_REG_CTRL_REG4, 0X00},
+      {LIS3DH_REG_CTRL_REG4, LIS3DH_CTRL_REG4_HR},
       {LIS3DH_REG_CTRL_REG5, 0x00},
       {LIS3DH_REG_CTRL_REG6, 0x00}
 
