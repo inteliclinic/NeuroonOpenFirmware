@@ -254,22 +254,24 @@ static void power_up_all_systems(void){
 #define PERIOD pdMS_TO_TICKS(2000)
 
 static void on_connect(void){
-  ic_actuator_set_off_func(IC_LEFT_RED_LED, PERIOD, 0, 0);
-  ic_actuator_set_off_func(IC_RIGHT_RED_LED, PERIOD, 0, 0);
-  ic_actuator_set_off_func(IC_LEFT_GREEN_LED, PERIOD, 0, 0);
-  ic_actuator_set_off_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 0);
+  ic_actuator_set_off_func(IC_LEFT_BLUE_LED, 0, 0, 0);
+  ic_actuator_set_off_func(IC_RIGHT_BLUE_LED, 0, 0, 0);
+  ic_actuator_set_off_func(IC_LEFT_RED_LED, 0, 0, 0);
+  ic_actuator_set_off_func(IC_RIGHT_RED_LED, 0, 0, 0);
+  ic_actuator_set_off_func(IC_LEFT_GREEN_LED, 0, 0, 0);
+  ic_actuator_set_off_func(IC_RIGHT_GREEN_LED, 0, 0, 0);
 }
 
 static void on_disconnect(void){
-  ic_actuator_set_off_func(IC_LEFT_BLUE_LED, 0, 0, 0);
-  ic_actuator_set_off_func(IC_RIGHT_BLUE_LED, 0, 0, 0);
+  ic_actuator_set_off_func(IC_LEFT_RED_LED, 0, 0, 63);
+  ic_actuator_set_off_func(IC_RIGHT_RED_LED, 0, 0, 63);
+  ic_actuator_set_off_func(IC_LEFT_GREEN_LED, 0, 0, 30);
+  ic_actuator_set_off_func(IC_RIGHT_GREEN_LED, 0, 0, 30);
   ic_actuator_set_off_func(IC_VIBRATOR, 0, 0, 0);
   ic_actuator_set_off_func(IC_POWER_LEDS, 0, 0, 0);
 
-  ic_actuator_set_triangle_func(IC_LEFT_RED_LED, PERIOD, 0, 63);
-  ic_actuator_set_triangle_func(IC_RIGHT_RED_LED, PERIOD, 0, 63);
-  ic_actuator_set_triangle_func(IC_LEFT_GREEN_LED, PERIOD, 0, 30);
-  ic_actuator_set_triangle_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 30);
+  ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, PERIOD, 0, 63);
+  ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 63);
 }
 
  void welcome(void){
