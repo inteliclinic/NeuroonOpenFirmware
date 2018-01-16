@@ -341,16 +341,19 @@ static void m_deep_sleep(void){
 
 static void cleanup_task (void *arg){
   NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);
+
   sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
-  bye_bye();
-
-
-  vTaskDelay(1024);
 
   ic_bluetooth_disable();
   ic_ads_service_deinit();
   ic_acc_deinit();
   ic_afe_deinit();
+
+  bye_bye();
+
+
+  vTaskDelay(1024);
+
 
   power_down_all_systems();
 
@@ -522,7 +525,7 @@ int main(void)
     APP_ERROR_CHECK(err_code);
 
 
-    if(pdPASS != xTaskCreate(init_task, "INIT", 310, NULL, 4, &m_init_task)){
+    if(pdPASS != xTaskCreate(init_task, "INIT", 384, NULL, 4, &m_init_task)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
 
