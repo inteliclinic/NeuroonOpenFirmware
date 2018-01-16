@@ -341,16 +341,19 @@ static void m_deep_sleep(void){
 
 static void cleanup_task (void *arg){
   NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);
+
   sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
-  bye_bye();
-
-
-  vTaskDelay(1024);
 
   ic_bluetooth_disable();
   ic_ads_service_deinit();
   ic_acc_deinit();
   ic_afe_deinit();
+
+  bye_bye();
+
+
+  vTaskDelay(1024);
+
 
   power_down_all_systems();
 
