@@ -366,8 +366,8 @@ static ic_return_val_e actuator_set_func(
   device->cur_period = 0;
   device->cur_duration = 0;
 
-  if(device->device == ACTUATOR_POWER_LEDS && func != FUN_TYPE_OFF)
-    device->func = FUN_TYPE_BLINK;
+  if(device->device == ACTUATOR_POWER_LEDS && func != FUN_TYPE_BLINK)
+    device->func = FUN_TYPE_OFF;
   else
     device->func = func;
 

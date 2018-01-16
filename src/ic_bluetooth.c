@@ -32,6 +32,7 @@
 
 #include "peer_manager.h"
 #include "ble_dis.h"
+#include "ble_bas.c"
 #include "ic_ble_service.h"
 
 #include "ble_conn_state.h"
@@ -257,6 +258,11 @@ static void gap_params_init(void)
 }
 
 
+void bas_event_handler(ble_bas_t *p_bas, ble_bas_evt_t *p_evt){
+  NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);
+}
+
+ble_bas_t m_ble_bas;
 
 /**@brief Function for initializing services that will be used by the application.
  */
@@ -275,6 +281,7 @@ static void services_init(void)
 
   NRF_LOG_INFO("%s\n", (uint32_t)m_serial_buf);
 
+  // DIS
   memset(&dis_init, 0, sizeof(ble_dis_init_t));
 
   dis_init.manufact_name_str.length = strlen(MANUFACTURER_NAME);
@@ -291,6 +298,21 @@ static void services_init(void)
   BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&dis_init.dis_attr_md.write_perm);
   __auto_type err_code = ble_dis_init(&dis_init);
   APP_ERROR_CHECK(err_code);
+
+  // BAS
+  ble_bas_init_t bas_init;
+  memset(&bas_init, 0, sizeof(ble_bas_init_t));
+
+  bas_init.initial_batt_level = 67;
+  bas_init.support_notification = false;
+  bas_init.evt_handler = bas_event_handler;
+
+  BLE_GAP_CONN_SEC_MODE_SET_OPEN(&bas_init.battery_level_char_attr_md.read_perm);
+  BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&bas_init.battery_level_char_attr_md.write_perm);
+
+  err_code = ble_bas_init(&m_ble_bas, &bas_init);
+  APP_ERROR_CHECK(err_code);
+
 
   ble_iccs_init_t iccs_init;
   ble_iccs_init(&iccs_init);
