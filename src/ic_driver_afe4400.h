@@ -46,7 +46,7 @@ void callback_spi(void *context);
  *
  * Even if multiple instructions sending, the frame is still the same
  */
-typedef struct __packed
+typedef struct __attribute__((packed))
 {
   uint8_t reg;	  // 1 byte reg addr
   uint8_t data[3];  // 3 bytes of data
@@ -67,12 +67,12 @@ typedef struct __attribute__((packed))
  */
 typedef struct __attribute__((packed))
 {
-  uint32_t led2_val;
-  uint32_t aled2_val;
-  uint32_t led1_val;
-  uint32_t aled1_val;
-  uint32_t diff_led2;
-  uint32_t diff_led1;
+  uint32_t red_val;
+  uint32_t ared_val;
+  uint32_t ir_val;
+  uint32_t air_val;
+  uint32_t red_diff;
+  uint32_t ir_diff;
 }s_led_val;
 
 typedef enum

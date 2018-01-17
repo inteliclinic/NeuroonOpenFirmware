@@ -31,6 +31,16 @@ SPI_REGISTER(afe_spi_write);
 //static uint8_t m_input_buffer[sizeof(afe_send_s)];
 static uint8_t m_output_buffer[128];
 static uint8_t m_input_buffer[128] = {0};
+
+  /* Array with timing values you want to write to specific timing registers
+   * It is needed to write timing values in correct sequence (given in datasheet (page 31 table 2))
+   */
+static uint16_t m_timing_data[29] =
+{
+  6050,	7998, 6000, 7999, 50, 1998, 2050, 3998,	2000, 3999, 4050, 5998,
+  4, 1999, 2004, 3999, 4004, 5999, 6004, 7999, 0, 3, 2000, 2003, 4000,
+  4003,	6000, 6003, 7999
+};
 //static afe_send_s *m_data_to_send = (afe_send_s*)m_input_buffer;
 /**********************************************************************************************************/
 /**
@@ -228,27 +238,6 @@ ic_return_val_e afe_read_led_reg(event_cb_done cb)
 
   return IC_SUCCESS;
 }
-/**********************************************************************************************************/
-//void afe_read_led_reg_instant(size_t len)
-//{
-//  for (int i = 0;i < len;i++)
-//  {
-//    data_to_send->reg = AFE4400_LED2VAL + i;
-//    convert(0, data_to_send->data);
-//    (++data_to_send);
-//  }
-//    /*  set pointer back to starting index in input_buffer  */
-//  data_to_send = (s_spiSend*)&input_buffer[0];
-//
-//  if (semaphore)
-//  {
-//    semaphore = false;
-//    __auto_type _ret_val = SPI_SEND_DATA(afe_spi_write, input_buffer, output_buffer, SPI_SEND_4BYTES * len, led_read_callback);
-//    if (_ret_val != IC_SUCCESS)
-//      NRF_LOG_ERROR("SPI ERROR\r\n");
-//  }
-//}
-/**********************************************************************************************************/
 void afe_begin_measure(void)
 {
 #ifdef AFE_NRF_DEBUG
@@ -364,6 +353,46 @@ void afe_reset(void)
 {
   afe_write_bit_reg(AFE4400_CONTROL0, 3, 1);
 }
+/************************************************************************************************************/
+static void afe_conf(void)
+{
+  /*NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);*/
+
+  /*  check diagnostic register to be sure, that everything is okay  */
+  if (afe_check_diagnostic() != 0)
+    NRF_LOG_ERROR("Error has occurred, please check it\r\n");
+  /***
+   * afe_set_timing_fast
+   *
+   * Using this function, you need to pass pointer to data (or just an array)
+   * with specific timing values you want to write in timing registers.
+   * !!!
+   * 		 The most important thing is to write timing values in correct sequence (given in datasheet).
+   * 		 If you give timing values in correct sequence, you do not need to worry about register addresses
+   * !!!
+   */
+  afe_set_timing_fast(m_timing_data, sizeof(m_timing_data) / sizeof(uint16_t));
+    /*	set led current on led1 and led2 (0 - 255)	*/
+  afe_set_led_current(LED_CURRENT_MAX / 2, LED_CURRENT_MAX / 2);
+  /***	set gain
+   *
+   *	amb_dac - value of cancellation current (0 - 10uA)
+   * 	stg2gain - stage 2 gain (0dB - 12dB)
+   *	cfLED - program capacity for LEDs (5pF - 150pF)
+   *	rfLED - program resistance for LEDs (10kOhm - 1MOhm)
+   *
+   ***/
+  s_tia_amb_gain _tia_amb_value =
+  {
+    .amb_dac  = AMB_DAC_1uA,
+    .stg2gain = STG2GAIN_3dB,
+    .cfLED    = CF_LED_15plus5pF,
+    .rfLED    = RF_LED_50k
+  };
+  afe_set_gain(&_tia_amb_value);
+    /*	call begin measure to turn leds and timers on  */
+  afe_begin_measure();
+}
 /**********************************************************************************************************/
 void afe_init(void)
 {
@@ -371,6 +400,7 @@ void afe_init(void)
   SPI_INIT(afe_spi_write, AFE4400_CS_PIN);
 //  afe_disable_read();
   afe_reset();
+  afe_conf();
     /*	enable reading from afe4400  */
 //  afe_enable_read();
 }
@@ -387,8 +417,6 @@ void afe_deinit(void)
 uint16_t afe_check_diagnostic(void)
 {
   uint32_t _temp_data = 0;
-
-  _temp_data = 0;
     /*  enable diagnostic flag  */
   afe_write_bit_reg(AFE4400_CONTROL0, DIAG_EN, ENABLE_DIAGNOSTIC);
   afe_read_reg(AFE4400_DIAG, &_temp_data);
