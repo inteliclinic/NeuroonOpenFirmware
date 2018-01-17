@@ -1,5 +1,5 @@
 /**
- * @file    ic_acc_driver.h
+ * @file    ic_driver_acc.h
  * @Author  Kacper Gracki <k.gracki@inteliclinic.com>
  * @date    October, 2017
  * @brief   Brief description
@@ -36,7 +36,7 @@ ic_return_val_e ic_acc_deinit(void);
  *
  * @return IC_SUCCESS when everything goes okay
  */
-ic_return_val_e ic_acc_read(void(*fp)(acc_data_s), bool force);
+ic_return_val_e ic_acc_get_values(void(*fp)(acc_data_s), bool force);
 
 /**
  * @brief Set data rate on accelerometer

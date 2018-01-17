@@ -15,7 +15,7 @@
 
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
-#include "ic_acc_driver.h"
+#include "ic_driver_acc.h"
 #include "ic_acc_service.h"
 
 #define ACC_TIMER_DATA_PERIOD		64
@@ -117,7 +117,7 @@ void acc_read_data_timer()
 {
   static bool _driver_crushed = false;
   if(m_user_cb != NULL)
-    _driver_crushed = ic_acc_read(m_user_cb, _driver_crushed) == IC_SUCCESS;
+    _driver_crushed = ic_acc_get_values(m_user_cb, _driver_crushed) == IC_SUCCESS;
 }
 /**************************************************************************************************************************/
 ic_return_val_e ic_acc_module_init(void(*cb)(acc_data_s))
