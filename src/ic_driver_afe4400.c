@@ -581,7 +581,8 @@ static uint16_t afe_check_diagnostic(void)
   return _temp_data & 0x1FFF;
 }
 
-ic_return_val_e ic_afe_get_values(ic_afe_event_cb_done cb){
+ic_return_val_e ic_afe_get_values(ic_afe_event_cb_done cb, bool force){
+  UNUSED_PARAMETER(force);
   if (m_semaphore)
   {
     m_semaphore = false;

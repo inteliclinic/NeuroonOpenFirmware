@@ -22,7 +22,7 @@
 
 #include "ic_service_stream1.h"
 #include "ic_driver_acc.h"
-#include "ic_driver_afe.h"
+#include "ic_driver_afe4400.h"
 
 #include "ic_nrf_error.h"
 
@@ -41,21 +41,24 @@
 /*static ic_return_val_e ic_acc_deinit(void){}*/
 //TODO: END OF ATRAPA DO USUNIĘCIA
 
+#define NUM_OF_CONN_DEVS  2
+
 static TimerHandle_t m_service_stream1_timer_handle = NULL;
 static TaskHandle_t m_send_data_task_handle = NULL;
 
 static bool m_module_initialized = false;
 
 static uint8_t m_measurement_cnt = 0;
-static acc_data_s volatile m_acc_measurement;
-static s_led_val volatile m_afe_measurement;
+static volatile uint32_t m_stream1_timestamp;
+static acc_data_s m_acc_measurement;
+static ic_afe_val_s m_afe_measurement;
 
 ALLOCK_SEMAPHORE(m_timestamp_read);
 ALLOCK_SEMAPHORE(m_twi_ready);
 ALLOCK_SEMAPHORE(m_spi_ready);
 
 static void read_acc_callback(acc_data_s acc_measurement);
-static void read_afe_callback(s_led_val afe_measurement);
+static void read_afe_callback(ic_afe_val_s afe_measurement);
 static void on_stream1_state_change(bool active);
 
 static void stream1_timer_callback(TimerHandle_t xTimer){
@@ -112,9 +115,9 @@ static void send_data_task(void *arg){
     m_stream1_packet.frame.acc[2] = m_acc_measurement.z;
     GIVE_SEMAPHORE(m_twi_ready);
 
-    m_stream1_packet.frame.ir_sample = m_afe_measurement.diff_led1;
-    m_stream1_packet.frame.red_sample = m_afe_measurement.diff_led2;
-    GIVE_SEMAPHORE(m_afe_ready);
+    m_stream1_packet.frame.ir_sample = m_afe_measurement.ir_diff;
+    m_stream1_packet.frame.red_sample = m_afe_measurement.red_diff;
+    GIVE_SEMAPHORE(m_spi_ready);
 
     __auto_type _ret_val = ble_iccs_send_to_stream1(
         m_stream1_packet.raw_data,
@@ -137,12 +140,12 @@ static void send_data_task(void *arg){
 ic_return_val_e ic_service_stream1_init(void){
   if(m_module_initialized) return IC_SUCCESS;
 
-  if(ic_acc_init(NULL) != IC_SUCCESS){
+  if(ic_acc_init() != IC_SUCCESS){
     NRF_LOG_ERROR("Couldn't initialize acc driver\r\n");
     return IC_ERROR;
   }
 
-  if(ic_afe_init(NULL) != IC_SUCCESS){
+  if(ic_afe_init() != IC_SUCCESS){
     NRF_LOG_ERROR("Couldn't initialize afe driver\r\n");
     return IC_ERROR;
   }
@@ -221,15 +224,15 @@ static void on_stream1_state_change(bool active){
 static void read_acc_callback(acc_data_s acc_measurement){
   memcpy(&m_acc_measurement, &acc_measurement, sizeof(acc_data_s));
   if(++m_measurement_cnt >= NUM_OF_CONN_DEVS){
-    RESUME_TASK(send_data_task_handle);
+    RESUME_TASK(m_send_data_task_handle);
     m_measurement_cnt = 0;
   }
 }
 
-static void read_afe_callback(s_led_val afe_measurement){
-  memcpy(&m_afe_measurement, &afe_measurement, sizeof(s_led_val));
+static void read_afe_callback(ic_afe_val_s afe_measurement){
+  memcpy(&m_afe_measurement, &afe_measurement, sizeof(ic_afe_val_s));
   if(++m_measurement_cnt >= NUM_OF_CONN_DEVS){
-    RESUME_TASK(send_data_task_handle);
+    RESUME_TASK(m_send_data_task_handle);
     m_measurement_cnt = 0;
   }
 }
