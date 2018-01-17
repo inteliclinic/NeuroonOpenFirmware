@@ -22,8 +22,6 @@
 
 #include "app_error.h"
 
-#include "ic_afe_service.h"
-
 #define NRF_LOG_MODULE_NAME "BTN"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
