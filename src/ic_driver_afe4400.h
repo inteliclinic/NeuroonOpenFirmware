@@ -28,12 +28,12 @@
  */
 typedef struct __attribute__((packed))
 {
-  uint32_t red_val;
-  uint32_t ared_val;
   uint32_t ir_val;
   uint32_t air_val;
-  uint32_t red_diff;
+  uint32_t red_val;
+  uint32_t ared_val;
   uint32_t ir_diff;
+  uint32_t red_diff;
 }ic_afe_val_s;
 
 typedef void (*ic_afe_event_cb_done)(ic_afe_val_s);

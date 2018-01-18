@@ -105,14 +105,9 @@ static void send_data_task(void *arg){
         sizeof(u_eegDataFrameContainter),
         &_nrf_error);
 
-    __auto_type _timestamp = m_eeg_packet.frame.time_stamp;
 
     switch(_err){
       case IC_SUCCESS:
-        for(int i = 0; i<8; ++i){
-          NRF_LOG_RAW_INFO("%d\t\t%d\n", _timestamp, m_eeg_packet.frame.eeg_data[i]);
-          _timestamp += 8;
-        }
         break;
       case IC_BLE_NOT_CONNECTED:
         break;

@@ -138,7 +138,7 @@ ic_return_val_e ic_service_stream1_init(void){
         stream1_timer_callback);
 
   if(m_send_data_task_handle == NULL)
-    if(pdPASS != xTaskCreate(send_data_task, "STREAM1_SENDER", 128, NULL, 3, &m_send_data_task_handle)){
+    if(pdPASS != xTaskCreate(send_data_task, "STREAM1_SENDER", 200, NULL, 3, &m_send_data_task_handle)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
 

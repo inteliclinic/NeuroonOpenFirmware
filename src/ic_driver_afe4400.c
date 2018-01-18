@@ -760,13 +760,20 @@ void afe_set_timing_fast(uint16_t *timing_data, size_t data_len)
  * @endcode
  */
 static void afe_set_led_current(uint8_t led1, uint8_t led2){
-  uint32_t _temp_data = 0;
+  union{
+    uint32_t val;
+    uint8_t array [4];
+  }_temp_data;
 
-  _temp_data |= (1     << 16);		/*	must be 1	*/
-  _temp_data |= (led1  << 8);
-  _temp_data |= (led2);
+  _temp_data.val = 0x00;
 
-  afe_write_reg(AFE4400_LEDCNTRL, _temp_data);
+  _temp_data.array[0] = led2;
+  _temp_data.array[1] = led1;
+  _temp_data.array[2] = 0x01;
+  _temp_data.array[3] = 0x00;
+  NRF_LOG_INFO("0x%08X\n", _temp_data.val);
+
+  afe_write_reg(AFE4400_LEDCNTRL, _temp_data.val);
 }
 
 /**
@@ -796,7 +803,7 @@ static void afe_conf(void)
    */
   afe_set_timing_fast(m_timing_data, sizeof(m_timing_data) / sizeof(uint16_t));
     /*	set led current on led1 and led2 (0 - 255)	*/
-  afe_set_led_current(LED_CURRENT_MAX / 2, LED_CURRENT_MAX / 2);
+  afe_set_led_current(0x05, 0x3F);
   /***	set gain
    *
    *	amb_dac - value of cancellation current (0 - 10uA)
