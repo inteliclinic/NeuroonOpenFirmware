@@ -26,21 +26,6 @@
 
 #include "ic_nrf_error.h"
 
-//TODO: ATRAPA DO USUNIĘCIA
-/*static void ic_afe_get_values(void *p_func, bool force){*/
-  /*UNUSED_PARAMETER(p_func);*/
-  /*UNUSED_PARAMETER(force);*/
-/*}*/
-/*static void ic_acc_get_values(void *p_func, bool force){*/
-  /*UNUSED_PARAMETER(p_func);*/
-  /*UNUSED_PARAMETER(force);*/
-/*}*/
-/*static ic_return_val_e ic_afe_init(void){}*/
-/*static ic_return_val_e ic_acc_init(void){}*/
-/*static ic_return_val_e ic_afe_deinit(void){}*/
-/*static ic_return_val_e ic_acc_deinit(void){}*/
-//TODO: END OF ATRAPA DO USUNIĘCIA
-
 #define NUM_OF_CONN_DEVS  2
 
 static TimerHandle_t m_service_stream1_timer_handle = NULL;
@@ -53,9 +38,7 @@ static volatile uint32_t m_stream1_timestamp;
 static acc_data_s m_acc_measurement;
 static ic_afe_val_s m_afe_measurement;
 
-ALLOCK_SEMAPHORE(m_timestamp_read);
-ALLOCK_SEMAPHORE(m_twi_ready);
-ALLOCK_SEMAPHORE(m_spi_ready);
+ALLOCK_SEMAPHORE(m_data_lock);
 
 static void read_acc_callback(acc_data_s acc_measurement);
 static void read_afe_callback(ic_afe_val_s afe_measurement);
@@ -63,18 +46,10 @@ static void on_stream1_state_change(bool active);
 
 static void stream1_timer_callback(TimerHandle_t xTimer){
   __auto_type _semphr_successfull = pdTRUE;
-  TAKE_SEMAPHORE(m_timestamp_read, 0, _semphr_successfull);
+  TAKE_SEMAPHORE(m_data_lock, 0, _semphr_successfull);
   if(_semphr_successfull == pdFALSE){
     NRF_LOG_ERROR("Stream1 TIMEOUT\n");
     return;
-  }
-  TAKE_SEMAPHORE(m_twi_ready, 0, _semphr_successfull);
-  if(_semphr_successfull == pdFALSE){
-    NRF_LOG_ERROR("Could not take TWI transaction semaphore\n");
-  }
-  TAKE_SEMAPHORE(m_spi_ready, 0, _semphr_successfull);
-  if(_semphr_successfull == pdFALSE){
-    NRF_LOG_ERROR("Could not take SPI transaction semaphore\n");
   }
 
   m_stream1_timestamp = GET_TICK_COUNT();
@@ -108,16 +83,15 @@ static void send_data_task(void *arg){
   u_otherDataFrameContainer m_stream1_packet;
   for(;;){
     m_stream1_packet.frame.time_stamp = m_stream1_timestamp; //GET_TICK_COUNT();
-    GIVE_SEMAPHORE(m_timestamp_read);
+    GIVE_SEMAPHORE(m_data_lock);
 
+    portENTER_CRITICAL();
     m_stream1_packet.frame.acc[0] = m_acc_measurement.x;
     m_stream1_packet.frame.acc[1] = m_acc_measurement.y;
     m_stream1_packet.frame.acc[2] = m_acc_measurement.z;
-    GIVE_SEMAPHORE(m_twi_ready);
-
     m_stream1_packet.frame.ir_sample = m_afe_measurement.ir_diff;
     m_stream1_packet.frame.red_sample = m_afe_measurement.red_diff;
-    GIVE_SEMAPHORE(m_spi_ready);
+    portEXIT_CRITICAL();
 
     __auto_type _ret_val = ble_iccs_send_to_stream1(
         m_stream1_packet.raw_data,
@@ -150,20 +124,10 @@ ic_return_val_e ic_service_stream1_init(void){
     return IC_ERROR;
   }
 
-  if(CHECK_INIT_SEMAPHORE(m_twi_ready))
-    INIT_SEMAPHORE_BINARY(m_twi_ready);
+  if(CHECK_INIT_SEMAPHORE(m_data_lock))
+    INIT_SEMAPHORE_BINARY(m_data_lock);
 
-  GIVE_SEMAPHORE(m_twi_ready);
-
-  if(CHECK_INIT_SEMAPHORE(m_spi_ready))
-    INIT_SEMAPHORE_BINARY(m_spi_ready);
-
-  GIVE_SEMAPHORE(m_spi_ready);
-
-  if(CHECK_INIT_SEMAPHORE(m_timestamp_read))
-    INIT_SEMAPHORE_BINARY(m_timestamp_read);
-
-  GIVE_SEMAPHORE(m_timestamp_read);
+  GIVE_SEMAPHORE(m_data_lock);
 
   if(m_service_stream1_timer_handle == NULL)
     m_service_stream1_timer_handle = xTimerCreate(
@@ -196,9 +160,7 @@ ic_return_val_e ic_service_stream1_deinit(void){
 
   m_module_initialized = false;
 
-  GIVE_SEMAPHORE(m_twi_ready);
-  GIVE_SEMAPHORE(m_spi_ready);
-  GIVE_SEMAPHORE(m_timestamp_read);
+  GIVE_SEMAPHORE(m_data_lock);
 
   __auto_type _ret_val = pdTRUE;
   STOP_TIMER(m_service_stream1_timer_handle, 0, _ret_val);

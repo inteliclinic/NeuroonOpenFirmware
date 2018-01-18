@@ -149,7 +149,7 @@
 #define IC_ACC_EXTI_PIN       17
 #define IC_AFE_EXTI_PIN       0
 
-#define IC_STREAM1_TICK_PERIOD    64
+#define IC_STREAM1_TICK_PERIOD    32
 
 /** @} */
 

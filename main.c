@@ -344,6 +344,7 @@ static void cleanup_task (void *arg){
   sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
 
   ic_bluetooth_disable();
+  ic_service_stream1_deinit();
   ic_ads_service_deinit();
 
   bye_bye();
