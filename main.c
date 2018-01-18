@@ -327,7 +327,7 @@ static void cleanup_task (void *arg){
 
     ic_actuator_set_triangle_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
   }
-  vTaskDelay(1024);
+  vTaskDelay(512);
 
 
   power_down_all_systems();
