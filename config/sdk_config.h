@@ -3576,7 +3576,7 @@
 // <i> Function for getting the timestamp is provided by the user
 
 #ifndef NRF_LOG_USES_TIMESTAMP
-#define NRF_LOG_USES_TIMESTAMP 1
+#define NRF_LOG_USES_TIMESTAMP 0
 #endif
 
 #endif //NRF_LOG_ENABLED
