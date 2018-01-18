@@ -65,6 +65,9 @@ extern void main_on_ble_evt(ble_evt_t * p_ble_evt);
 #define DEVICE_NAME                     "NeuroOn"                               /**< Name of device. Will be included in the advertising data. */
 #define MANUFACTURER_NAME               "Inteliclinic"                              /**< Manufacturer. Will be passed to Device Information Service. */
 
+#define DEFAULT_DFU_VERSION             "1.0"
+#define DEFAULT_HARDWARE_VERSION        "1.0e"
+
 #define APP_ADV_INTERVAL                300                                         /**< The advertising interval (in units of 0.625 ms. This value corresponds to 187.5 ms). */
 #define APP_ADV_TIMEOUT_IN_SECONDS      0                                           /**< The advertising timeout in units of seconds. */
 
@@ -285,13 +288,19 @@ static void services_init(void)
   memset(&dis_init, 0, sizeof(ble_dis_init_t));
 
   dis_init.manufact_name_str.length = strlen(MANUFACTURER_NAME);
-  dis_init.manufact_name_str.p_str = (uint8_t *)MANUFACTURER_NAME;
+  dis_init.manufact_name_str.p_str  = (uint8_t *)MANUFACTURER_NAME;
 
-  dis_init.sw_rev_str.length = strlen(NEUROON_OPEN_VERSION);
-  dis_init.sw_rev_str.p_str = (uint8_t *)NEUROON_OPEN_VERSION;
+  dis_init.sw_rev_str.length        = strlen(NEUROON_OPEN_VERSION);
+  dis_init.sw_rev_str.p_str         = (uint8_t *)NEUROON_OPEN_VERSION;
 
-  dis_init.serial_num_str.length = strlen((char*)m_serial_buf);
-  dis_init.serial_num_str.p_str = m_serial_buf;
+  dis_init.serial_num_str.length    = strlen((char*)m_serial_buf);
+  dis_init.serial_num_str.p_str     = m_serial_buf;
+
+  dis_init.hw_rev_str.length        = strlen(DEFAULT_HARDWARE_VERSION);
+  dis_init.hw_rev_str.p_str         = (uint8_t *)DEFAULT_HARDWARE_VERSION;
+
+  dis_init.fw_rev_str.length        = strlen(DEFAULT_DFU_VERSION);
+  dis_init.fw_rev_str.p_str         = (uint8_t *)DEFAULT_DFU_VERSION;
   /*dis_init.dis_attr_md*/
 
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&dis_init.dis_attr_md.read_perm);
