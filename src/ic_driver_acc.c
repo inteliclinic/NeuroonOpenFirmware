@@ -17,9 +17,9 @@
 #include "ic_driver_button.h"
 
 /*************************************************************/
-ic_return_val_e ic_acc_init(void(*fp)(acc_data_s))
+ic_return_val_e ic_acc_init(void)//void(*fp)(acc_data_s))
 {
-  if (ic_lis3dh_init(fp) == IC_SUCCESS)
+  if (ic_lis3dh_init(NULL) == IC_SUCCESS)
   {
     ic_lis3dh_set_g_range(LIS3DH_RATE_G_RANGE_4g);
     ic_lis3dh_set_power_mode(LIS3DH_RATE_25Hz);

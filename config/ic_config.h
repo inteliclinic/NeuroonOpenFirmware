@@ -68,8 +68,6 @@
 
 #define IC_BUTTON_PWR_BUTTON_PIN    12
 #define IC_BUTTON_USB_CONNECT_PIN   11
-#define IC_ACC_EXTI_PIN      17
-#define IC_AFE_EXTI_PIN      0
 
 /** @} */
 
@@ -136,6 +134,22 @@
  */
 
 #define IC_ADS_TICK_PERIOD 8
+
+/** @} */
+
+/*
+ *
+ * STREAM1 (ACC, AFE, THERMOMETER)
+ *
+ */
+/** @defgroup IC_STREAM1
+ *  @{
+ */
+
+#define IC_ACC_EXTI_PIN       17
+#define IC_AFE_EXTI_PIN       0
+
+#define IC_STREAM1_TICK_PERIOD    64
 
 /** @} */
 

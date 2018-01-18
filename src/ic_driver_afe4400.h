@@ -68,7 +68,7 @@ ic_return_val_e ic_afe_deinit(void);
  *
  * @endcode
  */
-ic_return_val_e ic_afe_get_values(ic_afe_event_cb_done cb);
+ic_return_val_e ic_afe_get_values(ic_afe_event_cb_done cb, bool force);
 
 /**
  *  @}

@@ -16,11 +16,9 @@
 /**
  * @brief Initialize accelerometer module
  *
- * @param fp - function pointer
- *
  * @return IC_SUCCESS when everything goes okay
  */
-ic_return_val_e ic_acc_init(void(*fp)(acc_data_s));
+ic_return_val_e ic_acc_init(void);
 
 /**
  * @brief Deinitialize accelerometer module
