@@ -114,6 +114,12 @@ static TaskHandle_t m_init_task;
 static TaskHandle_t m_cleanup_task;
 static void (*m_welcome)(void);
 
+enum shutdown_source_e{
+  IC_PWR_DOWN_SRC,
+  IC_USB_PLUG_SRC,
+  IC_USB_UNPLUG_SRC
+}m_shutdown_source;
+
 /**@brief Callback function for asserts in the SoftDevice.
  *
  * @details This function will be called in case of an assert in the SoftDevice.
@@ -191,64 +197,6 @@ static void power_up_all_systems(void){
   nrf_gpio_pin_set(IC_LTC_POWER_PIN);
 }
 
-/*ALLOCK_SEMAPHORE(m_fade_lock);*/
-
-/*static void m_fade_callback(void){*/
-  /*NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);*/
-  /*GIVE_SEMAPHORE(m_fade_lock);*/
-/*}*/
-
-/*static void m_reinit(void){*/
-  /*vTaskResume(m_init_task);*/
-  /*ic_bluetooth_enable();*/
-/*}*/
-
-
-/*
- *static void m_deinit(void){
- *  if (CHECK_INIT_SEMAPHORE(m_fade_lock))
- *    INIT_SEMAPHORE_BINARY(m_fade_lock);
- *
- *  __auto_type _ret_val = pdFAIL;
- *
- *  TAKE_SEMAPHORE(m_fade_lock, 0, _ret_val);
- *  ic_btn_pwr_long_press_handle_init(m_reinit);
- *  ic_ads_service_deinit();
- *  ic_bluetooth_disable();
- *
- *
- *  ic_actuator_init();
- *
- *  ic_actuator_set(LEFT_GREEN_LED, 63, NULL);
- *
- *  TAKE_SEMAPHORE(m_fade_lock, pdMS_TO_TICKS(4000), _ret_val);
- *  GIVE_SEMAPHORE(m_fade_lock);
- *  ic_ez_ltc_module_deinit();
- *  power_down_all_systems();
- *  [>NVIC_DisableIRQ(RTC1_IRQn);<]
- *  [>NRF_POWER->SYSTEMOFF = 1;<]
- *}
- *
- */
-
-
-  /*UNUSED_PARAMETER(arg);*/
-  /*int8_t val = 0;*/
-  /*for(;;){*/
-
-    /*ic_actuator_set(ACTUATOR_LEFT_RED_LED, val&0x3F, NULL);*/
-    /*ic_actuator_set(ACTUATOR_LEFT_GREEN_LED, val&0x3F, NULL);*/
-    /*ic_actuator_set(ACTUATOR_LEFT_BLUE_LED, (val&0x3F)>>3, NULL);*/
-
-    /*ic_actuator_set(ACTUATOR_RIGHT_RED_LED, val&0x3F, NULL);*/
-    /*ic_actuator_set(ACTUATOR_RIGHT_GREEN_LED, val&0x3F, NULL);*/
-    /*ic_actuator_set(ACTUATOR_RIGHT_BLUE_LED, (val&0x3F)>>3, NULL);*/
-
-    /*val++;*/
-    /*vTaskDelay(16);*/
-  /*}*/
-/*}*/
-
 #define WELCOME_PERIOD pdMS_TO_TICKS(500)
 #define PERIOD pdMS_TO_TICKS(2000)
 
@@ -271,6 +219,18 @@ static void on_disconnect(void){
 
   ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, PERIOD, 0, 63);
   ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 63);
+}
+
+static void on_charging(void){
+  ic_actuator_set_off_func(IC_LEFT_RED_LED, 0, 0, 63);
+  ic_actuator_set_off_func(IC_RIGHT_RED_LED, 0, 0, 63);
+  ic_actuator_set_off_func(IC_LEFT_GREEN_LED, 0, 0, 30);
+  ic_actuator_set_off_func(IC_RIGHT_GREEN_LED, 0, 0, 30);
+  ic_actuator_set_off_func(IC_VIBRATOR, 0, 0, 0);
+  ic_actuator_set_off_func(IC_POWER_LEDS, 0, 0, 0);
+
+  ic_actuator_set_triangle_func(IC_LEFT_RED_LED, PERIOD<<1, 0, 50);
+  /*ic_actuator_set_triangle_func(IC_RIGHT_RED_LED, PERIOD<<1, 0, 50);*/
 }
 
  void welcome(void){
@@ -335,27 +295,46 @@ void bye_bye(void){
 
 static void m_deep_sleep(void){
   NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);
+  m_shutdown_source = IC_PWR_DOWN_SRC;
+  RESUME_TASK(m_cleanup_task);
+}
+
+static void on_plug(){
+  m_shutdown_source = IC_USB_PLUG_SRC;
+  RESUME_TASK(m_cleanup_task);
+}
+
+static void on_unplug(){
+  m_shutdown_source = IC_USB_UNPLUG_SRC;
   RESUME_TASK(m_cleanup_task);
 }
 
 static void cleanup_task (void *arg){
   NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);
 
-  sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
+  if(*(enum shutdown_source_e *)arg == IC_PWR_DOWN_SRC ||
+      *(enum shutdown_source_e *)arg == IC_USB_PLUG_SRC){
+    sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
 
-  ic_bluetooth_disable();
-  ic_service_stream1_deinit();
-  ic_ads_service_deinit();
+    ic_bluetooth_disable();
+    ic_service_stream1_deinit();
+    ic_ads_service_deinit();
 
-  bye_bye();
+    bye_bye();
 
 
+  }else{
+
+    ic_actuator_set_triangle_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  }
   vTaskDelay(1024);
 
 
   power_down_all_systems();
-
-  NRF_POWER->SYSTEMOFF = 1;
+  if(*(enum shutdown_source_e *)arg == IC_USB_PLUG_SRC)
+    NVIC_SystemReset();
+  else
+    NRF_POWER->SYSTEMOFF = 1;
 }
 
 TaskHandle_t m_stream2_handle = NULL;
@@ -392,6 +371,16 @@ static void init_task (void *arg){
   power_up_all_systems();
 
   ic_neuroon_exti_init();
+  ic_ltc_service_init();
+
+  if(!ic_button_pressed(IC_BUTTON_USB_CONNECT_PIN)){
+    NRF_LOG_INFO("----====USB CONNECTED====----\n");
+    ic_btn_usb_unplug_handle_init(on_unplug);
+    on_charging();
+    vTaskDelete(NULL);
+    taskYIELD();
+  }
+
   if(m_welcome != showoff)
     vTaskDelay(pdMS_TO_TICKS(1500));
 
@@ -400,11 +389,11 @@ static void init_task (void *arg){
     NRF_POWER->SYSTEMOFF = 1;
   }
 
-  ic_ltc_service_init();
 
   m_welcome();
   ic_neuroon_exti_init();
   ic_btn_pwr_long_press_handle_init(m_deep_sleep);
+  ic_btn_usb_plug_handle_init(on_plug);
 
   ic_ads_service_init();
   ic_service_stream1_init();
@@ -450,7 +439,7 @@ int main(void)
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
 
-    if(pdPASS != xTaskCreate(cleanup_task, "INIT", 192, NULL, 4, &m_cleanup_task)){
+    if(pdPASS != xTaskCreate(cleanup_task, "INIT", 192, (void *)&m_shutdown_source, 4, &m_cleanup_task)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
     vTaskSuspend(m_cleanup_task);
