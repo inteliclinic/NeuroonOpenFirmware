@@ -251,7 +251,6 @@ static volatile bool m_semaphore = true;
 	/*	configure SPI REGISTER to handle the SPI interrupt	*/
 SPI_REGISTER(afe_spi_write);
 
-//static uint8_t m_input_buffer[sizeof(afe_send_s)];
 static uint8_t m_output_buffer[128];
 static uint8_t m_input_buffer[128] = {0};
 
@@ -264,7 +263,6 @@ static uint16_t m_timing_data[29] =
   4, 1999, 2004, 3999, 4004, 5999, 6004, 7999, 0, 3, 2000, 2003, 4000,
   4003,	6000, 6003, 7999
 };
-//static afe_send_s *m_data_to_send = (afe_send_s*)m_input_buffer;
 /**********************************************************************************************************/
 /**
  * @brief SPI transaction callback
