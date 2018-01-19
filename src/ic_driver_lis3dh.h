@@ -229,18 +229,30 @@ ic_return_val_e ic_lis3dh_uninit (void);
 ic_return_val_e ic_lis3dh_read_data(void(*fp)(acc_data_s data), bool force);
 
 /**
+ * @brief Set resolution for LIS3DH module
+ *
+ * @param resolution
+ *
+ *    LIS3DH_RES_8BIT
+ *    LIS3DH_RES_10BIT
+ *    LIS3DH_RES_12BIT
+ */
+
+ic_return_val_e ic_lis3dh_set_resolution(acc_resolution_e resolution);
+
+/**
  * @brief Set power mode in lis3dh module
  *
  * @param data_rate
  *
- *	LIS3DH_RATE_1Hz 		= 0x01,
- *  LIS3DH_RATE_10Hz 		= 0x02,
- *	LIS3DH_RATE_25Hz 		= 0x03,
- *	LIS3DH_RATE_50Hz 		= 0x04,
- *	LIS3DH_RATE_100Hz 	= 0x05,
- *	LIS3DH_RATE_200Hz 	= 0x06,
- *	LIS3DH_RATE_400Hz 	= 0x07,
- *	LIS3DH_RATE_LP 			= 0x08,
+ *	  LIS3DH_RATE_1Hz 		= 0x01,
+ *    LIS3DH_RATE_10Hz 		= 0x02,
+ *	  LIS3DH_RATE_25Hz 		= 0x03,
+ *	  LIS3DH_RATE_50Hz 		= 0x04,
+ *	  LIS3DH_RATE_100Hz 	= 0x05,
+ *	  LIS3DH_RATE_200Hz 	= 0x06,
+ *	  LIS3DH_RATE_400Hz 	= 0x07,
+ *	  LIS3DH_RATE_LP 			= 0x08,
  *
  * @return
  */

@@ -17,15 +17,28 @@
 #include "ic_driver_button.h"
 
 /*************************************************************/
+/**
+ * @brief Initialization LIS3DH module
+ *
+ * @return IC_SUCCESS when everything is OK
+ */
 ic_return_val_e ic_acc_init(void)//void(*fp)(acc_data_s))
 {
   if (ic_lis3dh_init(NULL) == IC_SUCCESS)
   {
-    ic_lis3dh_set_g_range(LIS3DH_RATE_G_RANGE_4g);
-    ic_lis3dh_set_power_mode(LIS3DH_RATE_25Hz);
+      /*  set resolution to 12 bit  */
+    if (ic_lis3dh_set_resolution(LIS3DH_RES_12BIT) != IC_SUCCESS)
+      return IC_ERROR;
+      /*  set g range to 4g  */
+    if (ic_lis3dh_set_g_range(LIS3DH_RATE_G_RANGE_4g) != IC_SUCCESS)
+      return IC_ERROR;
+      /*  set data rate on 25Hz  */
+    if (ic_lis3dh_set_power_mode(LIS3DH_RATE_25Hz) != IC_SUCCESS)
+      return IC_ERROR;
+
     return IC_SUCCESS;
   }
-  return IC_ERROR;
+  return IC_NOT_INIALIZED;
 }
 /*************************************************************/
 ic_return_val_e ic_acc_deinit()
@@ -38,7 +51,10 @@ ic_return_val_e ic_acc_deinit()
 /*************************************************************/
 ic_return_val_e ic_acc_get_values(void(*fp)(acc_data_s), bool force)
 {
-  return ic_lis3dh_read_data(fp, force) != IC_SUCCESS;
+  if (ic_lis3dh_read_data(fp, force) != IC_SUCCESS)
+    return IC_ERROR;
+
+  return IC_SUCCESS;
 }
 /*************************************************************/
 ic_return_val_e ic_acc_set_data_rate(acc_power_mode_e data_rate)
