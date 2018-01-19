@@ -178,6 +178,19 @@
 
 /*
  *
+ * BAS
+ *
+ */
+/** @defgroup IC_BAS
+ *  @{
+ */
+
+#define IC_BAS_TICK_PERIOD  pdMS_TO_TICKS(60000)
+
+/** @} */
+
+/*
+ *
  * BQ
  *
  */
