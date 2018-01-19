@@ -43,6 +43,7 @@ SRC_FILES += \
   $(PROJ_DIR)/main.c \
   $(PROJ_DIR)/src/ic_bluetooth.c \
   $(PROJ_DIR)/src/ic_ble_service.c \
+  $(PROJ_DIR)/src/ic_service_bas.c \
   $(PROJ_DIR)/src/ic_command_task.c \
   $(PROJ_DIR)/src/nrf_dfu_flash_buttonless.c \
   $(PROJ_DIR)/src/ic_driver_uart.c \
@@ -113,6 +114,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/ble/ble_services/ble_cts_c/ble_cts_c.c \
   $(SDK_ROOT)/components/ble/ble_db_discovery/ble_db_discovery.c \
   $(SDK_ROOT)/components/ble/ble_services/ble_dfu/ble_dfu.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_bas/ble_bas.c \
   $(SDK_ROOT)/components/libraries/bootloader/dfu/nrf_dfu_settings.c \
   #$(SDK_ROOT)/components/boards/boards.c \
   #$(SDK_ROOT)/components/libraries/bsp/bsp.c \
