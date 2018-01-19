@@ -155,6 +155,7 @@ ic_return_val_e ic_ads_service_init(void){
 }
 
 ic_return_val_e ic_ads_service_deinit(void){
+  if(m_module_initialized == false) return IC_NOT_INIALIZED;
   ic_ads_deinit();
 
   m_module_initialized = false;

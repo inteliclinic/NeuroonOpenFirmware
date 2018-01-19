@@ -152,6 +152,7 @@ ic_return_val_e ic_service_stream1_init(void){
 }
 
 ic_return_val_e ic_service_stream1_deinit(void){
+  if(m_module_initialized == false) return IC_NOT_INIALIZED;
   if (ic_acc_deinit() != IC_SUCCESS)
     return IC_ERROR;
 

@@ -314,6 +314,7 @@ static void cleanup_task (void *arg){
 
   if(*(enum shutdown_source_e *)arg == IC_PWR_DOWN_SRC ||
       *(enum shutdown_source_e *)arg == IC_USB_PLUG_SRC){
+
     sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
 
     ic_bluetooth_disable();
@@ -322,15 +323,13 @@ static void cleanup_task (void *arg){
 
     bye_bye();
 
-
   }else{
-
     ic_actuator_set_triangle_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
   }
   vTaskDelay(512);
 
-
   power_down_all_systems();
+
   if(*(enum shutdown_source_e *)arg == IC_USB_PLUG_SRC)
     NVIC_SystemReset();
   else
@@ -382,18 +381,16 @@ static void init_task (void *arg){
   }
 
   if(m_welcome != showoff)
-    vTaskDelay(pdMS_TO_TICKS(1500));
+    vTaskDelay(IC_BUTTON_LONG_PRESS_OFFSET);
 
   if(!ic_button_pressed(IC_BUTTON_PWR_BUTTON_PIN) && m_welcome == welcome){
     power_down_all_systems();
     NRF_POWER->SYSTEMOFF = 1;
   }
 
-
-  m_welcome();
-  ic_neuroon_exti_init();
-  ic_btn_pwr_long_press_handle_init(m_deep_sleep);
   ic_btn_usb_plug_handle_init(on_plug);
+  m_welcome();
+  ic_btn_pwr_long_press_handle_init(m_deep_sleep);
 
   ic_ads_service_init();
   ic_service_stream1_init();
@@ -435,7 +432,7 @@ int main(void)
     APP_ERROR_CHECK(err_code);
 
 
-    if(pdPASS != xTaskCreate(init_task, "INIT", 384, NULL, 4, &m_init_task)){
+    if(pdPASS != xTaskCreate(init_task, "INIT", 384, NULL, 3, &m_init_task)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
 
