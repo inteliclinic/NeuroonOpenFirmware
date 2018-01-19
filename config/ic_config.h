@@ -163,6 +163,16 @@
 #define IC_AFE_LED_IR   0x3F
 #define IC_AFE_LED_RED  0x05
 
+/** @} */
+/*
+ *
+ * ACC
+ *
+ */
+/** @defgroup IC_ACC
+ *  @{
+ */
+#define IC_ACC_RESOLUTION
 
 /** @} */
 
