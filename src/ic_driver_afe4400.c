@@ -342,7 +342,14 @@ static ic_return_val_e afe_enable_read(void)
 
     _data_to_send->reg = AFE4400_CONTROL0;
     convert(1, _data_to_send->data);  // convert data for sending via spi
-    __auto_type _ret_val = SPI_SEND_DATA(afe_spi_write, _data_to_send, m_output_buffer, sizeof(afe_send_pack_s), callback_spi, NULL);
+    __auto_type _ret_val =
+        SPI_SEND_DATA(
+            afe_spi_write,
+            _data_to_send,
+            m_output_buffer,
+            sizeof(afe_send_pack_s),
+            callback_spi,
+            NULL);
     if (_ret_val != IC_SUCCESS)
       NRF_LOG_ERROR("ERROR SPI\r\n");
     while(m_semaphore == false);
@@ -365,7 +372,14 @@ static ic_return_val_e afe_enable_write(void)
 
     _data_to_send->reg = AFE4400_CONTROL0;
     memset(_data_to_send->data, 0, 3);	// convert data for sending via spi
-    __auto_type _ret_val = SPI_SEND_DATA(afe_spi_write, m_input_buffer, m_output_buffer, sizeof(afe_send_pack_s), callback_spi, NULL);
+    __auto_type _ret_val =
+        SPI_SEND_DATA(
+            afe_spi_write,
+            m_input_buffer,
+            m_output_buffer,
+            sizeof(afe_send_pack_s),
+            callback_spi,
+            NULL);
     if (_ret_val != IC_SUCCESS)
       NRF_LOG_ERROR("ERROR SPI\r\n");
     while(m_semaphore == false);
@@ -406,7 +420,14 @@ static ic_return_val_e afe_write_reg(uint8_t regAddr, uint32_t regVal)
     afe_send_pack_s *_data_to_send = (afe_send_pack_s*)m_input_buffer;
     _data_to_send->reg = regAddr;
     convert(regVal, _data_to_send->data);	// convert data for sending via spi
-    __auto_type _ret_val = SPI_SEND_DATA(afe_spi_write, m_input_buffer, m_output_buffer, sizeof(afe_send_pack_s), callback_spi, NULL);
+    __auto_type _ret_val =
+        SPI_SEND_DATA(
+            afe_spi_write,
+            m_input_buffer,
+            m_output_buffer,
+            sizeof(afe_send_pack_s),
+            callback_spi,
+            NULL);
     if (_ret_val != IC_SUCCESS)
       NRF_LOG_ERROR("ERROR SPI\r\n");
     while(m_semaphore == false);
@@ -610,28 +631,31 @@ ic_return_val_e ic_afe_get_values(ic_afe_event_cb_done cb, bool force){
  */
 static void afe_begin_measure(void)
 {
-#ifdef AFE_NRF_DEBUG
-  uint32_t temp_data = 0;
-#endif
-  afe_write_bit_reg(AFE4400_CONTROL2, TXBRG_MODE_BIT, HBRIDGE_MODE);	/*	configure as an H-bridge	*/
-  afe_write_bit_reg(AFE4400_CONTROL2, 17, 1);				/*	must be 1	 */
-  afe_write_bit_reg(AFE4400_CONTROL2, 8, 1);				/*	must be 1	 */
-#ifdef AFE_NRF_DEBUG
-  afe_read_reg(AFE4400_CONTROL2, &temp_data);
-  NRF_LOG_INFO("CONTROL2: %lu\r\n", temp_data);
-#endif
-  afe_write_bit_reg(AFE4400_LEDCNTRL, 16, 1);				/*	must be 1  */
-  afe_write_bit_reg(AFE4400_LEDCNTRL, LEDCURR_OFF_BIT, LED_CURRENT_ON);	/*	turn on led current source	*/
-#ifdef AFE_NRF_DEBUG
-  afe_read_reg(AFE4400_LEDCNTRL, &temp_data);
-  NRF_LOG_INFO("LEDCNTRL: %lu\r\n", temp_data);
-#endif
-  afe_write_bit_reg(AFE4400_CONTROL1, 1, 1);				/*	must be 1	 */
-  afe_write_bit_reg(AFE4400_CONTROL1, TIMER_ENABLE, 1);			/*	enable timer module  */
-#ifdef AFE_NRF_DEBUG
-  afe_read_reg(AFE4400_CONTROL1, &temp_data);
-  NRF_LOG_INFO("CONTROL1: %lu\r\n", temp_data);
-#endif
+  /**
+   * Configure CONTROL2 register
+   */
+    /*  configure as an H-bridge  */
+  afe_write_bit_reg(AFE4400_CONTROL2, TXBRG_MODE_BIT, HBRIDGE_MODE);
+    /*  must be 1  */
+  afe_write_bit_reg(AFE4400_CONTROL2, 17, 1);
+    /*  must be 1  */
+  afe_write_bit_reg(AFE4400_CONTROL2, 8, 1);
+
+  /**
+   * Configure LEDCNTRL register
+   */
+    /*  must be 1  */
+  afe_write_bit_reg(AFE4400_LEDCNTRL, 16, 1);
+    /*  turn on led current source  */
+  afe_write_bit_reg(AFE4400_LEDCNTRL, LEDCURR_OFF_BIT, LED_CURRENT_ON);
+
+  /**
+   * Configure CONTROL1
+   */
+    /*  must be 1  */
+  afe_write_bit_reg(AFE4400_CONTROL1, 1, 1);
+    /*  enable timer module  */
+  afe_write_bit_reg(AFE4400_CONTROL1, TIMER_ENABLE, 1);
 }
 
 /**
@@ -643,19 +667,10 @@ static void afe_begin_measure(void)
  */
 static void afe_end_measure(void)
 {
-#ifdef AFE_NRF_DEBUG
-  uint32_t temp_data = 0;
-#endif
-  afe_write_bit_reg(AFE4400_LEDCNTRL, LEDCURR_OFF_BIT, LED_CURRENT_OFF);	/*	turn off led current source	*/
-#ifdef AFE_NRF_DEBUG
-  afe_read_reg(AFE4400_LEDCNTRL, &temp_data);
-  NRF_LOG_INFO("LEDCNTRL: %lu\r\n", temp_data);
-#endif
-  afe_write_bit_reg(AFE4400_CONTROL1, TIMER_ENABLE, 0);			/*	disable timer module  */
-#ifdef AFE_NRF_DEBUG
-  afe_read_reg(AFE4400_CONTROL1, &temp_data);
-  NRF_LOG_INFO("CONTROL1: %lu\r\n", temp_data);
-#endif
+    /*  turn off led current source */
+  afe_write_bit_reg(AFE4400_LEDCNTRL, LEDCURR_OFF_BIT, LED_CURRENT_OFF);
+    /*  disable timer module  */
+  afe_write_bit_reg(AFE4400_CONTROL1, TIMER_ENABLE, 0);
 }
 
 /**
@@ -732,7 +747,14 @@ void afe_set_timing_fast(uint16_t *timing_data, size_t data_len)
       convert(timing_data[i], _data_to_send->data);
       ++(_data_to_send);
     }
-    __auto_type _ret_val = SPI_SEND_DATA(afe_spi_write, m_input_buffer, m_output_buffer, data_len * sizeof(afe_send_pack_s), callback_spi, NULL);
+    __auto_type _ret_val =
+        SPI_SEND_DATA(
+            afe_spi_write,
+            m_input_buffer,
+            m_output_buffer,
+            data_len * sizeof(afe_send_pack_s),
+            callback_spi,
+            NULL);
     if (_ret_val != IC_SUCCESS)
       NRF_LOG_ERROR("SPI ERROR\r\n");
   }
@@ -775,7 +797,7 @@ static void afe_set_led_current(uint8_t led1, uint8_t led2){
 
   afe_write_reg(AFE4400_LEDCNTRL, _temp_data.val);
 }
-
+/**********************************************************************************************************/
 /**
  * @brief Software device reset
  */
@@ -783,35 +805,35 @@ static void afe_reset(void)
 {
   afe_write_bit_reg(AFE4400_CONTROL0, 3, 1);
 }
-
+/**********************************************************************************************************/
 static void afe_conf(void)
 {
   /*NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);*/
 
-  /*  check diagnostic register to be sure, that everything is okay  */
+    /*  check diagnostic register to be sure, that everything is okay  */
   if (afe_check_diagnostic() != 0)
     NRF_LOG_ERROR("Error has occurred, please check it\r\n");
-  /***
-   * afe_set_timing_fast
-   *
-   * Using this function, you need to pass pointer to data (or just an array)
-   * with specific timing values you want to write in timing registers.
-   * !!!
-   * 		 The most important thing is to write timing values in correct sequence (given in datasheet).
-   * 		 If you give timing values in correct sequence, you do not need to worry about register addresses
-   * !!!
-   */
+    /***
+     * afe_set_timing_fast
+     *
+     * Using this function, you need to pass pointer to data (or just an array)
+     * with specific timing values you want to write in timing registers.
+     * !!!
+     * 		 The most important thing is to write timing values in correct sequence (given in datasheet).
+     * 		 If you give timing values in correct sequence, you do not need to worry about register addresses
+     * !!!
+     */
   afe_set_timing_fast(m_timing_data, sizeof(m_timing_data) / sizeof(uint16_t));
     /*	set led current on led1 and led2 (0 - 255)	*/
-  afe_set_led_current(0x05, 0x3F);
-  /***	set gain
-   *
-   *	amb_dac - value of cancellation current (0 - 10uA)
-   * 	stg2gain - stage 2 gain (0dB - 12dB)
-   *	cfLED - program capacity for LEDs (5pF - 150pF)
-   *	rfLED - program resistance for LEDs (10kOhm - 1MOhm)
-   *
-   ***/
+  afe_set_led_current(IC_AFE_LED_RED, IC_AFE_LED_IR);
+    /***	set gain
+     *
+     *	amb_dac - value of cancellation current (0 - 10uA)
+     * 	stg2gain - stage 2 gain (0dB - 12dB)
+     *	cfLED - program capacity for LEDs (5pF - 150pF)
+     *	rfLED - program resistance for LEDs (10kOhm - 1MOhm)
+     *
+     ***/
   s_tia_amb_gain _tia_amb_value =
   {
     .amb_dac  = AMB_DAC_1uA,
@@ -823,33 +845,30 @@ static void afe_conf(void)
     /*	call begin measure to turn leds and timers on  */
   afe_begin_measure();
 }
-
+/**********************************************************************************************************/
 ic_return_val_e ic_afe_init(void)
 {
     /*	Initialize SPI by giving name of the handler and CS pin  */
   SPI_INIT(afe_spi_write, AFE4400_CS_PIN);
-//  afe_disable_read();
+    /**
+     * you can do afe4400's software
+     * reset by uncommenting  function below
+     */
   afe_reset();
+    /*  configure afe4400 to start getting data  */
   afe_conf();
-    /*	enable reading from afe4400  */
-//  afe_enable_read();
   return IC_SUCCESS;
 }
-
+/**********************************************************************************************************/
 ic_return_val_e ic_afe_deinit(void)
 {
     /*  for sure, you can set led current on leds to 0  */
   afe_set_led_current(0, 0);
+    /*  end afe measuring  */
   afe_end_measure();
     /*  uninit spi interface  */
   SPI_UNINIT(afe_spi_write);
 
   return IC_SUCCESS;
 }
-
-//void afe_self_test()
-//{
-//
-//}
-
 /**********************************************************************************************************/

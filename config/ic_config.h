@@ -152,6 +152,19 @@
 #define IC_STREAM1_TICK_PERIOD    32
 
 /** @} */
+/*
+ *
+ * AFE
+ *
+ */
+/** @defgroup IC_AFE
+ *  @{
+ */
+#define IC_AFE_LED_IR   0x3F
+#define IC_AFE_LED_RED  0x05
+
+
+/** @} */
 
 /*
  *
