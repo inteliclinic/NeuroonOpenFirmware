@@ -244,6 +244,10 @@ typedef struct __attribute__((packed))
  * @}
  */
 
+/**********************************************************************************************************/
+/**********************************************************************************************************/
+/**********************************************************************************************************/
+
   /*  semaphore for blocking and releasing spi transfer  */
 static volatile bool m_semaphore = true;
 
@@ -307,7 +311,8 @@ static void spi_led_callback(void *p_context)
       _led_val[i] |= m_output_buffer[i * 4 + 2] << 8;
       _led_val[i] |= m_output_buffer[i * 4 + 1] << 16;
         /*  two MSB can be ignored, but we're using 24-bit word format  */
-      /*_led_val[i] &= ~(0xC00000);*/
+      if (_led_val[i] & 0x200000)
+        _led_val[i] |= 0xFFC00000;
     }
     ((ic_afe_event_cb_done)p_context)(*(ic_afe_val_s*)_led_val);
   }
@@ -357,7 +362,7 @@ static ic_return_val_e afe_enable_read(void)
   else
     return IC_BUSY;
 }
-
+/**********************************************************************************************************/
 /**
  * @brief Disable read option (enable write option) in AFE4400
  */
@@ -387,7 +392,7 @@ static ic_return_val_e afe_enable_write(void)
   else
     return IC_BUSY;
 }
-
+/**********************************************************************************************************/
 /**
  * @brief Write data to afe4400's specific register
  *
@@ -440,7 +445,7 @@ static ic_return_val_e afe_write_reg(uint8_t regAddr, uint32_t regVal)
     return IC_BUSY;
   }
 }
-
+/**********************************************************************************************************/
 /**
  * @brief Read AFE4400's specific register
  *
@@ -498,7 +503,7 @@ static ic_return_val_e afe_read_reg(uint8_t regAddr, uint32_t *reg_value)
     return IC_BUSY;
   }
 }
-
+/**********************************************************************************************************/
 /**
  * @brief Write single bit to the afe4400's register
  *
@@ -524,11 +529,12 @@ static void afe_write_bit_reg(uint8_t regAddr, uint8_t bit, bool bit_high){
 
   afe_write_reg(regAddr, _temp_data);
 }
-
+/**********************************************************************************************************/
 /**
  * @brief Set gain in TIA_AMB_GAIN
  *
- * Specific ambient light cancellation amplifier gain, cancellation current and filter corner frequency in AFE4400
+ * Specific ambient light cancellation amplifier gain,
+ * cancellation current and filter corner frequency in AFE4400
  *
  * @param tia_amb_value @ref s_tia_amb_gain:
  *  .amb_dac using 	@ref e_amb_dac	- ambient DAC value (0 - 10uA)
@@ -562,7 +568,7 @@ static void afe_set_gain(s_tia_amb_gain *tia_amb_value)
 
   afe_write_reg(AFE4400_TIA_AMB_GAIN, _temp_data);
 }
-
+/**********************************************************************************************************/
 /**
  * @brief Set timing values in specific registers
  *
@@ -584,7 +590,7 @@ static ic_return_val_e afe_set_timing_data(uint8_t regAddr, uint16_t tim_val)
 
   return IC_SUCCESS;
 }
-
+/**********************************************************************************************************/
 /**
  * @brief Check diagnostic register values
  *
@@ -599,7 +605,7 @@ static uint16_t afe_check_diagnostic(void)
 
   return _temp_data & 0x1FFF;
 }
-
+/**********************************************************************************************************/
 ic_return_val_e ic_afe_get_values(ic_afe_event_cb_done cb, bool force){
   UNUSED_PARAMETER(force);
   if (m_semaphore)
@@ -613,14 +619,21 @@ ic_return_val_e ic_afe_get_values(ic_afe_event_cb_done cb, bool force){
       memset(_data_to_send->data, 0, sizeof(_data_to_send->data));
       ++(_data_to_send);
     }
-    __auto_type _ret_val = SPI_SEND_DATA(afe_spi_write, m_input_buffer, m_output_buffer, (SPI_SEND_4BYTES * AFE4400_LED_LEN) + (AFE4400_LED_LEN * 3), spi_led_callback, cb);
+    __auto_type _ret_val =
+        SPI_SEND_DATA(
+            afe_spi_write,
+            m_input_buffer,
+            m_output_buffer,
+            (SPI_SEND_4BYTES * AFE4400_LED_LEN) + (AFE4400_LED_LEN * 3),
+            spi_led_callback,
+            cb);
     if (_ret_val != IC_SUCCESS)
       return IC_ERROR;
   }
 
   return IC_SUCCESS;
 }
-
+/**********************************************************************************************************/
 /**
  * @brief Begin measure
  *
@@ -655,7 +668,7 @@ static void afe_begin_measure(void)
     /*  enable timer module  */
   afe_write_bit_reg(AFE4400_CONTROL1, TIMER_ENABLE, 1);
 }
-
+/**********************************************************************************************************/
 /**
  * @brief End measures
  *
@@ -670,11 +683,12 @@ static void afe_end_measure(void)
     /*  disable timer module  */
   afe_write_bit_reg(AFE4400_CONTROL1, TIMER_ENABLE, 0);
 }
-
+/**********************************************************************************************************/
 /**
  * @brief Set deafult timing values in specific registers
  *
  * Function sets specific timing values given by the device producer in the AFE4400 datasheet
+ *
  */
 void afe_set_default_timing(void)
 {
@@ -709,7 +723,7 @@ void afe_set_default_timing(void)
   afe_set_timing_data(AFE4400_ADCRSTENDCT3, 6003);
   afe_set_timing_data(AFE4400_PRPCOUNT,     7999);
 }
-
+/**********************************************************************************************************/
 /**
  * @brief Set timing values in specific registers faster than afe_set_timing_data function
  *
@@ -759,7 +773,7 @@ void afe_set_timing_fast(uint16_t *timing_data, size_t data_len)
     /*  set read flag  */
   afe_enable_read();
 }
-
+/**********************************************************************************************************/
 /**
  * @brief Set current value on LED1 and LED2
  *
@@ -798,12 +812,19 @@ static void afe_set_led_current(uint8_t led1, uint8_t led2){
 /**********************************************************************************************************/
 /**
  * @brief Software device reset
+ *
  */
 static void afe_reset(void)
 {
   afe_write_bit_reg(AFE4400_CONTROL0, 3, 1);
 }
 /**********************************************************************************************************/
+/**
+ * @brief AFE configuration
+ *
+ * Configure all needed modules for starting afe4400 measures
+ *
+ */
 static void afe_conf(void)
 {
   /*NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);*/
@@ -834,16 +855,21 @@ static void afe_conf(void)
      ***/
   s_tia_amb_gain _tia_amb_value =
   {
-    .amb_dac  = AMB_DAC_1uA,
-    .stg2gain = STG2GAIN_3dB,
+    .amb_dac  = AMB_DAC_0uA,
+    .stg2gain = STG2GAIN_12dB,
     .cfLED    = CF_LED_15plus5pF,
-    .rfLED    = RF_LED_50k
+    .rfLED    = RF_LED_10k
   };
   afe_set_gain(&_tia_amb_value);
     /*	call begin measure to turn leds and timers on  */
   afe_begin_measure();
 }
 /**********************************************************************************************************/
+/**
+ * @brief Initialization AFE4400 module
+ *
+ * @return IC_SUCCESS when everything is OK
+ */
 ic_return_val_e ic_afe_init(void)
 {
     /*	Initialize SPI by giving name of the handler and CS pin  */
@@ -858,6 +884,11 @@ ic_return_val_e ic_afe_init(void)
   return IC_SUCCESS;
 }
 /**********************************************************************************************************/
+/**
+ * @brief Deinitialization AFE4400 module
+ *
+ * @return IC_SUCCESS when everything is OK
+ */
 ic_return_val_e ic_afe_deinit(void)
 {
     /*  for sure, you can set led current on leds to 0  */
