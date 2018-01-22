@@ -321,13 +321,12 @@ static void cleanup_task (void *arg){
 
     bye_bye();
 
-    ic_ltc_service_deinit();
-    vTaskDelay(100);
 
   }else{
     ic_actuator_set_triangle_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
   }
   vTaskDelay(512);
+  ic_ltc_service_deinit();
 
   power_down_all_systems();
 
