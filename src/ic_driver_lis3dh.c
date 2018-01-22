@@ -216,7 +216,6 @@ static void m_config_reg(uint8_t reg, uint8_t reg_val){
           NULL,
           NULL);
   if(_ret_val == IC_SUCCESS){
-    NRF_LOG_INFO("CTRL_REG 0x%X: 0x%X\n",_d[0], _d[1]);
   }
   else{
     NRF_LOG_INFO("CTRL_REG; some error\n");
@@ -244,7 +243,6 @@ void m_reconfigure_reg_bit(uint8_t reg, uint8_t bits, bool set){
   _reg_val_target = set ? _reg_val_current|bits:_reg_val_current&(~bits);
 
   if(_reg_val_target == _reg_val_current){
-    NRF_LOG_INFO("no change in register 0x%X\n", reg);
     return;
   }
   NRF_LOG_INFO("Register 0x%X value: 0x%X. Changing to 0x%X\n",

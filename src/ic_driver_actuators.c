@@ -70,6 +70,11 @@ ic_return_val_e ic_actuator_init(){
   return IC_SUCCESS;
 }
 
+ic_return_val_e ic_actuator_deinit(){
+  ic_ltc_driver_deinit();
+  return IC_SUCCESS;
+}
+
 ic_return_val_e ic_actuator_set(ic_actuator_e device, uint8_t val, void(*fp)(bool)){
   __auto_type _val_tmp = m_device_value[device].val;
   m_device_value[device].val = val&IC_LTC_MAX_VAL;

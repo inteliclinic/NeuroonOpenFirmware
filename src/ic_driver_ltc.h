@@ -13,6 +13,7 @@
 #include "ic_config.h"
 
 ic_return_val_e ic_ltc_driver_init(void);
+ic_return_val_e ic_ltc_driver_deinit(void);
 ic_return_val_e ic_reset_rgb();
 ic_return_val_e ic_set_channel(
     uint8_t channel,

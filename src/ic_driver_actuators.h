@@ -35,6 +35,13 @@ ic_return_val_e ic_actuator_init(void);
 /**
  * @brief 
  *
+ * @return 
+ */
+ic_return_val_e ic_actuator_deinit();
+
+/**
+ * @brief 
+ *
  * @param device
  * @param val
  * @param fp

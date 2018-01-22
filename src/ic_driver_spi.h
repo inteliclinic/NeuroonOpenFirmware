@@ -34,6 +34,8 @@ typedef struct{
 
 ic_return_val_e ic_spi_init(ic_spi_instance_s *instance, uint8_t pin);
 
+ic_return_val_e ic_spi_deinit(ic_spi_instance_s *instance);
+
 ic_return_val_e ic_spi_send(
     ic_spi_instance_s *instance,
     uint8_t *in_buffer,
@@ -71,6 +73,6 @@ bool ic_spi_instance_busy(ic_spi_instance_s *instance);
 
 #define SPI_TRANSACTION_ACTIVE(name) ic_spi_instance_busy(&name##_spi_instance)
 
-#define SPI_UNINIT(name)
+#define SPI_UNINIT(name) ic_spi_deinit(&name##_spi_instance)
 
 #endif /* !IC_DRIVER_SPI_H */
