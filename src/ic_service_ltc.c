@@ -530,3 +530,16 @@ ic_return_val_e ic_ltc_service_init(){
 
   return IC_SUCCESS;
 }
+
+ic_return_val_e ic_ltc_service_deinit(){
+  nrf_gpio_cfg_default(24);
+  ic_actuator_deinit();
+
+  __auto_type _ret_val = pdTRUE;
+  UNUSED_VARIABLE(_ret_val);
+  STOP_TIMER(m_ltc_refresh_timer_handle, 0, _ret_val);
+
+  vTaskSuspend(m_ltc_refresh_task_handle);
+
+  return IC_SUCCESS;
+}

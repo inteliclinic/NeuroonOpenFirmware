@@ -141,8 +141,10 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
 static void power_manage(void)
 {
   /*__auto_type err_code = sd_app_evt_wait();*/
-  __SEV();
-  __WFE();
+  /*
+   *__SEV();
+   *__WFE();
+   */
   __WFE();
   /*APP_ERROR_CHECK(err_code);*/
 }
@@ -178,12 +180,8 @@ static void power_down_all_systems(void){
   /*nrf_gpio_cfg_default(16);*/
   /*nrf_gpio_cfg_default(IC_LTC_POWER_PIN);*/
   nrf_gpio_cfg_default(IC_SPI_FLASH_SS_PIN);
-  nrf_gpio_cfg_default(IC_SPI_MISO_PIN);
-  nrf_gpio_cfg_default(IC_SPI_MOSI_PIN);
-  nrf_gpio_cfg_default(IC_SPI_SCK_PIN);
   nrf_gpio_cfg_default(IC_UART_RX_PIN);
   nrf_gpio_cfg_default(IC_UART_TX_PIN);
-  nrf_gpio_cfg_default(IC_SPI_AFE_SS_PIN);
   nrf_gpio_cfg_default(IC_SPI_AFE_RESET_PIN);
   nrf_gpio_cfg_default(IC_SPI_AFE_PDN_PIN);
 }
@@ -322,6 +320,9 @@ static void cleanup_task (void *arg){
     ic_ads_service_deinit();
 
     bye_bye();
+
+    ic_ltc_service_deinit();
+    vTaskDelay(100);
 
   }else{
     ic_actuator_set_triangle_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);

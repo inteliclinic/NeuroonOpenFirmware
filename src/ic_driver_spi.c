@@ -143,6 +143,24 @@ ic_return_val_e ic_spi_init(ic_spi_instance_s *instance, uint8_t pin){
   return IC_SUCCESS;
 }
 
+ic_return_val_e ic_spi_deinit(ic_spi_instance_s *instance){
+  ASSERT(instance!=NULL);
+
+  nrf_gpio_cfg_default(instance->pin);
+
+  NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);
+
+  if(--m_current_state.spi_instance_cnt == 0){
+    NRF_LOG_INFO("SPI killed\n");
+    nrf_drv_spi_uninit(&m_current_state.nrf_drv_instance);
+    nrf_gpio_cfg_default(IC_SPI_SCK_PIN);
+    nrf_gpio_cfg_default(IC_SPI_MOSI_PIN);
+    nrf_gpio_cfg_default(IC_SPI_MISO_PIN);
+  }
+
+  return IC_SUCCESS;
+}
+
 ic_return_val_e ic_spi_send(
     ic_spi_instance_s *instance,
     uint8_t *in_buffer,
