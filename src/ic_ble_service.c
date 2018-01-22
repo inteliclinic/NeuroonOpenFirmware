@@ -123,7 +123,6 @@ static uint32_t char_add(
 
   /*BLE_UUID_BLE_ASSIGN(_ble_uuid, uuid);*/
   _ble_uuid.type = m_service_desc.uuid_type;
-  NRF_LOG_INFO("_ble_uuid.type = %d\n",_ble_uuid.type);
   _ble_uuid.uuid = uuid;
   memset(&_attr_md, 0, sizeof(_attr_md));
 

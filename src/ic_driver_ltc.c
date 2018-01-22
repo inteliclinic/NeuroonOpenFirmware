@@ -46,6 +46,11 @@ ic_return_val_e ic_ltc_driver_init(void){
   return IC_SUCCESS;
 }
 
+ic_return_val_e ic_ltc_driver_deinit(void){
+  TWI_DEINIT(ltc_twi);
+  return IC_SUCCESS;
+}
+
 ic_return_val_e ic_set_channel(
     uint8_t channel,
     uint8_t val,

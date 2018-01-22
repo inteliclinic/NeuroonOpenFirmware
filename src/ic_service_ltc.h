@@ -167,6 +167,13 @@ ic_return_val_e ic_actuator_set_ramp_func(
  */
 ic_return_val_e ic_ltc_service_init();
 
+/**
+ * @brief 
+ *
+ * @return 
+ */
+ic_return_val_e ic_ltc_service_deinit();
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
