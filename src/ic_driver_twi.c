@@ -261,8 +261,6 @@ ic_return_val_e ic_twi_deinit(ic_twi_instance_s *instance){
 
   ASSERT(instance!=NULL);
 
-  NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);
-
   if (--m_curren_state.twi_instance_cnt == 0){
     NRF_LOG_INFO("TWI killed\n");
     app_twi_uninit(&m_curren_state.nrf_drv_instance);

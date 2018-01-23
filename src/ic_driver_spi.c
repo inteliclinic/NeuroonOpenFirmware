@@ -148,8 +148,6 @@ ic_return_val_e ic_spi_deinit(ic_spi_instance_s *instance){
 
   nrf_gpio_cfg_default(instance->pin);
 
-  NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);
-
   if(--m_current_state.spi_instance_cnt == 0){
     NRF_LOG_INFO("SPI killed\n");
     nrf_drv_spi_uninit(&m_current_state.nrf_drv_instance);
