@@ -52,11 +52,15 @@ SRC_FILES += \
   $(PROJ_DIR)/src/ic_driver_ads.c\
   $(PROJ_DIR)/src/ic_driver_lis3dh.c\
   $(PROJ_DIR)/src/ic_driver_afe4400.c\
+  $(PROJ_DIR)/src/ic_driver_flash.c\
+  $(PROJ_DIR)/src/ic_driver_flash_micron.c\
+  $(PROJ_DIR)/src/ic_flash_filesystem.c\
   $(PROJ_DIR)/src/ic_driver_bq27742.cpp\
   $(PROJ_DIR)/src/ic_driver_acc.c\
   $(PROJ_DIR)/src/ic_service_stream1.c\
   $(PROJ_DIR)/src/ic_service_ads.c\
   $(PROJ_DIR)/src/ic_service_time.c\
+  $(PROJ_DIR)/src/ic_service_flash.c\
   $(PROJ_DIR)/src/ic_easy_ltc_driver.c\
   $(PROJ_DIR)/src/ic_driver_ltc.c\
   $(PROJ_DIR)/src/ic_service_ltc.c\

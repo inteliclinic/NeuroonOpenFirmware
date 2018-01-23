@@ -27,23 +27,8 @@
 #include "ic_flash_filesystem.h"
 
 
-/**
- * If you want to turn on debug mode, so you can watch given commands and receiving value,
- * define FLASH_NRF_DEBUG (uncomment command below)
- */
-//#define FLASH_NRF_DEBUG
-
-              /* global pointer to flash device object */
+  /* static pointer to flash device object */
 static ic_flash_FLASH_DEVICE_OBJECT *m_flash_object;
-              /* global variable holding flash state  */
-struct _FLASH_STATE m_flash_state;
-							/*	CALLBACK DEFINITION	*/
-void callback_spi(void *context)
-{
-  UNUSED_VARIABLE(context);
-	/*NRF_LOG_INFO("SPI callback\r\n");*/
-}
-
 
 /**********************************************************************************************************************************************************/
 FlashReturnType init_flash_driver(ic_flash_FLASH_DEVICE_OBJECT *flash_device_object)
@@ -51,23 +36,16 @@ FlashReturnType init_flash_driver(ic_flash_FLASH_DEVICE_OBJECT *flash_device_obj
   uint32_t _device_ID = 0;
   m_flash_object = flash_device_object;
 
-  __auto_type _ret = EON_FlashReadDeviceIdentification(&_device_ID);
-  						_ret = MICRON_FlashReadDeviceIdentification(&_device_ID);
+  __auto_type _ret = MICRON_FlashReadDeviceIdentification(&_device_ID);
+              /*_ret = EON_FlashReadDeviceIdentification(&_device_ID);*/
 
   if(_ret == Flash_Success)
-  {
     m_flash_object->Desc.FlashID = _device_ID;
-    NRF_LOG_INFO("Device ID: 0x%02lX\r\n", _device_ID);
-    NRF_LOG_FLUSH();
-  }
+
   	/* EN25QH256 */
   if (_device_ID == MEM_TYPE_EN25Q256)
   {
-#ifdef FLASH_NRF_DEBUG
-    NRF_LOG_INFO("Detected EON EN25QH256\r\n");
-#endif
-
-    							/* device shape */
+      /* device shape */
     m_flash_object->Desc.FlashSize               = 0x2000000;
     m_flash_object->Desc.FlashBlockCount         = 0x200;
     m_flash_object->Desc.FlashSectorSize         = 0x10000;
@@ -80,20 +58,9 @@ FlashReturnType init_flash_driver(ic_flash_FLASH_DEVICE_OBJECT *flash_device_obj
     m_flash_object->Desc.FlashPageSize_bit       = 16;
     m_flash_object->Desc.FlashOTPSize            = 0x40;
     m_flash_object->Desc.FlashAddressMask        = 0x00FF;
-
-#ifdef FLASH_NRF_DEBUG
-    NRF_LOG_INFO("Specification of EN25QH256 flash memory...\r\n");
-    NRF_LOG_INFO("Flash size: 0x%07x\r\n",	  m_flash_object->Desc.FlashSize);
-    NRF_LOG_INFO("Flash blocks number: %d\r\n",	  m_flash_object->Desc.FlashBlockCount);
-    NRF_LOG_INFO("Flash sectors number: %d\r\n",  m_flash_object->Desc.FlashSubSectorCount);
-    NRF_LOG_INFO("Flash pages number: %d\r\n",	  m_flash_object->Desc.FlashPageCount);
-    NRF_LOG_INFO("Flash page size: %d bytes\r\n", m_flash_object->Desc.FlashPageSize);
-#endif
-
-    					/*	3-addr-byte is default startup address mode	*/
+    	/*	3-addr-byte is default startup address mode	*/
     m_flash_object->Desc.NumAddrByte = FLASH_3_BYTE_ADDR_MODE;
-
-    /* device operation for EN25QH256 flash*/
+      /* device operation for EN25QH256 flash*/
     m_flash_object->GenOp.FlashReadDeviceIdentification  = EON_FlashReadDeviceIdentification;
     m_flash_object->GenOp.FlashReadDeviceID              = EON_FlashReadDeviceID;
     m_flash_object->GenOp.FlashReadStatusRegister        = EON_FlashReadStatusRegister;
@@ -119,11 +86,7 @@ FlashReturnType init_flash_driver(ic_flash_FLASH_DEVICE_OBJECT *flash_device_obj
   } else if (_device_ID == MEM_TYPE_N25Q256A)
   						/* N25Q256A	MICRON */
 	{
-#ifdef FLASH_NRF_DEBUG
-		NRF_LOG_INFO("Detected MICRON N25Q256A\r\n");
-#endif
-
-		/* device shape */
+		  /* device shape */
 		m_flash_object->Desc.FlashSize               = 0x2000000;
 		m_flash_object->Desc.FlashBlockCount         = 0x200;
 		m_flash_object->Desc.FlashSectorSize         = 0x10000;
@@ -136,22 +99,11 @@ FlashReturnType init_flash_driver(ic_flash_FLASH_DEVICE_OBJECT *flash_device_obj
 		m_flash_object->Desc.FlashPageSize_bit       = 16;
 		m_flash_object->Desc.FlashOTPSize            = 0x40;
 		m_flash_object->Desc.FlashAddressMask        = 0x00FF;
-
-#ifdef FLASH_NRF_DEBUG
-		NRF_LOG_INFO("Specification of N25Q256 flash memory...\r\n");
-		NRF_LOG_INFO("Flash size: 0x%07x\r\n",		fdo->Desc.FlashSize);
-		NRF_LOG_INFO("Flash blocks number: %d\r\n", 	fdo->Desc.FlashBlockCount);
-		NRF_LOG_INFO("Flash sectors number: %d\r\n", 	fdo->Desc.FlashSubSectorCount);
-		NRF_LOG_INFO("Flash pages number: %d\r\n",	fdo->Desc.FlashPageCount);
-		NRF_LOG_INFO("Flash page size: %d bytes\r\n",   fdo->Desc.FlashPageSize);
-#endif
-
-		/* 3-addr-byte is default startup address mode, except if you use
-		 * NVConfig addr mode setting (please see datasheet for more details)
-		 */
+      /* 3-addr-byte is default startup address mode, except if you use
+       * NVConfig addr mode setting (please see datasheet for more details)
+       */
 		m_flash_object->Desc.NumAddrByte = FLASH_3_BYTE_ADDR_MODE;
-
-		/* device operation */
+		  /* device operation */
 		m_flash_object->GenOp.FlashReadDeviceIdentification  = MICRON_FlashReadDeviceIdentification;
 		m_flash_object->GenOp.FlashReadDeviceID              = MICRON_FlashReadDeviceID;
 		m_flash_object->GenOp.FlashReadStatusRegister        = MICRON_FlashReadStatusRegister;
@@ -166,23 +118,15 @@ FlashReturnType init_flash_driver(ic_flash_FLASH_DEVICE_OBJECT *flash_device_obj
 		m_flash_object->GenOp.FlashReadInformationReg        = MICRON_FlashReadInformationReg;
 		m_flash_object->GenOp.FlashEnter4ByteMode            = MICRON_FlashEnter4ByteMode;
 		m_flash_object->GenOp.FlashExit4ByteMode             = MICRON_FlashExit4ByteMode;
-    /**
-     * if more functions were implemented, assigns them to GenOp pointer (here and in ic_flash_general header file)
-     **/
+      /**
+       * if more functions were implemented, assigns them to GenOp pointer (here and in ic_flash_general header file)
+       **/
 		return Flash_Init_Success;
 	}
   else if (_device_ID == 0)
-  {
   	return Flash_WrongType;
-  }
   else
-  {
-#ifdef FLASH_NRF_DEBUG
-  	NRF_LOG_ERROR("Unknown device\r\n");
-#endif
-
     return Flash_Init_Failed;
-  }
 }
 /**********************************************************************************************************************************************************/
 FlashReturnType write_to_flash(uint32_t addr, uint8_t *data_to_write, size_t len,

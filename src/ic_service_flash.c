@@ -421,7 +421,7 @@ ic_return_val_e ic_flash_init(void)
   printf("UART after initialization\r\n");
 #endif
     /*  GPIO CONFIGURE   */
-  configure_gpio();
+  /*configure_gpio();*/
     /*	initialize flash driver	*/
   m_is_driver_init = ic_flash_driver_init();
 
