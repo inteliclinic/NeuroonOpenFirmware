@@ -881,7 +881,7 @@ void afe_set_default_timing(void)
  *
  * @endcode
  */
-void afe_set_timing_fast(uint16_t *timing_data, size_t data_len)
+static void afe_set_timing_fast(uint16_t *timing_data, size_t data_len)
 {
   if (m_semaphore)
   {
@@ -1028,8 +1028,12 @@ ic_return_val_e ic_afe_init(void)
  */
 ic_return_val_e ic_afe_deinit(void)
 {
+    /*  set all timing values to zero  */
+//  afe_set_timing_fast(0, sizeof(m_timing_data_500Hz) / sizeof(uint16_t));
     /*  for sure, you can set led current on leds to 0  */
-  afe_set_led_current(0, 0);
+//  afe_set_led_current(0, 0);
+    /*  reset afe4400 ti default valeus  */
+  afe_reset();
     /*  end afe measuring  */
   afe_end_measure();
     /*  uninit spi interface  */
