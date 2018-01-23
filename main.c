@@ -69,6 +69,7 @@
 
 /*#include "bsp.h"*/
 /*#include "bsp_btn_ble.h"*/
+#include "nrf_power.h"
 #include "nrf_gpio.h"
 #include "nrf_drv_clock.h"
 
@@ -168,22 +169,58 @@ void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
   app_error_save_and_stop(id, pc, info);
 #endif // DEBUG
 }
-
+/*
+ *
+ *        uint8_t output_conf = (GPIO_PIN_CNF_SENSE_Disabled << GPIO_PIN_CNF_SENSE_Pos)
+ *                        | (GPIO_PIN_CNF_DRIVE_S0S1 << GPIO_PIN_CNF_DRIVE_Pos)
+ *                        | (GPIO_PIN_CNF_PULL_Disabled << GPIO_PIN_CNF_PULL_Pos)
+ *                        | (GPIO_PIN_CNF_INPUT_Disconnect << GPIO_PIN_CNF_INPUT_Pos)
+ *                        | (GPIO_PIN_CNF_DIR_Output << GPIO_PIN_CNF_DIR_Pos);
+ *
+ *        uint8_t input_conf = GPIO_PIN_CNF_DIR_Input << GPIO_PIN_CNF_DIR_Pos;
+ *
+ *        NRF_GPIO->PIN_CNF[GPIO_AFE_DIAG_END] = input_conf;
+ *        NRF_GPIO->PIN_CNF[GPIO_AFE_LED_ALM] = input_conf;
+ *        NRF_GPIO->PIN_CNF[GPIO_AFE_PD_ALM] = input_conf;
+ *        NRF_GPIO->PIN_CNF[GPIO_AFE_ADC_RDY] = input_conf;
+ *
+ *        NRF_GPIO->PIN_CNF[GPIO_AFE_RESET] = output_conf;
+ *        NRF_GPIO->PIN_CNF[GPIO_AFE_PDN] = output_conf;
+ *        NRF_GPIO->PIN_CNF[GPIO_POWER_ANALOG] = output_conf;
+ *        NRF_GPIO->PIN_CNF[GPIO_POWER_DIGITAL] = output_conf;
+ *        NRF_GPIO->PIN_CNF[GPIO_LEDS_ON] = output_conf;
+ *        NRF_GPIO->PIN_CNF[GPIO_2MS_DRIVER_ON] = output_conf;
+ *        [>NRF_GPIO->PIN_CNF[19] = output_conf; //for continuous BLE transmission purposes<]
+ *        [>NRF_GPIO->PIN_CNF[20] = output_conf; //for continuous BLE transmission purposes<]
+ *
+ *        ResetBit(GPIO_POWER_DIGITAL);
+ *        ResetBit(GPIO_POWER_ANALOG);
+ *
+ *        SetBit(GPIO_AFE_RESET);
+ *        ResetBit(GPIO_AFE_PDN);
+ *        ResetBit(GPIO_2MS_DRIVER_ON);
+ *}
+ */
 static void power_down_all_systems(void){
   nrf_gpio_cfg_output(15);
   nrf_gpio_cfg_output(16);
   nrf_gpio_cfg_output(IC_LTC_POWER_PIN);
+  nrf_gpio_cfg_output(24);
+  nrf_gpio_cfg_output(IC_SPI_AFE_RESET_PIN);
+  nrf_gpio_cfg_output(IC_SPI_AFE_PDN_PIN);
   nrf_gpio_pin_clear(15);
   nrf_gpio_pin_clear(16);
   nrf_gpio_pin_clear(IC_LTC_POWER_PIN);
+  nrf_gpio_pin_clear(24);
+  nrf_gpio_pin_set(IC_SPI_AFE_RESET_PIN);
+  nrf_gpio_pin_clear(IC_SPI_AFE_PDN_PIN);
   /*nrf_gpio_cfg_default(15);*/
   /*nrf_gpio_cfg_default(16);*/
   /*nrf_gpio_cfg_default(IC_LTC_POWER_PIN);*/
   nrf_gpio_cfg_default(IC_SPI_FLASH_SS_PIN);
   nrf_gpio_cfg_default(IC_UART_RX_PIN);
   nrf_gpio_cfg_default(IC_UART_TX_PIN);
-  nrf_gpio_cfg_default(IC_SPI_AFE_RESET_PIN);
-  nrf_gpio_cfg_default(IC_SPI_AFE_PDN_PIN);
+
 }
 
 static void power_up_all_systems(void){
@@ -384,6 +421,7 @@ static void init_task (void *arg){
     vTaskDelay(IC_BUTTON_LONG_PRESS_OFFSET);
 
   if(!ic_button_pressed(IC_BUTTON_PWR_BUTTON_PIN) && m_welcome == welcome){
+    ic_ltc_service_deinit();
     power_down_all_systems();
     NRF_POWER->SYSTEMOFF = 1;
   }
@@ -396,7 +434,6 @@ static void init_task (void *arg){
   ic_service_stream1_init();
   init_err_stream();
   ic_ble_module_init();
-  sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
   ic_service_timestamp_init();
   cmd_module_init();
   on_disconnect();
@@ -439,12 +476,13 @@ int main(void)
     if(pdPASS != xTaskCreate(cleanup_task, "INIT", 192, (void *)&m_shutdown_source, 4, &m_cleanup_task)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
+
     vTaskSuspend(m_cleanup_task);
 
-
-    NRF_LOG_INFO("Reset reason: %d; Ret val: %d\n", NRF_POWER->RESETREAS, sd_power_reset_reason_clr(0xFFFFFFFF));
+    NRF_LOG_INFO("Reset reason: 0x%X\n", NRF_POWER->RESETREAS);
 
     m_welcome = NRF_POWER->RESETREAS & (0x01<<16) ? welcome : showoff;
+    nrf_power_resetreas_clear(0xFFFFFFFF);
 
     NRF_LOG_INFO("GPREGRET: %d\n", NRF_POWER->GPREGRET);
 

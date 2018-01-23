@@ -501,6 +501,8 @@ ic_return_val_e ic_ltc_service_init(){
   if(m_module_initialized) return IC_SUCCESS;
 
   nrf_gpio_cfg_output(24);
+  nrf_gpio_pin_clear(24);
+
   ic_actuator_init();
 
   cmd_task_connect_to_device_cmd(m_device_parse);
@@ -536,7 +538,7 @@ ic_return_val_e ic_ltc_service_init(){
 }
 
 ic_return_val_e ic_ltc_service_deinit(){
-  nrf_gpio_cfg_default(24);
+  nrf_gpio_pin_clear(24);
   if(m_module_initialized == false) return IC_NOT_INIALIZED;
   ic_actuator_deinit();
 
