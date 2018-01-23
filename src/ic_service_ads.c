@@ -25,6 +25,8 @@
 #include "ic_service_ads.h"
 #include "ic_driver_ads.h"
 
+#include "ic_flash_filesystem.h"
+
 #include "ic_nrf_error.h"
 
 static TimerHandle_t m_ads_service_timer_handle = NULL;
@@ -97,7 +99,7 @@ static void ads_timer_callback(TimerHandle_t xTimer){
   }
 }
 
-static void send_data_task(void *arg){
+void send_data_task(void *arg){
   uint32_t _nrf_error;
   for(;;){
     __auto_type _err = ble_iccs_send_to_stream0(
@@ -123,10 +125,57 @@ static void send_data_task(void *arg){
   }
 }
 
+static s_mbr_info m_mbr_info =
+{
+  .neuroon_sig = 0x1234,
+  .erasal_num = 0x00,
+  .num_of_files = 0,
+  .source_info = {},
+  .not_used = {}
+};
+
+void send_data_task_flash(void *arg){
+//  uint32_t _nrf_error;
+  for(;;){
+//    __auto_type _err = ble_iccs_send_to_stream0(
+//        m_eeg_packet.raw_data,
+//        sizeof(u_eegDataFrameContainter),
+//        &_nrf_error);
+
+    __auto_type _err = ic_write_file(&m_mbr_info, "ADS.TXT", m_eeg_packet.raw_data);
+
+    switch(_err){
+      case IC_FILE_SUCCESS:
+        break;
+      case IC_FILE_ERROR:
+        NRF_LOG_INFO("File error");
+        break;
+      default:
+        /*NRF_LOG_INFO("err: %s\n", (uint32_t)ic_get_nrferr2str(_nrf_error));*/
+        break;
+    }
+    vTaskSuspend(NULL);
+    taskYIELD();
+  }
+}
+
+ic_return_val_e configure_file_ads_data()
+{
+  if (ic_mbr_format(&m_mbr_info, true) != IC_FILE_SUCCESS)
+    return IC_ERROR;
+  if (ic_create_file(&m_mbr_info, "ADS.TXT", 7) != IC_FILE_CREATED)
+    return IC_ERROR;
+  if (ic_open_file(&m_mbr_info, "ADS.TXT", IC_FILE_W) == IC_FILE_SUCCESS)
+    return IC_SUCCESS;
+  else
+    return IC_ERROR;
+}
 ic_return_val_e ic_ads_service_init(void){
   if(m_module_initialized) return IC_SUCCESS;
 
   while(ic_ads_init() == IC_ERROR);
+
+  configure_file_ads_data();
 
   if(CHECK_INIT_SEMAPHORE(m_twi_ready))
     INIT_SEMAPHORE_BINARY(m_twi_ready);
@@ -142,7 +191,9 @@ ic_return_val_e ic_ads_service_init(void){
         ads_timer_callback);
 
   if(send_data_task_handle == NULL)
-    if(pdPASS != xTaskCreate(send_data_task, "BLET", 256, NULL, 3, &send_data_task_handle)){
+//    if(pdPASS != xTaskCreate(send_data_task, "BLET", 256, NULL, 3, &send_data_task_handle)){
+//      APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+    if(pdPASS != xTaskCreate(send_data_task_flash, "ADS_FLASH", 256, NULL, 3, &send_data_task_handle)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
 

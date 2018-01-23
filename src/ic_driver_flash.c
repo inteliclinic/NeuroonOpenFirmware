@@ -61,6 +61,7 @@ FlashReturnType init_flash_driver(ic_flash_FLASH_DEVICE_OBJECT *flash_device_obj
     	/*	3-addr-byte is default startup address mode	*/
     m_flash_object->Desc.NumAddrByte = FLASH_3_BYTE_ADDR_MODE;
       /* device operation for EN25QH256 flash*/
+
     m_flash_object->GenOp.FlashReadDeviceIdentification  = EON_FlashReadDeviceIdentification;
     m_flash_object->GenOp.FlashReadDeviceID              = EON_FlashReadDeviceID;
     m_flash_object->GenOp.FlashReadStatusRegister        = EON_FlashReadStatusRegister;
@@ -77,6 +78,7 @@ FlashReturnType init_flash_driver(ic_flash_FLASH_DEVICE_OBJECT *flash_device_obj
     m_flash_object->GenOp.FlashExit4ByteMode             = EON_FlashExit4ByteMode;
     m_flash_object->GenOp.FlashEnterDeepPwrDown          = EON_FlashEnterDeepPwrDown;
     m_flash_object->GenOp.FlashExitDeepPwrDown           = EON_FlashExitDeepPwrDown;
+
     /**
      * if more functions were implemented, assigns them to GenOp pointer (here and in ic_flash_general header file)
      **/

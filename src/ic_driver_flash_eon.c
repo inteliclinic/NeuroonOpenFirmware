@@ -87,7 +87,6 @@ FlashReturnType EON_FlashUninit(void)
 FlashReturnType EON_FlashReadStatusRegister(uint8_t *status_reg)
 {
   m_data_to_send->inst = EN25QH256_R_STATREG_ADDR;
-
   if (m_flash_semaphore != false)
   {
     m_flash_semaphore = false;

@@ -187,7 +187,9 @@ ic_filesys_return_type ic_write_file(s_mbr_info *file, char *filename, uint8_t *
 		{
 			if (file->source_info[i].source_flag == IC_FILE_W)
 			{
-        ic_flash_write(temp_file_addr, data, FILE_WRITE_PACK_SIZE, flash_service_cb);
+			  uint8_t *_temp_data = 0;
+			  memcpy(_temp_data, data, 256);
+        ic_flash_write(temp_file_addr, _temp_data, FILE_WRITE_PACK_SIZE, flash_service_cb);
 				temp_file_addr += FILE_WRITE_PACK_SIZE;
 
 				return IC_FILE_SUCCESS;

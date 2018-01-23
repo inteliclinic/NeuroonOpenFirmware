@@ -96,6 +96,8 @@
 
 #include "ic_service_time.h"
 
+#include "ic_service_flash.h"
+
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE         4                                           /**< Size of timer operation queues. */
 
@@ -393,6 +395,7 @@ static void init_task (void *arg){
   m_welcome();
   ic_btn_pwr_long_press_handle_init(m_deep_sleep);
 
+  ic_flash_init();
   ic_ads_service_init();
   ic_service_stream1_init();
   init_err_stream();
@@ -433,7 +436,7 @@ int main(void)
     APP_ERROR_CHECK(err_code);
 
 
-    if(pdPASS != xTaskCreate(init_task, "INIT", 384, NULL, 3, &m_init_task)){
+    if(pdPASS != xTaskCreate(init_task, "INIT", 192, NULL, 3, &m_init_task)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
 
