@@ -28,15 +28,15 @@
 
 #define FLASH_TIMEOUT   3
 
-                  /* variables for receiving and sending data */
+  /* variables for receiving and sending data */
 static char m_output_buffer [256] = {0};
 static char m_input_buffer  [256] = {0};
-									/*	create pointer for filling struct to send data	*/
+  /*	create pointer for filling struct to send data	*/
 static s_spiSendToFlash *m_data_to_send = (s_spiSendToFlash *)m_input_buffer;
-									/*	convert given address to vector for filling struct	*/
+  /*	convert given address to vector for filling struct	*/
 void convert_vector_addr(uint32_t udAddr, uint8_t* pIns_Addr, size_t num_address_byte);
 
-									/*	configure SPI REGISTER to handle the SPI interrupt	*/
+  /*	configure SPI REGISTER to handle the SPI interrupt	*/
 SPI_REGISTER(flash_write);
 
 static bool m_flash_semaphore = true;
@@ -163,7 +163,9 @@ FlashReturnType MICRON_FlashWriteEnable(ic_flash_FLASH_DEVICE_OBJECT *fdo)
   {
     fdo->GenOp.FlashReadStatusRegister(&_status_reg);
     _timeout++;
-  } while ((!(_status_reg & MICRON_SR_WEL_BIT)) && (_timeout < FLASH_TIMEOUT));
+  } while ((!
+      (_status_reg & MICRON_SR_WEL_BIT)) &&
+      (_timeout < FLASH_TIMEOUT));
 
   if (_timeout == FLASH_TIMEOUT)
     return Flash_OperationTimeOut;
@@ -465,7 +467,14 @@ FlashReturnType MICRON_FlashChipErase(ic_flash_FLASH_DEVICE_OBJECT *fdo)
 
   m_data_to_send->inst = N25Q256A_BULK_ERASE;
 
-  __auto_type _ret_val = SPI_SEND_DATA(flash_write, m_input_buffer, m_output_buffer, FLASH_SEND_1BYTE, NULL, NULL);
+  __auto_type _ret_val =
+      SPI_SEND_DATA(
+          flash_write,
+          m_input_buffer,
+          m_output_buffer,
+          FLASH_SEND_1BYTE,
+          NULL,
+          NULL);
   if (_ret_val != IC_SUCCESS)
     return Flash_Error;
 
@@ -479,7 +488,14 @@ FlashReturnType MICRON_FlashReadInformationReg(uint8_t *info_reg)
   if (m_flash_semaphore != false)
   {
     m_flash_semaphore = false;
-    __auto_type _ret_val = SPI_SEND_DATA(flash_write, m_input_buffer, m_output_buffer, FLASH_SEND_2BYTES, flash_drv_callback, NULL);
+    __auto_type _ret_val =
+        SPI_SEND_DATA(
+            flash_write,
+            m_input_buffer,
+            m_output_buffer,
+            FLASH_SEND_2BYTES,
+            flash_drv_callback,
+            NULL);
     if (_ret_val != IC_SUCCESS)
       return Flash_Error;
   }
@@ -498,7 +514,14 @@ FlashReturnType MICRON_FlashReadDeviceID(uint32_t *deviceID)
   if (m_flash_semaphore != false)
   {
     m_flash_semaphore = false;
-    __auto_type _ret_val = SPI_SEND_DATA(flash_write, m_input_buffer, m_output_buffer, FLASH_SEND_4BYTES, flash_drv_callback, NULL);
+    __auto_type _ret_val =
+        SPI_SEND_DATA(
+            flash_write,
+            m_input_buffer,
+            m_output_buffer,
+            FLASH_SEND_4BYTES,
+            flash_drv_callback,
+            NULL);
     if (_ret_val != IC_SUCCESS)
       return Flash_Error;
   }
@@ -530,14 +553,20 @@ FlashReturnType MICRON_FlashEnter4ByteMode(ic_flash_FLASH_DEVICE_OBJECT *fdo)
 
   m_data_to_send->inst = N25Q256A_ENTER_4BYTE_ADDR_MODE;
 
-  __auto_type _ret_val = SPI_SEND_DATA(flash_write, m_input_buffer, m_output_buffer, FLASH_SEND_1BYTE, NULL, NULL);
+  __auto_type _ret_val =
+      SPI_SEND_DATA(
+          flash_write,
+          m_input_buffer,
+          m_output_buffer,
+          FLASH_SEND_1BYTE,
+          NULL,
+          NULL);
   if (_ret_val != IC_SUCCESS)
     return Flash_Error;
 
   do
   {
     fdo->GenOp.FlashReadInformationReg(&_info_reg);
-//    NRF_LOG_INFO("Info reg: 0x%02X\r\n", _info_reg);
   }	while (!(_info_reg & MICRON_IR_4BYTE_BIT));
 
   fdo->Desc.NumAddrByte = FLASH_4_BYTE_ADDR_MODE;
@@ -551,21 +580,23 @@ FlashReturnType MICRON_FlashExit4ByteMode(ic_flash_FLASH_DEVICE_OBJECT *fdo)
 
   m_data_to_send->inst = N25Q256A_EXIT_4BYTE_ADDR_MODE;
 
-  __auto_type _ret_val = SPI_SEND_DATA(flash_write, m_input_buffer, m_output_buffer, FLASH_SEND_1BYTE, NULL, NULL);
+  __auto_type _ret_val =
+      SPI_SEND_DATA(
+          flash_write,
+          m_input_buffer,
+          m_output_buffer,
+          FLASH_SEND_1BYTE,
+          NULL,
+          NULL);
   if (_ret_val != IC_SUCCESS)
     return Flash_Error;
-//  NRF_LOG_INFO("%d\r\n", ret_val);
 
   fdo->GenOp.FlashReadInformationReg(&_info_reg);
-  NRF_LOG_INFO("Info reg: 0x%02X\r\n", _info_reg);
-  if (_info_reg & MICRON_IR_4BYTE_BIT)
-  {
-    NRF_LOG_INFO("Couldn't exit 4 byte mode\r\n");
 
+  if (_info_reg & MICRON_IR_4BYTE_BIT)
     return Flash_WrongType;
-  }
+
   fdo->Desc.NumAddrByte = FLASH_3_BYTE_ADDR_MODE;
-  NRF_LOG_INFO("Exit from 4 byte mode\r\n");
 
   return Flash_Success;
 }
