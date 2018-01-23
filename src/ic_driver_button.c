@@ -70,7 +70,7 @@ static p_btn_code m_usb_unplug_handle = on_usb_unplug;
 static p_exti_code m_acc_handle = NULL;
 static p_exti_code m_afe_handle = NULL;
 
-static struct {
+struct {
     uint8_t              pin_no;
     nrf_gpio_pin_pull_t  pull_cfg;
     nrf_drv_gpiote_evt_handler_t exti_callback_code;
@@ -135,22 +135,22 @@ ic_return_val_e ic_neuroon_exti_init(void){
 
   app_timer_init(portNRF_RTC_PRESCALER, 0, NULL, NULL);
 
-  __auto_type err_code = nrf_drv_gpiote_init();
-  APP_ERROR_CHECK(err_code);
-  for (int i=0; i<sizeof(m_exti)/sizeof(m_exti[0]); ++i){
-    nrf_drv_gpiote_in_config_t _pin_config =
-    {
-      .is_watcher = false,
-      .hi_accuracy = true,
-      .pull = m_exti[i].pull_cfg,
-      .sense = NRF_GPIOTE_POLARITY_TOGGLE,
-    };
-    err_code = nrf_drv_gpiote_in_init(m_exti[i].pin_no, &_pin_config, m_exti[i].exti_callback_code);
-    nrf_drv_gpiote_in_event_enable(m_exti[i].pin_no, true);
-    APP_ERROR_CHECK(err_code);
-  }
+  /*__auto_type err_code = nrf_drv_gpiote_init();*/
+  /*APP_ERROR_CHECK(err_code);*/
+  /*for (int i=0; i<sizeof(m_exti)/sizeof(m_exti[0]); ++i){*/
+    /*nrf_drv_gpiote_in_config_t _pin_config =*/
+    /*{*/
+      /*.is_watcher = false,*/
+      /*.hi_accuracy = true,*/
+      /*.pull = m_exti[i].pull_cfg,*/
+      /*.sense = NRF_GPIOTE_POLARITY_TOGGLE,*/
+    /*};*/
+    /*err_code = nrf_drv_gpiote_in_init(m_exti[i].pin_no, &_pin_config, m_exti[i].exti_callback_code);*/
+    /*nrf_drv_gpiote_in_event_enable(m_exti[i].pin_no, true);*/
+    /*APP_ERROR_CHECK(err_code);*/
+  /*}*/
 
-  err_code = app_button_init(m_buttons,sizeof(m_buttons)/sizeof(m_buttons[0]) , 6);
+  __auto_type err_code = app_button_init(m_buttons,sizeof(m_buttons)/sizeof(m_buttons[0]) , 6);
   APP_ERROR_CHECK(err_code);
   err_code = app_button_enable();
   APP_ERROR_CHECK(err_code);

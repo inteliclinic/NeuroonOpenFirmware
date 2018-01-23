@@ -220,7 +220,6 @@ static void power_down_all_systems(void){
   nrf_gpio_cfg_default(IC_SPI_FLASH_SS_PIN);
   nrf_gpio_cfg_default(IC_UART_RX_PIN);
   nrf_gpio_cfg_default(IC_UART_TX_PIN);
-
 }
 
 static void power_up_all_systems(void){
@@ -404,9 +403,11 @@ static void init_err_stream(void){
 
 static void init_task (void *arg){
   UNUSED_PARAMETER(arg);
-  power_up_all_systems();
-
   ic_neuroon_exti_init();
+  if(m_welcome == NULL)
+    NRF_POWER->SYSTEMOFF = 1;
+
+  power_up_all_systems();
   ic_ltc_service_init();
 
   if(!ic_button_pressed(IC_BUTTON_USB_CONNECT_PIN)){
@@ -481,7 +482,10 @@ int main(void)
 
     NRF_LOG_INFO("Reset reason: 0x%X\n", NRF_POWER->RESETREAS);
 
-    m_welcome = NRF_POWER->RESETREAS & (0x01<<16) ? welcome : showoff;
+    if(NRF_POWER->RESETREAS&(0x01<<16)) m_welcome = welcome;
+    else if(NRF_POWER->RESETREAS&(0x01<<2)) m_welcome = showoff;
+    else m_welcome = NULL;
+
     nrf_power_resetreas_clear(0xFFFFFFFF);
 
     NRF_LOG_INFO("GPREGRET: %d\n", NRF_POWER->GPREGRET);
