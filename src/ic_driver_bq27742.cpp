@@ -17,12 +17,12 @@
 #include "ic_driver_twi.h"
 #include "ic_service_ltc.h"
 
-#include "ic_driver_bq27742_definitions.h"
-
 #include "FreeRTOS.h"
+#include "ic_driver_bq27742_definitions.h"
 #include "task.h"
 #include "timers.h"
 #include "semphr.h"
+
 
 extern "C" {
 #define NRF_LOG_MODULE_NAME "BQ"
@@ -34,7 +34,8 @@ extern "C" {
 
 #include "ic_driver_bq27742.h"
 
-const float BQ27742_CC_GAIN=4.768/54.931;
+//const float BQ27742_CC_GAIN=4.768/54.931;
+const float BQ27742_CC_GAIN=4.769/54.931;
 const float BQ27742_CC_DELTA=5677445.0/54.810;
 
 //#define FORCE_ENDIANNESS __ORDER_LITTLE_ENDIAN__
@@ -68,23 +69,17 @@ constexpr T ensureEndianness (T a) {
 
 #define BQ27742_US_WAIT_TIME 66
 
-#define BQ_SEND_DATA_NOT(subclass_id, flash_block, flash_data_access, block_data_access, data, size) do{  \
-  set_bq_register(BQ27742_BLOCK_DATA_CONTROL, flash_data_access);                                     \
-  set_bq_register(BQ27742_DATA_FLASH_CLASS, subclass_id);                                             \
-  set_bq_register(BQ27742_DATA_FLASH_BLOCK, flash_block);                                             \
-  set_bq_register(block_data_access, data, size);                                                     \
-  nrf_delay_us(BQ27742_US_WAIT_TIME);                                                                 \
-  vTaskDelay(pdMS_TO_TICKS(BQ27742_REGISTER_WRITE_DELAY));                                            \
-}while(0)
-
 #define BQ_SEND_DATA(subclass_id, flash_block, flash_data_access, block_data_access, data, size) do{  \
   uint8_t _reg_value [BQ27742_DATA_FLASH_BLOCK_SIZE] = {0};                                           \
-  set_bq_register(BQ27742_BLOCK_DATA_CONTROL, flash_data_access);                                     \
-  set_bq_register(BQ27742_DATA_FLASH_CLASS, subclass_id);                                             \
-  set_bq_register(BQ27742_DATA_FLASH_BLOCK, flash_block);                                             \
+  set_bq_register(BQ27742_BLOCK_DATA_CONTROL, (uint8_t)flash_data_access);                            \
+  vTaskDelay(BQ27742_US_WAIT_TIME);                                                                   \
+  set_bq_register(BQ27742_DATA_FLASH_CLASS, (uint8_t)subclass_id);                                    \
+  vTaskDelay(BQ27742_US_WAIT_TIME);                                                                   \
+  set_bq_register(BQ27742_DATA_FLASH_BLOCK, (uint8_t)flash_block);                                    \
+  vTaskDelay(BQ27742_US_WAIT_TIME);                                                                   \
   set_bq_register(block_data_access, data, size);                                                     \
   nrf_delay_us(BQ27742_US_WAIT_TIME);                                                                 \
-  TWI_READ_DATA(BQ, BQ27742_BLOCK_DATA, _reg_value, sizeof(_reg_value), NULL, NULL);                  \
+  TWI_READ_DATA(BQ, BQ27742_BLOCK_DATA, _reg_value, BQ27742_DATA_FLASH_BLOCK_SIZE, NULL, NULL);       \
   uint32_t _flash_data_sum = 0;                                                                       \
   for (int i = 0; i < BQ27742_DATA_FLASH_BLOCK_SIZE; i++){                                            \
     _flash_data_sum += _reg_value[i];                                                                 \
@@ -103,11 +98,11 @@ static ic_return_val_e set_bq_register(const uint8_t reg_addr, const T &&data){
   std::memcpy(&_buffer[1], &data, sizeof(T));
 
   #ifdef DEBUG_BQ
+  return IC_SUCCESS;
   NRF_LOG_RAW_INFO("RR reg_addr: %d: of size: %d \n", reg_addr, sizeof(T));
   for(auto byte : _buffer)
     NRF_LOG_RAW_INFO("0x%02X ", byte);
   NRF_LOG_RAW_INFO("\n");
-  return IC_SUCCESS;
   #else
   return TWI_SEND_DATA(BQ, _buffer, sizeof(_buffer), NULL, NULL);
   #endif
@@ -120,11 +115,11 @@ static ic_return_val_e set_bq_register(const uint8_t reg_addr, const T &data){
   std::memcpy(&_buffer[1], &data, sizeof(T));
 
   #ifdef DEBUG_BQ
+  return IC_SUCCESS;
   NRF_LOG_RAW_INFO("R reg_addr: %d: of size: %d \n", reg_addr, sizeof(T));
   for(auto byte : _buffer)
     NRF_LOG_RAW_INFO("0x%02X ", byte);
   NRF_LOG_RAW_INFO("\n");
-  return IC_SUCCESS;
   #else
   return TWI_SEND_DATA(BQ, _buffer, sizeof(_buffer), NULL, NULL);
   #endif
@@ -137,32 +132,37 @@ static ic_return_val_e set_bq_register(const uint8_t reg_addr, const T *data, si
   std::memcpy(&_buffer[1], data, len);
 
   #ifdef DEBUG_BQ
+  return IC_SUCCESS;
   NRF_LOG_RAW_INFO("P reg_addr: %d: of size: %d \n", reg_addr, sizeof(_buffer));
+  for(auto byte : _buffer)
+    NRF_LOG_RAW_INFO("0x%02X ", byte);
+  NRF_LOG_RAW_INFO("\n");
+  #else
+//  for(auto byte : _buffer)
+//    NRF_LOG_RAW_INFO("0x%02X ", byte);
+//  NRF_LOG_RAW_INFO("\n");
+  #endif
+  return TWI_SEND_DATA(BQ, _buffer, sizeof(_buffer), NULL, NULL);
+}
+
+template <class T>
+static ic_return_val_e get_bq_register(const uint8_t reg_addr, T &data){
+
+  uint8_t _buffer[sizeof(T)];
+
+  TWI_READ_DATA(BQ, reg_addr , _buffer, sizeof(_buffer), NULL, NULL);
+
+  std::memcpy(&data, _buffer , sizeof(T));
+
+  #ifdef DEBUG_BQ
+  NRF_LOG_RAW_INFO("R reg_addr: %d: of size: %d \n", reg_addr, sizeof(T));
   for(auto byte : _buffer)
     NRF_LOG_RAW_INFO("0x%02X ", byte);
   NRF_LOG_RAW_INFO("\n");
   return IC_SUCCESS;
   #else
-  for(auto byte : _buffer)
-    NRF_LOG_RAW_INFO("0x%02X ", byte);
-  NRF_LOG_RAW_INFO("\n");
+  return IC_SUCCESS;
   #endif
-  return TWI_SEND_DATA(BQ, _buffer, sizeof(_buffer), NULL, NULL);
-}
-
-ic_return_val_e set_bq_register_var(const uint8_t reg_addr, const uint8_t *reg_val, const size_t len){
-  uint8_t _buffer[len+1];
-  _buffer[0] = reg_addr;
-
-  for(size_t i = 1; i<len+1; ++i){
-    _buffer[i] = *reg_val++;
-  }
-
-  for(auto byte : _buffer)
-    NRF_LOG_RAW_INFO("0x%02X ", byte);
-  NRF_LOG_RAW_INFO("\n");
-
-  return TWI_SEND_DATA(BQ, _buffer, sizeof(_buffer), NULL, NULL);
 }
 
 /**
@@ -181,6 +181,12 @@ static void bq27742_data_flash_write(
     const uint8_t *value,
     size_t len)
 {
+  NRF_LOG_RAW_INFO("Write data to(0x%02x):\n",subclass_id);
+  for (uint8_t i = 0; i < len; i++){
+    NRF_LOG_RAW_INFO("0x%02x ",value[i]);
+  }
+  NRF_LOG_RAW_INFO("\n");
+
   #ifndef DEBUG_BQ
   BQ_SEND_DATA(
       subclass_id,                    // subclass_ID
@@ -200,7 +206,7 @@ static void bq27742_data_flash_write(
   #endif
 }
 
-float fast_power(float base, int16_t index){
+static float fast_power(float base, int16_t index){
   if (index<0)
     return fast_power(base, ++index) * 1/base;
   return index == 0 ? 1 : fast_power(base, --index) * base;
@@ -299,7 +305,7 @@ namespace bqSubclassData{
   BQ_STRUCT{
     int16_t charging_voltage;
   }charge = {
-    charging_voltage :ensureEndianness(static_cast<int16_t>(BQ27742_CHARGING_VOLTAGE_))
+    charging_voltage :ensureEndianness(static_cast<int16_t>(BQ27742_CHARGING_VOLTAGE_VAL))
   };
 
   BQ_STRUCT{
@@ -671,6 +677,7 @@ namespace bqSubclassData{
   static const uint16_t max_allowed_current          = ensureEndianness(static_cast<uint16_t>(BQ27742_MAX_ALLOWED_CURRENT));
   static const uint8_t  max_current_pulse_duration   = ensureEndianness(static_cast<uint8_t>(BQ27742_MAX_CURRENT_PULSE_DURATION));
   static const int16_t  max_current_interrupt_step   = ensureEndianness(static_cast<int16_t>(BQ27742_MAX_CURRENT_INTERRUPT_STEP));
+  static const uint16_t relax_smooth_time            = ensureEndianness(static_cast<uint16_t>(BQ27742_RELAX_SMOOTH_TIME));
 
   BQ_STRUCT{
     int16_t dsg_current_threshold;// 0
@@ -710,7 +717,7 @@ namespace bqSubclassData{
     t_time_constant  : ensureEndianness(static_cast<int16_t>(BQ27742_T_TIME_CONSTANT))
   };
 
-  static const uint16_t chem_id = ensureEndianness(static_cast<uint16_t>(BQ27742_CHEM_ID_));
+  static const uint16_t chem_id = ensureEndianness(static_cast<uint16_t>(BQ27742_CHEM_ID));
 
   BQ_STRUCT{
     uint16_t cell0_r_a_flag;
@@ -829,28 +836,28 @@ namespace bqSubclassData{
   };
 }
 
-void lightRED(){
+static void lightRED(){
   ic_actuator_set_on_func(IC_LEFT_RED_LED, 0, 0, 63);
   ic_actuator_set_off_func(IC_LEFT_GREEN_LED, 0, 0, 63);
   ic_actuator_set_off_func(IC_LEFT_BLUE_LED, 0, 0, 63);
 }
 
-void lightGREEN(){
+static void lightGREEN(){
   ic_actuator_set_on_func(IC_LEFT_GREEN_LED, 0, 0, 63);
   ic_actuator_set_off_func(IC_LEFT_RED_LED, 0, 0, 63);
   ic_actuator_set_off_func(IC_LEFT_BLUE_LED, 0, 0, 63);
 }
 
-void lightBLUE(){
+static void lightBLUE(){
   ic_actuator_set_on_func(IC_LEFT_BLUE_LED, 0, 0, 63);
   ic_actuator_set_off_func(IC_LEFT_GREEN_LED, 0, 0, 63);
   ic_actuator_set_off_func(IC_LEFT_RED_LED, 0, 0, 63);
 }
 
-uint8_t ledFuncPtr = 0;
+static uint8_t ledFuncPtr = 0;
 static void(*ledFuncArray[])(void) = {lightRED, lightGREEN, lightBLUE};
 
-void lightOFF(){
+static void lightOFF(){
   ic_actuator_set_off_func(IC_LEFT_BLUE_LED, 0, 0, 63);
   ic_actuator_set_off_func(IC_LEFT_GREEN_LED, 0, 0, 63);
   ic_actuator_set_off_func(IC_LEFT_RED_LED, 0, 0, 63);
@@ -863,6 +870,8 @@ static void bq27742_program_flash(
     const uint8_t flashBlock = 0x00,
     const uint8_t offset = 0x00)
 {
+
+
   bq27742_data_flash_write(
       address,
       flashBlock,
@@ -874,7 +883,7 @@ static void bq27742_program_flash(
   if(++ledFuncPtr>=sizeof(ledFuncArray)/sizeof(ledFuncArray[0])){
     ledFuncPtr = 0;
   }
-  vTaskDelay(pdMS_TO_TICKS(5));
+  vTaskDelay(pdMS_TO_TICKS(15));
 }
 
 /**
@@ -907,7 +916,7 @@ static uint16_t bq27742_control_status_read(void)
   return bq27742_read_control_data(BQ27742_CONTROL_STATUS);
 }
 
-bool bq27742_unsealed_set(void)
+static bool bq27742_unsealed_set(void)
 {
   uint32_t _unsealed = 0x36720414;
 
@@ -919,7 +928,7 @@ bool bq27742_unsealed_set(void)
   return (!(_controlStatus & (1<<BQ_SEALED_MODE))) ? true : false;
 }
 
-bool bq27742_sealed_set ()
+static bool bq27742_sealed_set ()
 {
   uint16_t _seal = BQ27742_SEALED;
   set_bq_register(BQ27742_CONTROL, _seal);
@@ -935,7 +944,7 @@ bool bq27742_sealed_set ()
  * @brief put device into full access state
  *  param[out] return true if device enter full access state
 */
-bool bq27742_full_access_set(void)
+static bool bq27742_full_access_set(void)
 {
   uint32_t _fullAccess = 0xFFFFFFFF;
 
@@ -949,7 +958,7 @@ bool bq27742_full_access_set(void)
 }
 
 
- void bq27742_program_flash_subclass_if_cfg1(void){
+void bq27742_program_flash_subclass_if_cfg1(void){
   bq27742_program_flash(bqSubclassData::load_select,                 BQ27742_IT_CFG_CLASS_ID, 0x00, 0x00);
   bq27742_program_flash(bqSubclassData::load_mode,                   BQ27742_IT_CFG_CLASS_ID, 0x00, 0x01);
   bq27742_program_flash(bqSubclassData::max_res_factor,              BQ27742_IT_CFG_CLASS_ID, 0x00, 0x11);
@@ -987,43 +996,20 @@ bool bq27742_full_access_set(void)
   bq27742_program_flash(bqSubclassData::max_allowed_current,         BQ27742_IT_CFG_CLASS_ID, 0x03, 0x0D);
   bq27742_program_flash(bqSubclassData::max_current_pulse_duration,  BQ27742_IT_CFG_CLASS_ID, 0x03, 0x0F);
   bq27742_program_flash(bqSubclassData::max_current_interrupt_step,  BQ27742_IT_CFG_CLASS_ID, 0x03, 0x10);
+  bq27742_program_flash(bqSubclassData::relax_smooth_time,           BQ27742_IT_CFG_CLASS_ID, 0x03, 0x12);
 }
 
 #include "ic_service_ltc.h"
 
 
 static uint16_t bq27742_device_type_read(){
-  uint16_t _output = 0x00;
-  vTaskDelay(pdMS_TO_TICKS(1));
-  TWI_READ_DATA(BQ, BQ27742_CONTROL, reinterpret_cast<uint8_t *>(_output), sizeof(_output), NULL, NULL);
-  NRF_LOG_INFO("Output: 0x%X vs static: 0x%X\n", _output,
+  uint16_t devType = bq27742_read_control_data(BQ27742_DEVICE_TYPE);
+  NRF_LOG_INFO("Output: 0x%X vs static: 0x%X\n", devType,
       0xFFFF&BQ27742_DEVICE_TYPE_VALUE);
   return 0x00;
 }
 
 //#define BQ_ADVANCED
-
-void ic_bq_reset(){
-  for (uint16_t i = 0; i<0x09; ++i){
-    auto _rc = bq27742_read_control_data(i);
-    NRF_LOG_INFO("0x%04X: 0x%X\n",i, _rc);
-  }
-
-  auto _unsealed = bq27742_unsealed_set();
-
-  NRF_LOG_INFO("Unsealed: %s\n",
-      (uint32_t)(_unsealed?"true":"false"));
-
-  //auto _reset = ensureEndianness(static_cast<uint16_t>(0x0041));
-
-  //set_bq_register_var(BQ27742_CONTROL, reinterpret_cast<uint8_t *>(&_reset), sizeof(_reset));
-  uint16_t _chem_id = swapBytes(0x185);
-  bq27742_program_flash(_chem_id, BQ27742_CHEM_ID_CLASS_ID);
-
-  auto _sealed = bq27742_sealed_set();
-  NRF_LOG_INFO("Sealed: %s\n",
-      (uint32_t)(_sealed?"true":"false"));
-}
 
 void ic_bq_flash_image(){
   TWI_INIT(BQ);
@@ -1043,7 +1029,7 @@ void ic_bq_flash_image(){
   NRF_LOG_INFO("Unsealed: %s, FullAccess: %s\n",
       (uint32_t)(_unsealed?"true":"false"),
       (uint32_t)(_fullAccess?"true":"false"));
-  vTaskDelay(5);
+  vTaskDelay(pdMS_TO_TICKS(10));
 
   bq27742_device_type_read();
 
@@ -1081,6 +1067,7 @@ void ic_bq_flash_image(){
   bq27742_program_flash(bqSubclassData::registers, BQ27742_REGISTERS_CLASS_ID);
 
 
+
   #ifdef BQ_ADVANCED
   NRF_LOG_RAW_INFO("---=== LIFETIME RES ===---\n");
   bq27742_program_flash(bqSubclassData::lifetime_res, BQ27742_LIFETIME_RES_CLASS_ID);
@@ -1115,7 +1102,7 @@ void ic_bq_flash_image(){
   #ifdef BQ_ADVANCED
   NRF_LOG_RAW_INFO("---=== CURRENT ===---\n");
   bq27742_program_flash(bqSubclassData::current, BQ27742_CURRENT_CLASS_ID);
-  NRF_LOG_RAW_INFO("---=== CALIBRATION ===---\n");
+  NRF_LOG_RAW_INFO("---=== CODES ===---\n");
   bq27742_program_flash(bqSubclassData::codes, BQ27742_CODES_CLASS_ID);
   #endif
 
@@ -1129,3 +1116,367 @@ void ic_bq_flash_image(){
   TWI_DEINIT(BQ);
   vTaskDelay(5);
 }
+
+/**
+ * @fn bq27742_read_reg_data  (uint8_t command)
+ * @brief read data from  general register
+ *  param[in] command: data command code
+ *  param[out] read register data
+ */
+static uint16_t bq27742_read_reg_data (uint8_t command)
+{
+  uint16_t return_value =0;
+
+  get_bq_register (command, return_value);
+
+  return return_value;
+}
+
+
+/**
+ * @fn bq27742_flags_read ()
+ * @brief read data from flags register
+ *  param[out] register value
+ */
+static uint16_t bq27742_flags_read ()
+{
+  uint16_t flag_value =0;
+
+  flag_value = bq27742_read_reg_data(BQ27742_FLAGS);
+
+  return flag_value;
+}
+
+
+
+void ic_bq_reset(){
+  TWI_INIT(BQ);
+  for (uint16_t i = 0; i<0x09; ++i){
+    auto _rc = bq27742_read_control_data(i);
+    NRF_LOG_INFO("0x%04X: 0x%X\n",i, _rc);
+  }
+  auto _unsealed = bq27742_unsealed_set();
+  NRF_LOG_INFO("Unsealed: %s\n",
+      (uint32_t)(_unsealed?"true":"false"));
+  uint16_t _chem_id = swapBytes(0x185);
+  bq27742_program_flash(_chem_id, BQ27742_CHEM_ID_CLASS_ID);
+  auto _sealed = bq27742_sealed_set();
+  NRF_LOG_INFO("Sealed: %s\n",
+      (uint32_t)(_sealed?"true":"false"));
+  TWI_DEINIT(BQ);
+}
+
+static uint16_t ic_bq_getSafetyStatus(void) {
+  TWI_INIT(BQ);
+
+  uint16_t safety = bq27742_read_control_data(BQ27742_SAFETY_STATUS);
+//  NRF_LOG_INFO("** Safety status: 0x%02X invalid protector: %d\n", safety , safety&0x80);
+
+  TWI_DEINIT(BQ);
+  return safety;
+}
+
+
+static bool ic_bq_battery_full_charged (void)
+{
+  TWI_INIT(BQ);
+  uint16_t flag_value = 0;
+
+  flag_value = bq27742_flags_read ();
+
+  TWI_DEINIT(BQ);
+  if(flag_value & (1<<FC))
+    return true;
+  else
+    return false;
+}
+
+
+///**
+// * Check is State of charge is below 1%
+// * @return true/false
+// */
+//bool bq27742_battery_soc1_threshold (void)
+//{
+//  TWI_INIT(BQ);
+//  uint16_t flag_value = 0;
+//
+//  flag_value = bq27742_flags_read ();
+//  TWI_DEINIT(BQ);
+//  if(flag_value & (1<<SOC1))
+//    return true;
+//  else
+//    return false;
+//}
+//
+///**
+// * Check is State of charge is 100%
+// * @return true/false
+// */
+//bool bq27742_battery_socf_threshold (void)
+//{
+//  TWI_INIT(BQ);
+//  uint16_t flag_value = 0;
+//
+//  flag_value = bq27742_flags_read ();
+//  TWI_DEINIT(BQ);
+//  if(flag_value & (1<<SOCF))
+//    return true;
+//  else
+//    return false;
+//}
+
+///**
+// * One of discharging errors detected
+// * @return true/false
+// */
+//bool bq27742_discharging_error_detected (void)
+//{
+//  TWI_INIT(BQ);
+//  uint16_t safety_status = 0;
+//  uint8_t charging_error_mask = 1 << UVP_S | 1 << OTD_S | 1 << TDD_S | 1 << ISD_S;
+//  safety_status = ic_bq_getSafetyStatus();
+//  TWI_DEINIT(BQ);
+//  if(safety_status & charging_error_mask)
+//    return true;
+//  else
+//    return false;
+//}
+
+/**
+ * One of charging errors detected
+ * @return true/false
+ */
+static bool bq27742_charging_error_detected (void)
+{
+  TWI_INIT(BQ);
+  uint16_t safety_status = 0;
+  uint8_t charging_error_mask = 1 << OVP_S | 1 << OTC_S | 1 << TDD_S | 1 << ISD_S;
+  safety_status = ic_bq_getSafetyStatus();
+  TWI_DEINIT(BQ);
+  if(safety_status & charging_error_mask)
+    return true;
+  else
+    return false;
+}
+
+
+
+void ic_bq_read_measurement_data (void)
+{
+  TWI_INIT(BQ);
+  uint16_t temp;
+  get_bq_register(BQ27742_TEMPERATURE, temp);
+  vTaskDelay(100);
+  uint16_t voltage;
+  get_bq_register(BQ27742_VOLTAGE, voltage);
+  vTaskDelay(100);
+  int16_t avgCurr;
+  get_bq_register(BQ27742_AVERAGE_CURRENT, avgCurr);
+  vTaskDelay(100);
+  uint16_t soc;
+  get_bq_register(BQ27742_STATE_OF_CHARGE, soc);
+  vTaskDelay(100);
+
+  NRF_LOG_RAW_INFO("temperature: %d\n", temp );
+  NRF_LOG_RAW_INFO("voltage: %dmV\n", voltage);
+  NRF_LOG_RAW_INFO("avg current: %dmA\n", avgCurr);
+  NRF_LOG_RAW_INFO("state of charge: %d%%\n", soc);
+  TWI_DEINIT(BQ);
+}
+
+
+/**
+ * Return State of charge
+ * @return percent value
+ */
+uint16_t ic_bq_getChargeLevel(void)
+{
+  TWI_INIT(BQ);
+  uint16_t soc;
+  get_bq_register(BQ27742_STATE_OF_CHARGE, soc);
+//  NRF_LOG_RAW_INFO("state of charge: %d\n", soc);
+  TWI_DEINIT(BQ);
+  return soc;
+}
+
+
+/**
+ * Return State of charge
+ * @return percent value
+ */
+bool ic_bq_getDischarging(void) {
+  TWI_INIT(BQ);
+  uint16_t flag_value = 0;
+
+  flag_value = bq27742_flags_read();
+  TWI_DEINIT(BQ);
+  if (flag_value & (1 << DSG))
+    return true;
+  else
+    return false;
+}
+
+
+/**
+ * Return battery charger state
+ * @return state
+ */
+en_chargerState ic_bq_getChargerState(void) {
+  en_chargerState state = BATT_NOTCHARGING;
+
+  int16_t avgCurr;
+  get_bq_register(BQ27742_AVERAGE_CURRENT, avgCurr);
+  if (  avgCurr<0 ) { //nie ładuje
+    state = BATT_NOTCHARGING;
+
+  } else { //ładuje się ??
+    if (ic_bq_battery_full_charged()) {
+      state = BATT_CHARGED;
+    } else {
+      if (bq27742_charging_error_detected()) {
+        state = BATT_CHARGING;
+      } else {
+        state = BATT_CHARGER_FAULT;
+      }
+    }
+  }
+  return state;
+}
+
+
+/**
+ * Read data from data flash
+ * @param subclass_id - data block to read
+ * @param offset - data offset to read
+ * @param value - return buffer
+ * @param len - length of data to read
+ */
+void bq27742_data_flash_read(
+    uint8_t subclass_id,
+    uint8_t offset,
+    uint8_t *value,
+    size_t len)
+{
+  TWI_INIT(BQ);
+  NRF_LOG_RAW_INFO("Read of class id: 0x%02x \n", subclass_id);
+  for(int i = 0;i<32;i++)
+    value[i] = 0;
+  set_bq_register(BQ27742_BLOCK_DATA_CONTROL, (uint8_t)0x00);
+  vTaskDelay(100);
+  set_bq_register(BQ27742_DATA_FLASH_CLASS, (uint8_t)subclass_id);
+  vTaskDelay(100);
+  set_bq_register(BQ27742_DATA_FLASH_BLOCK, (uint8_t)0);
+  vTaskDelay(100);
+
+  TWI_READ_DATA(BQ, BQ27742_BLOCK_DATA, (uint8_t*)value, len, NULL, NULL);
+  vTaskDelay(pdMS_TO_TICKS(1));
+
+  uint8_t memChck[1] = {0};
+  get_bq_register(BQ27742_BLOCK_DATA_CS,memChck);
+  vTaskDelay(100);
+
+  uint32_t _flash_data_sum = 0;
+  for (uint8_t i = 0; i < len; i++){
+    NRF_LOG_RAW_INFO("0x%02x ",value[i]);
+    _flash_data_sum += value[i];
+  }
+  uint8_t _checksum = 255 - (uint8_t)(_flash_data_sum);
+  NRF_LOG_RAW_INFO("chckCalc0x%02X memChck0x%02X",_checksum, memChck[0]);
+  NRF_LOG_RAW_INFO("\n")
+  TWI_DEINIT(BQ);
+}
+
+/**
+ * Read and print on console all data from data flash
+ */
+void ic_bq_readFlashTest(void){
+  TWI_INIT(BQ);
+//  NRF_LOG_INFO("Control Status: 0x%X\n", bq27742_control_status_read());
+  auto _unsealed = bq27742_unsealed_set();
+  if(!_unsealed){
+    NRF_LOG_INFO("could not unseal!\n");
+    return;
+  }
+  auto _fullAccess = bq27742_full_access_set();
+  if(!_fullAccess){
+    NRF_LOG_INFO("no full access\n");
+    return;
+  }
+  uint8_t data[32];
+  for(int i = 0;i<32;i++)
+    data[i] = 0;
+  NRF_LOG_RAW_INFO("BQ27742_SAFETY_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_SAFETY_CLASS_ID,0,data,32);
+  NRF_LOG_RAW_INFO("BQ27742_CHARGE_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_CHARGE_CLASS_ID,0,data,32);
+  NRF_LOG_RAW_INFO("BQ27742_CHARGE_TERMINATION_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_CHARGE_TERMINATION_CLASS_ID,0,data,32);
+  NRF_LOG_RAW_INFO("BQ27742_DISCHARGE_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_DISCHARGE_CLASS_ID,0,data,32);
+  NRF_LOG_RAW_INFO("BQ27742_CALIBRATION_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_CALIBRATION_CLASS_ID,0,data,32);
+
+  NRF_LOG_RAW_INFO("BQ27742_SAFETY_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_SAFETY_CLASS_ID,0,data,32);
+  NRF_LOG_RAW_INFO("BQ27742_CHARGE_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_CHARGE_CLASS_ID,0,data,32);
+  NRF_LOG_RAW_INFO("BQ27742_CHARGE_TERMINATION_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_CHARGE_TERMINATION_CLASS_ID,0,data,32);
+
+  #ifdef BQ_ADVANCED
+  NRF_LOG_RAW_INFO("BQ27742_JEITA_CLASS_ID\n");
+  #endif
+
+  NRF_LOG_RAW_INFO("BQ27742_DATA_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_DATA_CLASS_ID,0,data,32);
+  NRF_LOG_RAW_INFO("BQ27742_DISCHARGE_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_DISCHARGE_CLASS_ID,0,data,32);
+
+  #ifdef BQ_ADVANCED
+  NRF_LOG_RAW_INFO("BQ27742_MANUFACTURER_DATA_CLASS_ID\n");
+  #endif
+
+  NRF_LOG_RAW_INFO("BQ27742_INTEGRITY_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_INTEGRITY_CLASS_ID,0,data,32);
+  NRF_LOG_RAW_INFO("BQ27742_LIFETIME_DATA_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_LIFETIME_DATA_CLASS_ID,0,data,32);
+  NRF_LOG_RAW_INFO("BQ27742_LIFETIME_TEMP_SAMPLES_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_LIFETIME_TEMP_SAMPLES_CLASS_ID,0,data,32);
+  NRF_LOG_RAW_INFO("BQ27742_REGISTERS_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_REGISTERS_CLASS_ID,0,data,32);
+
+  #ifdef BQ_ADVANCED
+  NRF_LOG_RAW_INFO("BQ27742_LIFETIME_RES_CLASS_ID\n");
+  NRF_LOG_RAW_INFO("BQ27742_POWER_CLASS_ID\n");
+  NRF_LOG_RAW_INFO("BQ27742_POWER_CLASS_ID\n");
+  NRF_LOG_RAW_INFO("BQ27742_POWER_CLASS_ID\n");
+  NRF_LOG_RAW_INFO("BQ27742_MANUFACTURER_INFO_CLASS_ID\n");
+  NRF_LOG_RAW_INFO("BQ27742_MANUFACTURER_INFO_CLASS_ID\n");
+//  bq27742_program_flash_subclass_if_cfg1();
+  NRF_LOG_RAW_INFO("BQ27742_CURRENT_TRESHOLD_CLASS_ID\n");
+  #endif
+
+  NRF_LOG_RAW_INFO("BQ27742_STATE_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_STATE_CLASS_ID,0,data,32);
+  NRF_LOG_RAW_INFO("BQ27742_CHEM_ID_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_CHEM_ID_CLASS_ID,0,data,32);
+  NRF_LOG_RAW_INFO("BQ27742_R_A0_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_R_A0_CLASS_ID,0,data,32);
+  NRF_LOG_RAW_INFO("BQ27742_R_A0X_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_R_A0X_CLASS_ID,0,data,32);
+  NRF_LOG_RAW_INFO("BQ27742_CALIBRATION_CLASS_ID\n");
+  bq27742_data_flash_read(BQ27742_CALIBRATION_CLASS_ID,0,data,32);
+
+#if 0
+  #ifdef BQ_ADVANCED
+  NRF_LOG_RAW_INFO("BQ27742_CURRENT_CLASS_ID\n");
+  NRF_LOG_RAW_INFO("BQ27742_CODES_CLASS_ID\n");
+  #endif
+
+#endif
+
+  bq27742_sealed_set();
+  TWI_DEINIT(BQ);
+}
+

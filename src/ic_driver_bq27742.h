@@ -14,8 +14,13 @@
 extern "C" {
 #endif
 
+#include "ic_driver_bq27742_definitions.h"
+
 void ic_bq_flash_image();
 void ic_bq_reset();
+
+uint16_t ic_bq_getChargeLevel(void);
+en_chargerState ic_bq_getChargerState(void);
 
 #ifdef __cplusplus
 }
