@@ -28,13 +28,6 @@
 ble_bas_t m_ble_bas;
 static TimerHandle_t m_service_bas_timer_handle = NULL;
 
-static void bas_timer_callback(TimerHandle_t xTimer){
-  UNUSED_PARAMETER(xTimer);
-  static uint8_t i = 0;
-  if(NRF_SUCCESS != ble_bas_battery_level_update(&m_ble_bas, ++i)) //TODO: brak funkcji BQ
-    NRF_LOG_ERROR("Battery level not updated\n");
-}
-
 void ble_icbas_on_ble_evt(ble_evt_t *p_ble_evt){
   ble_bas_on_ble_evt(&m_ble_bas, p_ble_evt);
 }
@@ -73,12 +66,24 @@ void ble_icbas_init(void){
   __auto_type err_code = ble_bas_init(&m_ble_bas, &bas_init);
   APP_ERROR_CHECK(err_code);
 
+}
+
+static void bas_timer_callback(TimerHandle_t xTimer){
+  UNUSED_PARAMETER(xTimer);
+  __auto_type _bat = ic_bq_getChargeLevel();
+  NRF_LOG_INFO("bat: %d\n", _bat);
+  if(NRF_SUCCESS != ble_bas_battery_level_update(&m_ble_bas, _bat)) //TODO: brak funkcji BQ
+    NRF_LOG_ERROR("Battery level not updated\n");
+}
+
+ic_return_val_e ic_init_battery_update(void){
   if(m_service_bas_timer_handle == NULL)
     m_service_bas_timer_handle = xTimerCreate(
-        "BAS_TIMER",
+        "BAS",
         IC_BAS_TICK_PERIOD,
         pdTRUE,
         (void *) 0,
         bas_timer_callback);
+  return IC_SUCCESS;
 }
 

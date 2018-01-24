@@ -96,6 +96,10 @@
 
 #include "ic_service_time.h"
 
+#include "ic_service_bas.h"
+
+#include "ic_driver_wdt.h"
+
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE         4                                           /**< Size of timer operation queues. */
 
@@ -152,6 +156,7 @@ static void power_manage(void)
 void vApplicationIdleHook( void )
 {
   NRF_LOG_FLUSH();
+  ic_wdt_refresh();
   power_manage();
 }
 
@@ -391,6 +396,7 @@ static void init_task (void *arg){
   ic_btn_usb_plug_handle_init(on_plug);
   m_welcome();
   ic_btn_pwr_long_press_handle_init(m_deep_sleep);
+  ic_wdt_init();
 
   ic_ads_service_init();
   ic_service_stream1_init();
@@ -399,6 +405,7 @@ static void init_task (void *arg){
   sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
   ic_service_timestamp_init();
   cmd_module_init();
+  ic_init_battery_update();
   on_disconnect();
   vTaskDelete(NULL);
   taskYIELD();
@@ -444,7 +451,7 @@ int main(void)
 
     NRF_LOG_INFO("Reset reason: %d; Ret val: %d\n", NRF_POWER->RESETREAS, sd_power_reset_reason_clr(0xFFFFFFFF));
 
-    m_welcome = NRF_POWER->RESETREAS & (0x01<<16) ? welcome : showoff;
+    m_welcome = NRF_POWER->RESETREAS & (0x01<<16) || NRF_POWER->RESETREAS & (0x01<<1)? welcome : showoff;
 
     NRF_LOG_INFO("GPREGRET: %d\n", NRF_POWER->GPREGRET);
 

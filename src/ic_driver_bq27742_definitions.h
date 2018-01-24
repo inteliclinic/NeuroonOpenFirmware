@@ -150,13 +150,6 @@ typedef enum {
   CHG_OFF
 }protector_flags;
 
-/** Battery charging state */
-typedef enum {
-  BATT_NOTCHARGING = 0,   //!< Charger disconnected
-  BATT_CHARGING = 1,    //!< Charger connected and battery is charging
-  BATT_CHARGED = 2,    //!< Charger connected and battery is full charged
-  BATT_CHARGER_FAULT =3 //!< Charger connected and battery is on fault state
-}en_chargerState;
 
 						/** DATA FLASH CONFIGURATION */
 /** PARAMETER */
