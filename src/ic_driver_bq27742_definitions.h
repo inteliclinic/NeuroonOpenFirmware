@@ -150,38 +150,46 @@ typedef enum {
   CHG_OFF
 }protector_flags;
 
+/** Battery charging state */
+typedef enum {
+  BATT_NOTCHARGING = 0,   //!< Charger disconnected
+  BATT_CHARGING = 1,    //!< Charger connected and battery is charging
+  BATT_CHARGED = 2,    //!< Charger connected and battery is full charged
+  BATT_CHARGER_FAULT =3 //!< Charger connected and battery is on fault state
+}en_chargerState;
+
 						/** DATA FLASH CONFIGURATION */
 /** PARAMETER */
 #define BQ27742_DATA_FLASH_BLOCK_SIZE       32
 /** Flash block */
 #define BQ27742_DATA_FLASH_BLOCK_0          0x00
-#define BQ27742_REGISTER_WRITE_DELAY        2000 //powinien by c 2000
+#define BQ27742_REGISTER_WRITE_DELAY        150 //powinien by c 2000
 #define BQ27742_REGISTER_READ_DELAY         1000
 
 /** SUBCLASS ID */
-#define BQ27742_SAFETY_CLASS_ID                 0x02
-#define BQ27742_CHARGE_CLASS_ID                 0x22
-#define BQ27742_CHARGE_TERMINATION_CLASS_ID     0x24
-#define BQ27742_JEITA_CLASS_ID                  0x27
-#define BQ27742_DATA_CLASS_ID                   0x30
-#define BQ27742_DISCHARGE_CLASS_ID              0x31
-#define BQ27742_MANUFACTURER_DATA_CLASS_ID      0x38
-#define BQ27742_INTEGRITY_CLASS_ID	        0x39
-#define BQ27742_MANUFACTURER_INFO_CLASS_ID      0x3A
-#define BQ27742_LIFETIME_DATA_CLASS_ID	        0x3B
-#define BQ27742_LIFETIME_TEMP_SAMPLES_CLASS_ID  0x3C
-#define BQ27742_REGISTERS_CLASS_ID              0x40
-#define BQ27742_LIFETIME_RES_CLASS_ID           0x40
-#define BQ27742_POWER_CLASS_ID                  0x44
-#define BQ27742_IT_CFG_CLASS_ID                 0x50
-#define BQ27742_CURRENT_TRESHOLD_CLASS_ID       0x51
-#define BQ27742_STATE_CLASS_ID                  0x52
-#define BQ27742_CHEM_ID_CLASS_ID                0x53
-#define BQ27742_R_A0_CLASS_ID                   0x58
-#define BQ27742_R_A0X_CLASS_ID                  0x59
-#define BQ27742_CALIBRATION_CLASS_ID            0x68
-#define BQ27742_CURRENT_CLASS_ID                0x6B
-#define BQ27742_CODES_CLASS_ID                0x70
+#define BQ27742_SAFETY_CLASS_ID                 2
+#define BQ27742_CHARGE_CLASS_ID                 34
+#define BQ27742_CHARGE_TERMINATION_CLASS_ID     36
+#define BQ27742_JEITA_CLASS_ID                  39
+#define BQ27742_DATA_CLASS_ID                   48
+#define BQ27742_DISCHARGE_CLASS_ID              49
+#define BQ27742_MANUFACTURER_DATA_CLASS_ID      56
+#define BQ27742_INTEGRITY_CLASS_ID	            57
+#define BQ27742_MANUFACTURER_INFO_CLASS_ID      58
+#define BQ27742_LIFETIME_DATA_CLASS_ID	        59
+#define BQ27742_LIFETIME_TEMP_SAMPLES_CLASS_ID  60
+#define BQ27742_REGISTERS_CLASS_ID              64
+#define BQ27742_LIFETIME_RES_CLASS_ID           66
+#define BQ27742_POWER_CLASS_ID                  68
+#define BQ27742_IT_CFG_CLASS_ID                 80
+#define BQ27742_CURRENT_TRESHOLD_CLASS_ID       81
+#define BQ27742_STATE_CLASS_ID                  82
+#define BQ27742_CHEM_ID_CLASS_ID                83
+#define BQ27742_R_A0_CLASS_ID                   88
+#define BQ27742_R_A0X_CLASS_ID                  89
+#define BQ27742_CALIBRATION_CLASS_ID            104
+#define BQ27742_CURRENT_CLASS_ID                107
+#define BQ27742_CODES_CLASS_ID                112
 
 #define BQ27742_SAFETY_CLASS_SIZE           22
 #define BQ27742_OV_PROT_THRESHOLD           4200
@@ -199,7 +207,7 @@ typedef enum {
 #define BQ27742_OT_DSG_RECOVERY             450
 //34
 #define BQ27742_CHARGE_CLASS_SIZE           2
-#define BQ27742_CHARGING_VOLTAGE_           4100
+#define BQ27742_CHARGING_VOLTAGE_VAL           4100
 //36
 #define BQ27742_TAPER_CURRENT	            150
 #define BQ27742_MIN_TAPER_CAPACITY          25
@@ -390,6 +398,7 @@ typedef enum {
 #define BQ27742_MAX_ALLOWED_CURRENT         8500
 #define BQ27742_MAX_CURRENT_PULSE_DURATION  10
 #define BQ27742_MAX_CURRENT_INTERRUPT_STEP  500
+#define BQ27742_RELAX_SMOOTH_TIME           1000
 //81
 #define BQ27742_DSG_CURRENT_THRESHOLD       60
 #define BQ27742_CHG_CURRENT_THRESHOLD       75
