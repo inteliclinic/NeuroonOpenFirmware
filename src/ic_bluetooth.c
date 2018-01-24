@@ -32,6 +32,7 @@
 
 #include "peer_manager.h"
 #include "ble_dis.h"
+#include "ble_bas.c"
 #include "ic_ble_service.h"
 
 #include "ble_conn_state.h"
@@ -63,6 +64,9 @@ extern void main_on_ble_evt(ble_evt_t * p_ble_evt);
 
 #define DEVICE_NAME                     "NeuroOn"                               /**< Name of device. Will be included in the advertising data. */
 #define MANUFACTURER_NAME               "Inteliclinic"                              /**< Manufacturer. Will be passed to Device Information Service. */
+
+#define DEFAULT_DFU_VERSION             "1.0"
+#define DEFAULT_HARDWARE_VERSION        "1.0e"
 
 #define APP_ADV_INTERVAL                300                                         /**< The advertising interval (in units of 0.625 ms. This value corresponds to 187.5 ms). */
 #define APP_ADV_TIMEOUT_IN_SECONDS      0                                           /**< The advertising timeout in units of seconds. */
@@ -256,22 +260,68 @@ static void gap_params_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
+
+void bas_event_handler(ble_bas_t *p_bas, ble_bas_evt_t *p_evt){
+  NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);
+}
+
+ble_bas_t m_ble_bas;
+
 /**@brief Function for initializing services that will be used by the application.
  */
 static void services_init(void)
 {
+  ble_gap_addr_t _mac;
   ble_dis_init_t dis_init;
+  sd_ble_gap_address_get(&_mac);
+
+  static uint8_t m_serial_buf[IC_CHAR_MAX_LEN];
+  uint8_t _n = 0;
+
+  for(int i=0; i<sizeof(_mac.addr); ++i){
+    _n += snprintf((char *)(&m_serial_buf[_n]), sizeof(m_serial_buf)-_n, "%x", _mac.addr[i]);
+  }
+
+  NRF_LOG_INFO("%s\n", (uint32_t)m_serial_buf);
+
+  // DIS
   memset(&dis_init, 0, sizeof(ble_dis_init_t));
+
   dis_init.manufact_name_str.length = strlen(MANUFACTURER_NAME);
-  dis_init.manufact_name_str.p_str = (uint8_t *)MANUFACTURER_NAME;
-  dis_init.sw_rev_str.length = strlen(NEUROON_OPEN_VERSION);
-  dis_init.sw_rev_str.p_str = (uint8_t *)NEUROON_OPEN_VERSION;
+  dis_init.manufact_name_str.p_str  = (uint8_t *)MANUFACTURER_NAME;
+
+  dis_init.sw_rev_str.length        = strlen(NEUROON_OPEN_VERSION);
+  dis_init.sw_rev_str.p_str         = (uint8_t *)NEUROON_OPEN_VERSION;
+
+  dis_init.serial_num_str.length    = strlen((char*)m_serial_buf);
+  dis_init.serial_num_str.p_str     = m_serial_buf;
+
+  dis_init.hw_rev_str.length        = strlen(DEFAULT_HARDWARE_VERSION);
+  dis_init.hw_rev_str.p_str         = (uint8_t *)DEFAULT_HARDWARE_VERSION;
+
+  dis_init.fw_rev_str.length        = strlen(DEFAULT_DFU_VERSION);
+  dis_init.fw_rev_str.p_str         = (uint8_t *)DEFAULT_DFU_VERSION;
   /*dis_init.dis_attr_md*/
 
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&dis_init.dis_attr_md.read_perm);
   BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&dis_init.dis_attr_md.write_perm);
   __auto_type err_code = ble_dis_init(&dis_init);
   APP_ERROR_CHECK(err_code);
+
+  // BAS
+  ble_bas_init_t bas_init;
+  memset(&bas_init, 0, sizeof(ble_bas_init_t));
+
+  bas_init.initial_batt_level = 67;
+  bas_init.support_notification = false;
+  bas_init.evt_handler = bas_event_handler;
+
+  BLE_GAP_CONN_SEC_MODE_SET_OPEN(&bas_init.battery_level_char_attr_md.read_perm);
+  BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&bas_init.battery_level_char_attr_md.write_perm);
+
+  err_code = ble_bas_init(&m_ble_bas, &bas_init);
+  APP_ERROR_CHECK(err_code);
+
 
   ble_iccs_init_t iccs_init;
   ble_iccs_init(&iccs_init);
@@ -636,8 +686,8 @@ static void advertising_init(void)
 
     // Build advertising data struct to pass into @ref ble_advertising_init.
     memset(&advdata, 0, sizeof(advdata));
-
     advdata.name_type               = BLE_ADVDATA_FULL_NAME;
+
     advdata.include_appearance      = false;
     advdata.flags                   = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
     advdata.uuids_complete.uuid_cnt = sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);

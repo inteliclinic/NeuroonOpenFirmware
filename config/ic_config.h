@@ -14,6 +14,9 @@
 #include "app_util_platform.h"
 #include "ic_common_types.h"
 
+
+#define IC_CHAR_MAX_LEN 20
+
 #ifndef NEUROON_OPEN_VERSION
 #define APP_VERSION "NILL"
 #else
@@ -61,12 +64,10 @@
  *  @{
  */
 
-#define IC_BUTTON_LONG_PRESS_OFFSET 1500
+#define IC_BUTTON_LONG_PRESS_OFFSET pdMS_TO_TICKS(500)
 
 #define IC_BUTTON_PWR_BUTTON_PIN    12
 #define IC_BUTTON_USB_CONNECT_PIN   11
-#define IC_ACC_EXTI_PIN      17
-#define IC_AFE_EXTI_PIN      0
 
 /** @} */
 
@@ -95,6 +96,8 @@
 #define IC_SPI_AFE_SS_PIN   2
 #define IC_SPI_AFE_RESET_PIN   10
 #define IC_SPI_AFE_PDN_PIN   30
+
+#define IC_SPI_PENDIG_TRANSACTIONS  5
 
 /** @} */
 
@@ -131,6 +134,59 @@
  */
 
 #define IC_ADS_TICK_PERIOD 8
+
+/** @} */
+
+/*
+ *
+ * STREAM1 (ACC, AFE, THERMOMETER)
+ *
+ */
+/** @defgroup IC_STREAM1
+ *  @{
+ */
+
+#define IC_ACC_EXTI_PIN       17
+#define IC_AFE_EXTI_PIN       0
+
+#define IC_STREAM1_TICK_PERIOD    32
+
+/** @} */
+/*
+ *
+ * AFE
+ *
+ */
+/** @defgroup IC_AFE
+ *  @{
+ */
+#define IC_AFE_LED_IR   0x3F
+#define IC_AFE_LED_RED  0x05
+
+/** @} */
+/*
+ *
+ * ACC
+ *
+ */
+/** @defgroup IC_ACC
+ *  @{
+ */
+#define IC_ACC_RESOLUTION
+
+/** @} */
+
+/*
+ *
+ * BQ
+ *
+ */
+
+/** @defgroup IC_BQ
+ *  @{
+ */
+
+#define IC_BQ27742_TWI_ADDRESS 0xAA
 
 /** @} */
 

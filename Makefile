@@ -12,6 +12,7 @@ $(OUTPUT_DIRECTORY)/$(TARGET).out: \
   LINKER_SCRIPT  := linker_script.ld
 
 # Source files common to all targets
+
 SRC_FILES += \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_frontend.c \
@@ -50,8 +51,10 @@ SRC_FILES += \
   $(PROJ_DIR)/src/ic_driver_twi.c\
   $(PROJ_DIR)/src/ic_driver_ads.c\
   $(PROJ_DIR)/src/ic_driver_lis3dh.c\
-  $(PROJ_DIR)/src/ic_acc_driver.c\
-  $(PROJ_DIR)/src/ic_acc_service.c\
+  $(PROJ_DIR)/src/ic_driver_afe4400.c\
+  $(PROJ_DIR)/src/ic_driver_bq27742.cpp\
+  $(PROJ_DIR)/src/ic_driver_acc.c\
+  $(PROJ_DIR)/src/ic_service_stream1.c\
   $(PROJ_DIR)/src/ic_service_ads.c\
   $(PROJ_DIR)/src/ic_service_time.c\
   $(PROJ_DIR)/src/ic_easy_ltc_driver.c\
@@ -237,10 +240,9 @@ LIB_FILES += \
 
 # C flags common to all targets
 #CFLAGS += -DBOARD_CUSTOM
-CFLAGS += -D__STACK_SIZE=4096
+CFLAGS += -D__STACK_SIZE=3072
 CFLAGS += -D__HEAP_SIZE=0
 CFLAGS += -DFREERTOS
-CFLAGS += -std=gnu11
 CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -DNRF51
 CFLAGS += -DS130
@@ -251,7 +253,7 @@ CFLAGS += -DNRF_SD_BLE_API_VERSION=2
 CFLAGS += -DNRF_DFU_SETTINGS_VERSION=1
 CFLAGS += -mcpu=cortex-m0
 CFLAGS += -mthumb -mabi=aapcs
-CFLAGS += -Wall -Werror -O3 -g0
+CFLAGS += -Wall -Werror -O2 -g0
 CFLAGS += -mfloat-abi=soft
 # keep every function in separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
@@ -261,7 +263,8 @@ CFLAGS += -DNEUROON_OPEN_VERSION=\"$(GIT_VERSION)\"\
 #CFLAGS += -DDEBUG_NRF
 
 # C++ flags common to all targets
-CXXFLAGS += \
+CXXFLAGS += -std=c++14
+# keep every function in separate section, this allows linker to discard unused ones
 
 # Assembler flags common to all targets
 ASMFLAGS += -x assembler-with-cpp
@@ -272,7 +275,7 @@ ASMFLAGS += -DBLE_STACK_SUPPORT_REQD
 ASMFLAGS += -DSWI_DISABLE0
 ASMFLAGS += -DNRF51822
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=2
-ASMFLAGS += -D__STACK_SIZE=4096
+ASMFLAGS += -D__STACK_SIZE=3072
 ASMFLAGS += -D__HEAP_SIZE=0
 #ASMFLAGS += -DDEBUG
 #ASMFLAGS += -DDEBUG_NRF

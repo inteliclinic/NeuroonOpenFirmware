@@ -20,8 +20,8 @@
 
 #include "ic_config.h"
 
-#ifndef CHAR_MAX_LEN
-#define CHAR_MAX_LEN 20
+#ifndef IC_CHAR_MAX_LEN
+#define IC_CHAR_MAX_LEN 20
 #endif //CHAR_MAX_LEN
 
 #define LAMBDA(c_) ({ c_ _;}) // TODO: only for quick debug
@@ -123,7 +123,6 @@ static uint32_t char_add(
 
   /*BLE_UUID_BLE_ASSIGN(_ble_uuid, uuid);*/
   _ble_uuid.type = m_service_desc.uuid_type;
-  NRF_LOG_INFO("_ble_uuid.type = %d\n",_ble_uuid.type);
   _ble_uuid.uuid = uuid;
   memset(&_attr_md, 0, sizeof(_attr_md));
 
@@ -166,7 +165,7 @@ uint32_t ble_iccs_init(const ble_iccs_init_t *iccs_init){
     _err_code = char_add(
         m_char_stream_list[i].uuid,
         NULL,
-        CHAR_MAX_LEN,
+        IC_CHAR_MAX_LEN,
         &m_char_stream_list[i].char_handle,
         m_char_stream_list[i].read_write_notify);
   }
@@ -191,7 +190,7 @@ static ic_return_val_e ble_iccs_send_to_char(
 
   // Send value if connected and notifying
   if (characteristic_handle->notification_connected){
-    uint16_t hvx_len = len>CHAR_MAX_LEN ? CHAR_MAX_LEN : len;
+    uint16_t hvx_len = len>IC_CHAR_MAX_LEN ? IC_CHAR_MAX_LEN : len;
     ble_gatts_hvx_params_t hvx_params;
 
     memset(&hvx_params, 0, sizeof(hvx_params));

@@ -37,6 +37,7 @@ const float m_beta_factor_vib1 = IC_LTC_VIB_MAX_VAL/63.0;
 static TimerHandle_t m_ltc_refresh_timer_handle = NULL;
 static TimerHandle_t m_ltc_blink_timer_handle = NULL;
 static TaskHandle_t m_ltc_refresh_task_handle = NULL;
+static bool m_module_initialized = false;
 
 static struct device_state_s{
   uint8_t desired_val;
@@ -366,8 +367,8 @@ static ic_return_val_e actuator_set_func(
   device->cur_period = 0;
   device->cur_duration = 0;
 
-  if(device->device == ACTUATOR_POWER_LEDS && func != FUN_TYPE_OFF)
-    device->func = FUN_TYPE_BLINK;
+  if(device->device == ACTUATOR_POWER_LEDS && func != FUN_TYPE_BLINK)
+    device->func = FUN_TYPE_OFF;
   else
     device->func = func;
 
@@ -497,6 +498,7 @@ ic_return_val_e ic_actuator_set_ramp_func(
 }
 
 ic_return_val_e ic_ltc_service_init(){
+  if(m_module_initialized) return IC_SUCCESS;
 
   nrf_gpio_cfg_output(24);
   ic_actuator_init();
@@ -527,6 +529,22 @@ ic_return_val_e ic_ltc_service_init(){
         IC_IRQ_PRIORITY_LOW,
         &m_ltc_refresh_task_handle))
     APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+
+  m_module_initialized = true;
+
+  return IC_SUCCESS;
+}
+
+ic_return_val_e ic_ltc_service_deinit(){
+  nrf_gpio_cfg_default(24);
+  if(m_module_initialized == false) return IC_NOT_INIALIZED;
+  ic_actuator_deinit();
+
+  __auto_type _ret_val = pdTRUE;
+  UNUSED_VARIABLE(_ret_val);
+  STOP_TIMER(m_ltc_refresh_timer_handle, 0, _ret_val);
+
+  vTaskSuspend(m_ltc_refresh_task_handle);
 
   return IC_SUCCESS;
 }

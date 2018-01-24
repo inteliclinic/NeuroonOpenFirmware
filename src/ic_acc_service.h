@@ -6,7 +6,7 @@
  *
  * Description
  */
-#include "ic_acc_driver.h"
+#include "ic_driver_acc.h"
 
 /**
  * Define whether you want to use accelerometer in EXTINT mode

@@ -54,11 +54,19 @@ static void on_pwr_long_press(){
   NRF_LOG_INFO("{%s}\n\r", (uint32_t)__func__);
 }
 
+static void on_usb_plug(){
+  NRF_LOG_INFO("{%s}\n\r", (uint32_t)__func__);
+}
+static void on_usb_unplug(){
+  NRF_LOG_INFO("{%s}\n\r", (uint32_t)__func__);
+}
+
+
 static p_btn_code m_pwr_press_handle = on_pwr_press;
 static p_btn_code m_pwr_release_handle = on_pwr_release;
 static p_btn_code m_pwr_long_press_handle = on_pwr_long_press;
-static p_btn_code m_usb_connect_handle = NULL;
-static p_btn_code m_usb_disconnect_handle = NULL;
+static p_btn_code m_usb_plug_handle = on_usb_plug;
+static p_btn_code m_usb_unplug_handle = on_usb_unplug;
 static p_exti_code m_acc_handle = NULL;
 static p_exti_code m_afe_handle = NULL;
 
@@ -72,11 +80,11 @@ static struct {
     .pull_cfg = GPIO_PIN_CNF_PULL_Pulldown,
     .exti_callback_code = exti_callback
   },
-  {
-    .pin_no = IC_AFE_EXTI_PIN,
-    .pull_cfg = GPIO_PIN_CNF_PULL_Pulldown,
-    .exti_callback_code = exti_callback
-  }
+//  {
+//    .pin_no = IC_AFE_EXTI_PIN,
+//    .pull_cfg = GPIO_PIN_CNF_PULL_Pulldown,
+//    .exti_callback_code = irq_function_handler
+//  }
 };
 
 static app_button_cfg_t m_buttons[] = {
@@ -88,7 +96,7 @@ static app_button_cfg_t m_buttons[] = {
   },
   {
     .pin_no = IC_BUTTON_USB_CONNECT_PIN,
-    .active_state = APP_BUTTON_ACTIVE_HIGH,
+    .active_state = APP_BUTTON_ACTIVE_LOW,
     .pull_cfg = GPIO_PIN_CNF_PULL_Disabled,
     .button_handler = exti_btn_callback
   }
@@ -106,12 +114,12 @@ void  ic_btn_pwr_long_press_handle_init(p_btn_code code){
   m_pwr_long_press_handle = code;
 }
 
-void ic_btn_usb_connect_handle_init(p_btn_code code){
-  m_usb_connect_handle = code;
+void ic_btn_usb_plug_handle_init(p_btn_code code){
+  m_usb_plug_handle = code;
 }
 
-void ic_btn_usb_disconnect_handle_init(p_btn_code code){
-  m_usb_disconnect_handle = code;
+void ic_btn_usb_unplug_handle_init(p_btn_code code){
+  m_usb_unplug_handle = code;
 }
 
 void ic_acc_exti_handle_init(p_exti_code code){
@@ -134,7 +142,7 @@ ic_return_val_e ic_neuroon_exti_init(void){
     {
       .is_watcher = false,
       .hi_accuracy = true,
-      .pull = NRF_GPIO_PIN_NOPULL,
+      .pull = m_exti[i].pull_cfg,
       .sense = NRF_GPIOTE_POLARITY_TOGGLE,
     };
     err_code = nrf_drv_gpiote_in_init(m_exti[i].pin_no, &_pin_config, m_exti[i].exti_callback_code);
@@ -170,6 +178,12 @@ static void exti_callback(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t button
       if(m_afe_handle!=NULL)
         m_afe_handle(button_action==NRF_GPIOTE_POLARITY_LOTOHI?EXTI_EDGE_UP:EXTI_EDGE_DOWN);
       break;
+    case IC_BUTTON_USB_CONNECT_PIN:
+        if(nrf_gpio_pin_read(pin))
+          EXECUTE_HANDLER(m_usb_unplug_handle);
+        else
+          EXECUTE_HANDLER(m_usb_plug_handle);
+      break;
     default:
       NRF_LOG_ERROR("Unsupported pin %d!\n", pin);
       break;
@@ -197,6 +211,10 @@ static void exti_btn_callback(uint8_t pin, uint8_t button_action){
       }
       break;
     case IC_BUTTON_USB_CONNECT_PIN:
+      if(button_action == APP_BUTTON_PUSH)
+        EXECUTE_HANDLER(m_usb_plug_handle);
+      else
+        EXECUTE_HANDLER(m_usb_unplug_handle);
       break;
     default:
       NRF_LOG_ERROR("Unsupported pin %d!\n", pin);

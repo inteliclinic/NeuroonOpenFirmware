@@ -79,7 +79,7 @@
 
 
 #ifndef BLE_BAS_ENABLED
-#define BLE_BAS_ENABLED 0
+#define BLE_BAS_ENABLED 1
 #endif
 
 // <q> BLE_CSCS_ENABLED  - ble_cscs - Cycling Speed and Cadence Service
@@ -3479,7 +3479,7 @@
 // <e> NRF_LOG_ENABLED - nrf_log - Logging
 //==========================================================
 #ifndef NRF_LOG_ENABLED
-#define NRF_LOG_ENABLED 0
+#define NRF_LOG_ENABLED 1
 
 #endif
 #if  NRF_LOG_ENABLED
@@ -3576,7 +3576,7 @@
 // <i> Function for getting the timestamp is provided by the user
 
 #ifndef NRF_LOG_USES_TIMESTAMP
-#define NRF_LOG_USES_TIMESTAMP 1
+#define NRF_LOG_USES_TIMESTAMP 0
 #endif
 
 #endif //NRF_LOG_ENABLED
