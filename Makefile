@@ -40,9 +40,11 @@ SRC_FILES += \
   $(SDK_ROOT)/components/drivers_nrf/uart/nrf_drv_uart.c \
   $(SDK_ROOT)/components/drivers_nrf/spi_master/nrf_drv_spi.c \
   $(SDK_ROOT)/components/drivers_nrf/twi_master/nrf_drv_twi.c \
+  $(SDK_ROOT)/components/drivers_nrf/wdt/nrf_drv_wdt.c \
   $(PROJ_DIR)/main.c \
   $(PROJ_DIR)/src/ic_bluetooth.c \
   $(PROJ_DIR)/src/ic_ble_service.c \
+  $(PROJ_DIR)/src/ic_service_bas.c \
   $(PROJ_DIR)/src/ic_command_task.c \
   $(PROJ_DIR)/src/nrf_dfu_flash_buttonless.c \
   $(PROJ_DIR)/src/ic_driver_uart.c \
@@ -54,6 +56,7 @@ SRC_FILES += \
   $(PROJ_DIR)/src/ic_driver_afe4400.c\
   $(PROJ_DIR)/src/ic_driver_bq27742.cpp\
   $(PROJ_DIR)/src/ic_driver_acc.c\
+  $(PROJ_DIR)/src/ic_driver_wdt.c\
   $(PROJ_DIR)/src/ic_service_stream1.c\
   $(PROJ_DIR)/src/ic_service_ads.c\
   $(PROJ_DIR)/src/ic_service_time.c\
@@ -113,6 +116,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/ble/ble_services/ble_cts_c/ble_cts_c.c \
   $(SDK_ROOT)/components/ble/ble_db_discovery/ble_db_discovery.c \
   $(SDK_ROOT)/components/ble/ble_services/ble_dfu/ble_dfu.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_bas/ble_bas.c \
   $(SDK_ROOT)/components/libraries/bootloader/dfu/nrf_dfu_settings.c \
   #$(SDK_ROOT)/components/boards/boards.c \
   #$(SDK_ROOT)/components/libraries/bsp/bsp.c \
@@ -240,7 +244,7 @@ LIB_FILES += \
 
 # C flags common to all targets
 #CFLAGS += -DBOARD_CUSTOM
-CFLAGS += -D__STACK_SIZE=3072
+CFLAGS += -D__STACK_SIZE=2048
 CFLAGS += -D__HEAP_SIZE=0
 CFLAGS += -DFREERTOS
 CFLAGS += -DSOFTDEVICE_PRESENT
@@ -275,7 +279,7 @@ ASMFLAGS += -DBLE_STACK_SUPPORT_REQD
 ASMFLAGS += -DSWI_DISABLE0
 ASMFLAGS += -DNRF51822
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=2
-ASMFLAGS += -D__STACK_SIZE=3072
+ASMFLAGS += -D__STACK_SIZE=2048
 ASMFLAGS += -D__HEAP_SIZE=0
 #ASMFLAGS += -DDEBUG
 #ASMFLAGS += -DDEBUG_NRF

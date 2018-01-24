@@ -2833,7 +2833,7 @@
 // <e> WDT_ENABLED - nrf_drv_wdt - WDT peripheral driver
 //==========================================================
 #ifndef WDT_ENABLED
-#define WDT_ENABLED 0
+#define WDT_ENABLED 1
 #endif
 #if  WDT_ENABLED
 // <o> WDT_CONFIG_BEHAVIOUR  - WDT behavior in CPU SLEEP or HALT mode
@@ -3479,7 +3479,7 @@
 // <e> NRF_LOG_ENABLED - nrf_log - Logging
 //==========================================================
 #ifndef NRF_LOG_ENABLED
-#define NRF_LOG_ENABLED 1
+#define NRF_LOG_ENABLED 0
 
 #endif
 #if  NRF_LOG_ENABLED
