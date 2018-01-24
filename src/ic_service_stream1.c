@@ -49,7 +49,6 @@ static void stream1_timer_callback(TimerHandle_t xTimer){
   TAKE_SEMAPHORE(m_data_lock, 0, _semphr_successfull);
   if(_semphr_successfull == pdFALSE){
     NRF_LOG_ERROR("Stream1 TIMEOUT\n");
-    return;
   }
 
   m_stream1_timestamp = GET_TICK_COUNT();
@@ -174,9 +173,12 @@ ic_return_val_e ic_service_stream1_deinit(void){
 
 static void on_stream1_state_change(bool active){
   __auto_type _timer_ret_val = pdFAIL;
-  if(active)
+  if(active){
+    GIVE_SEMAPHORE(m_data_lock);
     START_TIMER (m_service_stream1_timer_handle, 0, _timer_ret_val);
+  }
   else{
+    GIVE_SEMAPHORE(m_data_lock);
     vTaskSuspend(m_send_data_task_handle);
     STOP_TIMER  (m_service_stream1_timer_handle, 0, _timer_ret_val);
     m_measurement_cnt = 0;

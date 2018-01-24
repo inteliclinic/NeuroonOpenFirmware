@@ -121,6 +121,77 @@ enum
 };
 
 /**
+ * @brief Clock edge mapping for SPI Registers macros
+ *
+ */
+  /*  Macros for pulse repetition frequency (PRF) = 500Hz
+   *  and duty cycle = 25%
+   */
+#define AFE4400_LED2STC_500HZ       6050
+#define AFE4400_LED2ENDC_500HZ      7998
+#define AFE4400_LED2LEDSTC_500HZ    6000
+#define AFE4400_LED2LEDENDC_500HZ   7999
+#define AFE4400_ALED2STC_500HZ      50
+#define AFE4400_ALED2ENDC_500HZ     1998
+#define AFE4400_LED1STC_500HZ       2050
+#define AFE4400_LED1ENDC_500HZ      3998
+#define AFE4400_LED1LEDSTC_500HZ    2000
+#define AFE4400_LED1LEDENDC_500HZ   3999
+#define AFE4400_ALED1STC_500HZ      4050
+#define AFE4400_ALED1ENDC_500HZ     5998
+#define AFE4400_LED2CONVST_500HZ    4
+#define AFE4400_LED2CONVEND_500HZ   1999
+#define AFE4400_ALED2CONVST_500HZ   2004
+#define AFE4400_ALED2CONVEND_500HZ  3999
+#define AFE4400_LED1CONVST_500HZ    4004
+#define AFE4400_LED1CONVEND_500HZ   5999
+#define AFE4400_ALED1CONVST_500HZ   6004
+#define AFE4400_ALED1CONVEND_500HZ  7999
+#define AFE4400_ADCRSTSTCT0_500HZ   0
+#define AFE4400_ADCRSTENDCT0_500HZ  3
+#define AFE4400_ADCRSTSTCT1_500HZ   2000
+#define AFE4400_ADCRSTENDCT1_500HZ  2003
+#define AFE4400_ADCRSTSTCT2_500HZ   4000
+#define AFE4400_ADCRSTENDCT2_500HZ  4003
+#define AFE4400_ADCRSTSTCT3_500HZ   6000
+#define AFE4400_ADCRSTENDCT3_500HZ  6003
+#define AFE4400_PRPCOUNT_500HZ      7999
+
+/*  Macros for pulse repetition frequency (PRF) = 64Hz
+ *  and duty cycle = 25%
+ */
+#define AFE4400_LED2STC_64HZ       0xB76B
+#define AFE4400_LED2ENDC_64HZ      0xF422
+#define AFE4400_LED2LEDSTC_64HZ    0xB71B
+#define AFE4400_LED2LEDENDC_64HZ   0xF423
+#define AFE4400_ALED2STC_64HZ      0x0050
+#define AFE4400_ALED2ENDC_64HZ     0x3D07
+#define AFE4400_LED1STC_64HZ       0x3D59
+#define AFE4400_LED1ENDC_64HZ      0x7A10
+#define AFE4400_LED1LEDSTC_64HZ    0x3D09
+#define AFE4400_LED1LEDENDC_64HZ   0x7A11
+#define AFE4400_ALED1STC_64HZ      0x7A62
+#define AFE4400_ALED1ENDC_64HZ     0xB719
+#define AFE4400_LED2CONVST_64HZ    0x0006
+#define AFE4400_LED2CONVEND_64HZ   0x3D08
+#define AFE4400_ALED2CONVST_64HZ   0x3D0F
+#define AFE4400_ALED2CONVEND_64HZ  0x7A11
+#define AFE4400_LED1CONVST_64HZ    0x7A18
+#define AFE4400_LED1CONVEND_64HZ   0xB71A
+#define AFE4400_ALED1CONVST_64HZ   0xB721
+#define AFE4400_ALED1CONVEND_64HZ  0xF423
+#define AFE4400_ADCRSTSTCT0_64HZ   0x0000
+#define AFE4400_ADCRSTENDCT0_64HZ  0x0005
+#define AFE4400_ADCRSTSTCT1_64HZ   0x3D09
+#define AFE4400_ADCRSTENDCT1_64HZ  0x3D0E
+#define AFE4400_ADCRSTSTCT2_64HZ   0x7A12
+#define AFE4400_ADCRSTENDCT2_64HZ  0x7A17
+#define AFE4400_ADCRSTSTCT3_64HZ   0xB71B
+#define AFE4400_ADCRSTENDCT3_64HZ  0xB720
+#define AFE4400_PRPCOUNT_64HZ      0xF423
+
+
+/**
  * @brief Spi data length
  *
  * Enumeration contains the length of spi transaction,
@@ -258,15 +329,81 @@ SPI_REGISTER(afe_spi_write);
 static uint8_t m_output_buffer[128];
 static uint8_t m_input_buffer[128] = {0};
 
-  /* Array with timing values you want to write to specific timing registers
-   * It is needed to write timing values in correct sequence (given in datasheet (page 31 table 2))
+  /** Array with timing values you want to write to specific timing registers
+   *  It is needed to write timing values in correct sequence (given in datasheet (page 31 table 2))
    */
-static uint16_t m_timing_data[29] =
+
+static uint16_t m_timing_data_500Hz[29] =
 {
-  6050,	7998, 6000, 7999, 50, 1998, 2050, 3998,	2000, 3999, 4050, 5998,
-  4, 1999, 2004, 3999, 4004, 5999, 6004, 7999, 0, 3, 2000, 2003, 4000,
-  4003,	6000, 6003, 7999
+  AFE4400_LED2STC_500HZ,
+  AFE4400_LED2ENDC_500HZ,
+  AFE4400_LED2LEDSTC_500HZ,
+  AFE4400_LED2LEDENDC_500HZ,
+  AFE4400_ALED2STC_500HZ,
+  AFE4400_ALED2ENDC_500HZ,
+  AFE4400_LED1STC_500HZ,
+  AFE4400_LED1ENDC_500HZ,
+  AFE4400_LED1LEDSTC_500HZ,
+  AFE4400_LED1LEDENDC_500HZ,
+  AFE4400_ALED1STC_500HZ,
+  AFE4400_ALED1ENDC_500HZ,
+  AFE4400_LED2CONVST_500HZ,
+  AFE4400_LED2CONVEND_500HZ,
+  AFE4400_ALED2CONVST_500HZ,
+  AFE4400_ALED2CONVEND_500HZ,
+  AFE4400_LED1CONVST_500HZ,
+  AFE4400_LED1CONVEND_500HZ,
+  AFE4400_ALED1CONVST_500HZ,
+  AFE4400_ALED1CONVEND_500HZ,
+  AFE4400_ADCRSTSTCT0_500HZ,
+  AFE4400_ADCRSTENDCT0_500HZ,
+  AFE4400_ADCRSTSTCT1_500HZ,
+  AFE4400_ADCRSTENDCT1_500HZ,
+  AFE4400_ADCRSTSTCT2_500HZ,
+  AFE4400_ADCRSTENDCT2_500HZ,
+  AFE4400_ADCRSTSTCT3_500HZ,
+  AFE4400_ADCRSTENDCT3_500HZ,
+  AFE4400_PRPCOUNT_500HZ
 };
+
+  /**
+   * Array with timing values for 64Hz data sampling
+   *
+   */
+/*
+static uint16_t m_timing_data_64Hz[29] =
+{
+  AFE4400_LED2STC_64HZ,
+  AFE4400_LED2ENDC_64HZ,
+  AFE4400_LED2LEDSTC_64HZ,
+  AFE4400_LED2LEDENDC_64HZ,
+  AFE4400_ALED2STC_64HZ,
+  AFE4400_ALED2ENDC_64HZ,
+  AFE4400_LED1STC_64HZ,
+  AFE4400_LED1ENDC_64HZ,
+  AFE4400_LED1LEDSTC_64HZ,
+  AFE4400_LED1LEDENDC_64HZ,
+  AFE4400_ALED1STC_64HZ,
+  AFE4400_ALED1ENDC_64HZ,
+  AFE4400_LED2CONVST_64HZ,
+  AFE4400_LED2CONVEND_64HZ,
+  AFE4400_ALED2CONVST_64HZ,
+  AFE4400_ALED2CONVEND_64HZ,
+  AFE4400_LED1CONVST_64HZ,
+  AFE4400_LED1CONVEND_64HZ,
+  AFE4400_ALED1CONVST_64HZ,
+  AFE4400_ALED1CONVEND_64HZ,
+  AFE4400_ADCRSTSTCT0_64HZ,
+  AFE4400_ADCRSTENDCT0_64HZ,
+  AFE4400_ADCRSTSTCT1_64HZ,
+  AFE4400_ADCRSTENDCT1_64HZ,
+  AFE4400_ADCRSTSTCT2_64HZ,
+  AFE4400_ADCRSTENDCT2_64HZ,
+  AFE4400_ADCRSTSTCT3_64HZ,
+  AFE4400_ADCRSTENDCT3_64HZ,
+  AFE4400_PRPCOUNT_64HZ
+};
+*/
 /**********************************************************************************************************/
 /**
  * @brief SPI transaction callback
@@ -744,7 +881,7 @@ void afe_set_default_timing(void)
  *
  * @endcode
  */
-void afe_set_timing_fast(uint16_t *timing_data, size_t data_len)
+static void afe_set_timing_fast(uint16_t *timing_data, size_t data_len)
 {
   if (m_semaphore)
   {
@@ -842,7 +979,7 @@ static void afe_conf(void)
      * 		 If you give timing values in correct sequence, you do not need to worry about register addresses
      * !!!
      */
-  afe_set_timing_fast(m_timing_data, sizeof(m_timing_data) / sizeof(uint16_t));
+  afe_set_timing_fast(m_timing_data_500Hz, sizeof(m_timing_data_500Hz) / sizeof(uint16_t));
     /*	set led current on led1 and led2 (0 - 255)	*/
   afe_set_led_current(IC_AFE_LED_RED, IC_AFE_LED_IR);
     /***	set gain
@@ -891,8 +1028,12 @@ ic_return_val_e ic_afe_init(void)
  */
 ic_return_val_e ic_afe_deinit(void)
 {
+    /*  set all timing values to zero  */
+//  afe_set_timing_fast(0, sizeof(m_timing_data_500Hz) / sizeof(uint16_t));
     /*  for sure, you can set led current on leds to 0  */
-  afe_set_led_current(0, 0);
+//  afe_set_led_current(0, 0);
+    /*  reset afe4400 ti default valeus  */
+  afe_reset();
     /*  end afe measuring  */
   afe_end_measure();
     /*  uninit spi interface  */
