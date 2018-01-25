@@ -221,8 +221,10 @@ static void on_disconnect(void){
   ic_actuator_set_off_func(IC_VIBRATOR, 0, 0, 0);
   ic_actuator_set_off_func(IC_POWER_LEDS, 0, 0, 0);
 
-  ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, PERIOD, 0, 5);
-  ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 5);
+  ic_actuator_set_on_func(IC_LEFT_BLUE_LED, 0, 0, 3);
+  ic_actuator_set_on_func(IC_RIGHT_BLUE_LED, 0, 0, 3);
+  /*ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, PERIOD, 0, 5);*/
+  /*ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 5);*/
 }
 
 static void on_charging(void){
@@ -252,13 +254,26 @@ static void on_charged(void){
   ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, PERIOD<<1, 0, 50);
 }
 
+typedef enum{
+  IC_BLATCH_UNKNOWN = 0x00,
+  IC_BLATCH_N_FULL  = 0x01,
+  IC_BLATCH_FULL    = 0x02
+}e_batteryLatch;
 static TimerHandle_t m_charging_timer_handle = NULL;
 static void charging_timer_callback(TimerHandle_t xTimer){
   UNUSED_PARAMETER(xTimer);
-  if(ic_bq_getChargeLevel() >= IC_BATTERY_CHARGED)
+  static e_batteryLatch _latch = IC_BLATCH_UNKNOWN;
+  __auto_type _bat = ic_bq_getChargerState();
+  NRF_LOG_INFO("%d \n", _bat);
+  if(_bat == BATT_CHARGED && _latch != IC_BLATCH_FULL){
+    _latch = IC_BLATCH_FULL;
+    NRF_LOG_INFO("Battery full: %d \n", _bat);
     on_charged();
-  else
+  }else if(_bat != BATT_CHARGED && _latch != IC_BLATCH_N_FULL){
+    _latch = IC_BLATCH_N_FULL;
+    NRF_LOG_INFO("Battery not full: %d \n", _bat);
     on_charging();
+  }
 }
 
  void welcome(void){
@@ -418,7 +433,7 @@ static void init_task (void *arg){
 
     ic_btn_usb_unplug_handle_init(on_unplug);
 
-    if(ic_bq_getChargeLevel() >= IC_BATTERY_CHARGED)
+    if(ic_bq_getChargerState() == BATT_CHARGED)
       on_charged();
     else
       on_charging();
