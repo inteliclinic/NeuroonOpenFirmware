@@ -185,7 +185,9 @@
  *  @{
  */
 
-#define IC_BAS_TICK_PERIOD  pdMS_TO_TICKS(6000)
+#define IC_BAS_TICK_PERIOD        pdMS_TO_TICKS(6000)
+#define IC_CHARGING_TICK_PERIOD   pdMS_TO_TICKS(6000)
+#define IC_BATTERY_CHARGED        95 //in %
 
 /** @} */
 

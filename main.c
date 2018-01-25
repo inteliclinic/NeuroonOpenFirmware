@@ -98,6 +98,7 @@
 
 #include "ic_service_bas.h"
 
+#include "ic_driver_bq27742.h"
 #include "ic_driver_wdt.h"
 
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
@@ -213,15 +214,15 @@ static void on_connect(void){
 }
 
 static void on_disconnect(void){
-  ic_actuator_set_off_func(IC_LEFT_RED_LED, 0, 0, 63);
-  ic_actuator_set_off_func(IC_RIGHT_RED_LED, 0, 0, 63);
-  ic_actuator_set_off_func(IC_LEFT_GREEN_LED, 0, 0, 30);
-  ic_actuator_set_off_func(IC_RIGHT_GREEN_LED, 0, 0, 30);
+  ic_actuator_set_off_func(IC_LEFT_RED_LED, 0, 0, 30);
+  ic_actuator_set_off_func(IC_RIGHT_RED_LED, 0, 0, 30);
+  ic_actuator_set_off_func(IC_LEFT_GREEN_LED, 0, 0, 15);
+  ic_actuator_set_off_func(IC_RIGHT_GREEN_LED, 0, 0, 15);
   ic_actuator_set_off_func(IC_VIBRATOR, 0, 0, 0);
   ic_actuator_set_off_func(IC_POWER_LEDS, 0, 0, 0);
 
-  ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, PERIOD, 0, 63);
-  ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 63);
+  ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, PERIOD, 0, 5);
+  ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 5);
 }
 
 static void on_charging(void){
@@ -229,11 +230,35 @@ static void on_charging(void){
   ic_actuator_set_off_func(IC_RIGHT_RED_LED, 0, 0, 63);
   ic_actuator_set_off_func(IC_LEFT_GREEN_LED, 0, 0, 30);
   ic_actuator_set_off_func(IC_RIGHT_GREEN_LED, 0, 0, 30);
+  ic_actuator_set_off_func(IC_LEFT_BLUE_LED, 0, 0, 0);
+  ic_actuator_set_off_func(IC_RIGHT_BLUE_LED, 0, 0, 0);
   ic_actuator_set_off_func(IC_VIBRATOR, 0, 0, 0);
   ic_actuator_set_off_func(IC_POWER_LEDS, 0, 0, 0);
 
   ic_actuator_set_triangle_func(IC_LEFT_RED_LED, PERIOD<<1, 0, 50);
   /*ic_actuator_set_triangle_func(IC_RIGHT_RED_LED, PERIOD<<1, 0, 50);*/
+}
+
+static void on_charged(void){
+  ic_actuator_set_off_func(IC_LEFT_RED_LED, 0, 0, 0);
+  ic_actuator_set_off_func(IC_RIGHT_RED_LED, 0, 0, 0);
+  ic_actuator_set_off_func(IC_LEFT_GREEN_LED, 0, 0, 0);
+  ic_actuator_set_off_func(IC_RIGHT_GREEN_LED, 0, 0, 0);
+  ic_actuator_set_off_func(IC_LEFT_BLUE_LED, 0, 0, 0);
+  ic_actuator_set_off_func(IC_RIGHT_BLUE_LED, 0, 0, 0);
+  ic_actuator_set_off_func(IC_VIBRATOR, 0, 0, 0);
+  ic_actuator_set_off_func(IC_POWER_LEDS, 0, 0, 0);
+
+  ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, PERIOD<<1, 0, 50);
+}
+
+static TimerHandle_t m_charging_timer_handle = NULL;
+static void charging_timer_callback(TimerHandle_t xTimer){
+  UNUSED_PARAMETER(xTimer);
+  if(ic_bq_getChargeLevel() >= IC_BATTERY_CHARGED)
+    on_charged();
+  else
+    on_charging();
 }
 
  void welcome(void){
@@ -308,7 +333,10 @@ static void on_plug(){
 }
 
 static void on_unplug(){
+  __auto_type _timer_ret_val = pdFAIL;
   m_shutdown_source = IC_USB_UNPLUG_SRC;
+  STOP_TIMER(m_charging_timer_handle, 0, _timer_ret_val);
+  UNUSED_VARIABLE(_timer_ret_val);
   RESUME_TASK(m_cleanup_task);
 }
 
@@ -377,10 +405,26 @@ static void init_task (void *arg){
   ic_neuroon_exti_init();
   ic_ltc_service_init();
 
+  if(m_charging_timer_handle == NULL)
+    m_charging_timer_handle = xTimerCreate(
+        "CHARGING",
+        IC_CHARGING_TICK_PERIOD,
+        pdTRUE,
+        (void *) 0,
+        charging_timer_callback);
   if(!ic_button_pressed(IC_BUTTON_USB_CONNECT_PIN)){
     NRF_LOG_INFO("----====USB CONNECTED====----\n");
+    __auto_type _timer_ret_val = pdFAIL;
+
     ic_btn_usb_unplug_handle_init(on_unplug);
-    on_charging();
+
+    if(ic_bq_getChargeLevel() >= IC_BATTERY_CHARGED)
+      on_charged();
+    else
+      on_charging();
+    START_TIMER(m_charging_timer_handle, 0, _timer_ret_val);
+    if(_timer_ret_val != pdPASS)
+      NRF_LOG_ERROR("Charging timer not started");
     vTaskDelete(NULL);
     taskYIELD();
   }
