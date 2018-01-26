@@ -37,7 +37,7 @@ FlashReturnType init_flash_driver(ic_flash_FLASH_DEVICE_OBJECT *flash_device_obj
   m_flash_object = flash_device_object;
 
   __auto_type _ret = MICRON_FlashReadDeviceIdentification(&_device_ID);
-              /*_ret = EON_FlashReadDeviceIdentification(&_device_ID);*/
+              _ret = EON_FlashReadDeviceIdentification(&_device_ID);
 
   if(_ret == Flash_Success)
     m_flash_object->Desc.FlashID = _device_ID;
@@ -78,6 +78,7 @@ FlashReturnType init_flash_driver(ic_flash_FLASH_DEVICE_OBJECT *flash_device_obj
     m_flash_object->GenOp.FlashExit4ByteMode             = EON_FlashExit4ByteMode;
     m_flash_object->GenOp.FlashEnterDeepPwrDown          = EON_FlashEnterDeepPwrDown;
     m_flash_object->GenOp.FlashExitDeepPwrDown           = EON_FlashExitDeepPwrDown;
+    m_flash_object->GenOp.FlashSoftReset                 = EON_FlashSoftReset;
 
     /**
      * if more functions were implemented, assigns them to GenOp pointer (here and in ic_flash_general header file)

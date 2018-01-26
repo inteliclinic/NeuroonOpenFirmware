@@ -307,4 +307,5 @@ FlashReturnType EON_FlashGenWrite(uint16_t block_addr, uint8_t sector_addr, uint
  */
 FlashReturnType EON_FlashGenWriteSafety(uint16_t block_addr, uint8_t sector_addr, uint8_t page_addr, uint8_t *data_input, size_t len, ic_flash_FLASH_DEVICE_OBJECT *fdo);
 
+FlashReturnType EON_FlashSoftReset(void);
 #endif /*  IC_DRIVER_FLASH_EON_H  */

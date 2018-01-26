@@ -65,7 +65,7 @@
 ic_return_val_e m_is_driver_init;
 
   /*	Declare flash object  */
-static ic_flash_FLASH_DEVICE_OBJECT m_flash_micron;
+static ic_flash_FLASH_DEVICE_OBJECT m_flash_object;
 
   /*   variables for handling the tasks    */
 static TaskHandle_t m_wait_thread = NULL;
@@ -179,7 +179,7 @@ void flash_waiting(void *arg)
 ic_return_val_e ic_flash_driver_init(void)
 {
     /*	Initialize your object - check what type of flash is connected and fill flash description structure	*/
-  __auto_type _ret_val = init_flash_driver(&m_flash_micron);
+  __auto_type _ret_val = init_flash_driver(&m_flash_object);
 
   if (_ret_val != Flash_Init_Success)
   {
@@ -187,10 +187,12 @@ ic_return_val_e ic_flash_driver_init(void)
 
     return IC_ERROR;
   }
+  m_flash_object.GenOp.FlashSoftReset();
+
     /*	enter 4 byte addressing mode	*/
-  _ret_val = m_flash_micron.GenOp.FlashWriteEnable(&m_flash_micron);
+  _ret_val = m_flash_object.GenOp.FlashWriteEnable(&m_flash_object);
   if (_ret_val == Flash_Success)
-    _ret_val = m_flash_micron.GenOp.FlashEnter4ByteMode(&m_flash_micron);
+    _ret_val = m_flash_object.GenOp.FlashEnter4ByteMode(&m_flash_object);
 
   return IC_SUCCESS;
 }
@@ -415,11 +417,6 @@ ic_return_val_e ic_flash_init(void)
 {
   /*NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);*/
 
-    /*	initialize uart	interface	*/
-#ifdef UART_DEBUG
-  ic_uart_init();
-  printf("UART after initialization\r\n");
-#endif
     /*  GPIO CONFIGURE   */
   configure_gpio();
     /*	initialize flash driver	*/

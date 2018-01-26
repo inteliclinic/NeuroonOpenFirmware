@@ -147,7 +147,14 @@ FlashReturnType EON_FlashWriteEnable(ic_flash_FLASH_DEVICE_OBJECT *fdo)
   if (m_flash_semaphore != false)
   {
     m_flash_semaphore = false;
-    __auto_type _ret_val = SPI_SEND_DATA(flash_write, m_input_buffer, m_output_buffer, FLASH_SEND_1BYTE, flash_drv_callback, NULL);
+    __auto_type _ret_val =
+        SPI_SEND_DATA(
+            flash_write,
+            m_input_buffer,
+            m_output_buffer,
+            FLASH_SEND_1BYTE,
+            flash_drv_callback,
+            NULL);
     if (_ret_val != IC_SUCCESS)
       return Flash_Error;
   }
@@ -155,11 +162,14 @@ FlashReturnType EON_FlashWriteEnable(ic_flash_FLASH_DEVICE_OBJECT *fdo)
     return Flash_OperationOngoing;
 
   while(m_flash_semaphore == false);
+
   do
   {
     fdo->GenOp.FlashReadStatusRegister(&_status_reg);
     _timeout++;
-  } while ((!(_status_reg & EON_SR_WEL_BIT) && _timeout < FLASH_TIMEOUT));
+  } while ((!
+      (_status_reg & EON_SR_WEL_BIT) &&
+      _timeout < FLASH_TIMEOUT));
 
   if (_timeout == FLASH_TIMEOUT)
     return Flash_OperationTimeOut;
@@ -596,3 +606,53 @@ FlashReturnType EON_FlashExit4ByteMode(ic_flash_FLASH_DEVICE_OBJECT *fdo)
   return Flash_Success;
 }
 /**********************************************************************************************************************************************************/
+FlashReturnType EON_FlashSoftReset(void)
+{
+  m_data_to_send->inst = EN25QH256_RSTEN_ADDR;
+
+  if(m_flash_semaphore != false)
+  {
+    m_flash_semaphore = false;
+    __auto_type _ret_val =
+        SPI_SEND_DATA(
+            flash_write,
+            m_input_buffer,
+            m_output_buffer,
+            FLASH_SEND_1BYTE,
+            flash_drv_callback,
+            NULL);
+    if (_ret_val != IC_SUCCESS)
+      return Flash_Error;
+  }
+  else
+    return Flash_OperationOngoing;
+
+  while(m_flash_semaphore == false);
+
+  m_data_to_send->inst = EN25QH256_RST_ADDR;
+
+  if(m_flash_semaphore != false)
+  {
+    m_flash_semaphore = false;
+    __auto_type _ret_val =
+        SPI_SEND_DATA(
+            flash_write,
+            m_input_buffer,
+            m_output_buffer,
+            FLASH_SEND_1BYTE,
+            flash_drv_callback,
+            NULL);
+    if (_ret_val != IC_SUCCESS)
+      return Flash_Error;
+  }
+  else
+    return Flash_OperationOngoing;
+
+  return Flash_Success;
+}
+/**********************************************************************************************************************************************************/
+
+
+
+
+

@@ -166,8 +166,13 @@ ic_filesys_return_type ic_read_file(s_mbr_info *file, char *filename, uint8_t *d
 			{
 				for (int j = 0; j < (file->source_info[i].end_addr - file->source_info[i].start_addr) / FILE_WRITE_PACK_SIZE; j++)
 				{
-					ic_flash_read((file->source_info[j].start_addr * ( j + 1 )), data, FILE_WRITE_PACK_SIZE, flash_service_cb);
-					data += FILE_WRITE_PACK_SIZE;
+				  if (data != NULL)
+				  {
+				    ic_flash_read((file->source_info[j].start_addr * ( j + 1 )), data, FILE_WRITE_PACK_SIZE, flash_service_cb);
+				    data += FILE_WRITE_PACK_SIZE;
+				  }
+				  else
+				    return IC_FILE_ERROR;
 
 				}
         return IC_FILE_SUCCESS;

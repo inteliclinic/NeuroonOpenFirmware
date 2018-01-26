@@ -129,6 +129,7 @@ struct _FLASH_OPERATION
   FlashReturnType (*FlashReadDeviceID) (uint32_t *);
   FlashReturnType (*FlashGenWrite) (uint16_t, uint8_t, uint8_t, uint8_t *, size_t, ic_flash_FLASH_DEVICE_OBJECT *fdo);
   FlashReturnType (*FlashUninit) (void);
+  FlashReturnType (*FlashSoftReset) (void);
   /**
    * Describe here more operations if you are using them
    **/

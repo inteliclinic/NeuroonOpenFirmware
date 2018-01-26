@@ -142,6 +142,7 @@ FlashReturnType MICRON_FlashWriteEnable(ic_flash_FLASH_DEVICE_OBJECT *fdo)
   size_t _timeout = 0;
 
   m_data_to_send->inst = N25Q256A_WRITE_EN;
+
   if (m_flash_semaphore != false)
   {
     m_flash_semaphore = false;
