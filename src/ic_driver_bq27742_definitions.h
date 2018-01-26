@@ -246,9 +246,9 @@ typedef enum {
 #define BQ27742_BL_SET_VOLT_THRESHOLD       3200
 #define BQ27742_BL_SET_VOLT_TIME            2
 #define BQ27742_BL_CLEAR_VOLT_THRESHOLD     3300
-#define BQ27742_BH_SET_VOLT_THRESHOLD       4000
+#define BQ27742_BH_SET_VOLT_THRESHOLD       4050 
 #define BQ27742_BH_VOLT_TIME                2
-#define BQ27742_BH_CLEAR_VOLT_THRESHOLD     3900
+#define BQ27742_BH_CLEAR_VOLT_THRESHOLD     3950
 //56
 #define BQ27742_PACK_LOT_CODE               0x0
 #define BQ27742_PCB_LOT_CODE                0x0
@@ -257,7 +257,7 @@ typedef enum {
 #define BQ27742_CELL_REVISION               0x0
 #define BQ27742_DF_CONFIG_VERSION           0x0
 //57
-#define BQ27742_ALL_DF_CHECKSUM	            0x0
+#define BQ27742_ALL_DF_CHECKSUM	            0xf0db
 #define BQ27742_STATIC_CHEM_DF_CHECKSUM     0x7A9F
 #define BQ27742_STATIC_DF_CHECKSUM          0x0
 #define BQ27742_PROT_CHECKSUM               0x9
@@ -448,7 +448,7 @@ typedef enum {
 //104
 // SZUKAJ ZMIENNYCH W PLIKU .c !!!!!!!!!!!!!!!!!!!!!!!
 
-#define BQ27742_CC_OFFSET_                  1454
+#define BQ27742_CC_OFFSET_                  1438
 #define BQ27742_BOARD_OFFSET_               -68
 #define BQ27742_INT_TEMP_OFFSET             0
 #define BQ27742_EXT_TEMP_OFFSET             0
