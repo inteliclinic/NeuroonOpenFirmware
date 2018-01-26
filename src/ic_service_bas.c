@@ -35,6 +35,7 @@ void ble_icbas_on_ble_evt(ble_evt_t *p_ble_evt){
 void icbas_evt_handler(ble_bas_t *p_bas, ble_bas_evt_t *p_evt){
   UNUSED_PARAMETER(p_bas);
   __auto_type _timer_ret_val = pdFAIL;
+  __auto_type _bat = ic_bq_getChargeLevel();
   switch (p_evt->evt_type){
     case BLE_BAS_EVT_NOTIFICATION_DISABLED:
       STOP_TIMER  (m_service_bas_timer_handle, 0, _timer_ret_val);
@@ -42,7 +43,7 @@ void icbas_evt_handler(ble_bas_t *p_bas, ble_bas_evt_t *p_evt){
       break; // BLE_BAS_EVT_NOTIFICATION_DISABLED
 
     case BLE_BAS_EVT_NOTIFICATION_ENABLED:
-      ble_bas_battery_level_update(&m_ble_bas, 0);  //TODO: brak funkcji BQ
+      ble_bas_battery_level_update(&m_ble_bas, _bat);  //TODO: brak funkcji BQ
       START_TIMER (m_service_bas_timer_handle, 0, _timer_ret_val);
       NRF_LOG_INFO("BAS notification connected.\r\n");
       break; // BLE_BAS_EVT_NOTIFICATION_ENABLED

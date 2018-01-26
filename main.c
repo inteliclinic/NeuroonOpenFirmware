@@ -264,14 +264,12 @@ static void charging_timer_callback(TimerHandle_t xTimer){
   UNUSED_PARAMETER(xTimer);
   static e_batteryLatch _latch = IC_BLATCH_UNKNOWN;
   __auto_type _bat = ic_bq_getChargerState();
-  NRF_LOG_INFO("%d \n", _bat);
+  ic_bq_read_measurement_data();
   if(_bat == BATT_CHARGED && _latch != IC_BLATCH_FULL){
     _latch = IC_BLATCH_FULL;
-    NRF_LOG_INFO("Battery full: %d \n", _bat);
     on_charged();
   }else if(_bat != BATT_CHARGED && _latch != IC_BLATCH_N_FULL){
     _latch = IC_BLATCH_N_FULL;
-    NRF_LOG_INFO("Battery not full: %d \n", _bat);
     on_charging();
   }
 }
