@@ -24,7 +24,7 @@
 
 static uint32_t temp_file_addr = FLASH_STARTING_ADDRESS;
 static volatile uint16_t temp_mbr_addr = 0;
-uint8_t output_buffer[256];
+uint8_t m_output_buffer[256];
 
 /*
 void callback_filesys(ic_flash_state *m_flash_state)
@@ -37,25 +37,25 @@ void callback_filesys(ic_flash_state *m_flash_state)
 ic_filesys_return_type ic_open_source(s_mbr_info *get_source)
 {
   /*NRF_LOG_INFO("MBR temp1: %d\r\n", temp_mbr_addr);*/
-	ic_mbr_read(output_buffer);
-	memcpy(&get_source->neuroon_sig, &output_buffer[FLASH_MBR_SECTOR_START], sizeof(uint32_t));
-	memcpy(&get_source->erasal_num, &output_buffer[FLASH_ERASAL_NUM_OFFSET], sizeof(uint32_t));
-	memcpy(&get_source->num_of_files, &output_buffer[FLASH_SOURCE_NUM_OFFSET], sizeof(uint32_t));
+	ic_mbr_read(m_output_buffer);
+	memcpy(&get_source->neuroon_sig, &m_output_buffer[FLASH_MBR_SECTOR_START], sizeof(uint32_t));
+	memcpy(&get_source->erasal_num, &m_output_buffer[FLASH_ERASAL_NUM_OFFSET], sizeof(uint32_t));
+	memcpy(&get_source->num_of_files, &m_output_buffer[FLASH_SOURCE_NUM_OFFSET], sizeof(uint32_t));
 	if (get_source->num_of_files != 0 && get_source->num_of_files < MAX_FILES_NUM)
 	{
 		for (int i=0; i < get_source->num_of_files; i++)
 		{
-			memcpy(&get_source->source_info[i].start_addr, &output_buffer[FLASH_SOURCE_START_ADDR_OFFSET + ( i * FLASH_SOURCE_STRUCT_LEN )], sizeof(uint32_t));
-			memcpy(&get_source->source_info[i].end_addr, &output_buffer[FLASH_SOURCE_END_ADDR_OFFSET + ( i * FLASH_SOURCE_STRUCT_LEN )], sizeof(uint32_t));
-			get_source->source_info[i].source_flag = output_buffer[FLASH_SOURCE_NAME_OFFSET + ( i * FLASH_SOURCE_STRUCT_LEN )];
-			memcpy(&get_source->source_info[i].source_name, &output_buffer[FLASH_SOURCE_ATTRIBUTE_OFFSET + ( i * FLASH_SOURCE_STRUCT_LEN )], FLASH_SOURCE_NAME_LENGTH);
+			memcpy(&get_source->source_info[i].start_addr, &m_output_buffer[FLASH_SOURCE_START_ADDR_OFFSET + ( i * FLASH_SOURCE_STRUCT_LEN )], sizeof(uint32_t));
+			memcpy(&get_source->source_info[i].end_addr, &m_output_buffer[FLASH_SOURCE_END_ADDR_OFFSET + ( i * FLASH_SOURCE_STRUCT_LEN )], sizeof(uint32_t));
+			get_source->source_info[i].source_flag = m_output_buffer[FLASH_SOURCE_NAME_OFFSET + ( i * FLASH_SOURCE_STRUCT_LEN )];
+			memcpy(&get_source->source_info[i].source_name, &m_output_buffer[FLASH_SOURCE_ATTRIBUTE_OFFSET + ( i * FLASH_SOURCE_STRUCT_LEN )], FLASH_SOURCE_NAME_LENGTH);
 		}
 	}
 	else
 	{
 		NRF_LOG_INFO("No files!\r\n");
 
-		return IC_FILE_EMPTY;
+		return IC_NOFILES;
 	}
 
 	return IC_FILE_SUCCESS;
@@ -90,9 +90,9 @@ ic_filesys_return_type ic_mbr_format(s_mbr_info *source_p, bool first_use)
 {
   if (first_use == false)
   {
-    ic_flash_read(0x00, output_buffer, FILE_WRITE_PACK_SIZE, flash_service_cb);
+    ic_flash_read(0x00, m_output_buffer, FILE_WRITE_PACK_SIZE, flash_service_cb);
 //	memcpy(&source_p->neuroon_sig, &output_buffer[0], sizeof(uint32_t));
-    memcpy(&source_p->erasal_num, &output_buffer[FLASH_ERASAL_NUM_OFFSET], sizeof(uint32_t));
+    memcpy(&source_p->erasal_num, &m_output_buffer[FLASH_ERASAL_NUM_OFFSET], sizeof(uint32_t));
   }
   else
   {

@@ -194,6 +194,8 @@ ic_return_val_e ic_flash_driver_init(void)
   if (_ret_val == Flash_Success)
     _ret_val = m_flash_object.GenOp.FlashEnter4ByteMode(&m_flash_object);
 
+  ic_flash_sector_erase(0x01, NULL);
+
   return IC_SUCCESS;
 }
 /*******************************************************************/

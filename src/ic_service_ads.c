@@ -59,6 +59,17 @@ void read_callback(int16_t eeg){
     RESUME_TASK(send_data_task_handle);
 }
 
+static s_mbr_info m_mbr_info =
+{
+  .neuroon_sig = 0x1234,
+  .erasal_num = 0x00,
+  .num_of_files = 0,
+  .source_info = {},
+  .not_used = {}
+};
+
+static volatile bool file_open = false;
+
 static void on_stream_state_change(bool active){
   __auto_type _timer_ret_val = pdFAIL;
   if(active)  START_TIMER (m_ads_service_timer_handle, 0, _timer_ret_val);
@@ -66,6 +77,15 @@ static void on_stream_state_change(bool active){
     vTaskSuspend(send_data_task_handle);
     STOP_TIMER  (m_ads_service_timer_handle, 0, _timer_ret_val);
     m_measurement_cnt = 0;
+    if (file_open)
+    {
+      file_open = false;
+      ic_close_file(&m_mbr_info, "ADS.TXT");
+//      uint8_t *_file_data = (uint8_t *)pvPortMalloc(512);
+//      ic_read_file(&m_mbr_info, "ADS.TXT", _file_data);
+//      vPortFree(_file_data);
+    }
+
   }
   UNUSED_PARAMETER(_timer_ret_val);
 }
@@ -125,24 +145,17 @@ void send_data_task(void *arg){
   }
 }
 
-static s_mbr_info m_mbr_info =
-{
-  .neuroon_sig = 0x1234,
-  .erasal_num = 0x00,
-  .num_of_files = 0,
-  .source_info = {},
-  .not_used = {}
-};
 
 void send_data_task_flash(void *arg){
 //  uint32_t _nrf_error;
   for(;;){
-//    __auto_type _err = ble_iccs_send_to_stream0(
-//        m_eeg_packet.raw_data,
-//        sizeof(u_eegDataFrameContainter),
-//        &_nrf_error);
 
-    __auto_type _err = ic_write_file(&m_mbr_info, "ADS.TXT", m_eeg_packet.raw_data);
+    file_open = true;
+        __auto_type _err =
+            ic_write_file(
+              &m_mbr_info,
+              "ADS.TXT",
+              m_eeg_packet.raw_data);
 
     switch(_err){
       case IC_FILE_SUCCESS:
@@ -161,8 +174,10 @@ void send_data_task_flash(void *arg){
 
 ic_return_val_e configure_file_ads_data()
 {
-  if (ic_mbr_format(&m_mbr_info, true) != IC_FILE_SUCCESS)
-    return IC_ERROR;
+  if (ic_open_source(&m_mbr_info) == IC_NOFILES)
+    if (ic_mbr_format(&m_mbr_info, true) != IC_FILE_SUCCESS)
+      return IC_ERROR;
+
   if (ic_create_file(&m_mbr_info, "ADS.TXT", 7) != IC_FILE_CREATED)
     return IC_ERROR;
   if (ic_open_file(&m_mbr_info, "ADS.TXT", IC_FILE_W) == IC_FILE_SUCCESS)
@@ -191,10 +206,10 @@ ic_return_val_e ic_ads_service_init(void){
         ads_timer_callback);
 
   if(send_data_task_handle == NULL)
-//    if(pdPASS != xTaskCreate(send_data_task, "BLET", 256, NULL, 3, &send_data_task_handle)){
-//      APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
-    if(pdPASS != xTaskCreate(send_data_task_flash, "ADS_FLASH", 256, NULL, 3, &send_data_task_handle)){
+    if(pdPASS != xTaskCreate(send_data_task, "BLET", 256, NULL, 3, &send_data_task_handle)){
       APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
+//    if(pdPASS != xTaskCreate(send_data_task_flash, "ADS_FLASH", 256, NULL, 3, &send_data_task_handle)){
+//      APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
     }
 
   ble_iccs_connect_to_stream0(on_stream_state_change);
