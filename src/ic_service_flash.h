@@ -28,9 +28,6 @@
 //#define _FLASH_FILESYSTEM_TEST
 
 
-typedef void (*func_finished)(ic_flash_state *m_flash_state);
-void flash_service_cb(ic_flash_state *flash_state);
-
 
 /**
  * @brief Initialize flash memory device

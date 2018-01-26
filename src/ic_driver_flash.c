@@ -165,6 +165,8 @@ FlashReturnType write_to_flash_specific(uint16_t block_addr,uint8_t sector_addr,
 FlashReturnType read_from_flash(uint32_t address, uint8_t *data_output, size_t len,
 		ic_flash_state *flash_state, func_finished cb)
 {
+  if (flash_state->state != nop)
+    return Flash_OperationOngoing;
   if (m_flash_object != NULL)
     m_flash_object->GenOp.FlashDataRead(address, data_output, len, m_flash_object);
   else

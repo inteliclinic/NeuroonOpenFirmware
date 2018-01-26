@@ -70,8 +70,11 @@ static ic_flash_FLASH_DEVICE_OBJECT m_flash_object;
   /*   variables for handling the tasks    */
 static TaskHandle_t m_wait_thread = NULL;
 
+static void (*m_flash_cb)(ic_flash_state *flash_state) = NULL;
+//void flash_service_cb(ic_flash_state *flash_state);
+
 /*******************************************************************/
-void flash_service_cb(ic_flash_state *flash_state);
+static void flash_service_cb(ic_flash_state *flash_state);
 
 static ic_flash_state m_flash_state =
 {
@@ -80,11 +83,13 @@ static ic_flash_state m_flash_state =
 };
 /*******************************************************************/
 	/*	callback function for dealing with flash time operations	*/
-void flash_service_cb(ic_flash_state *flash_state)
+static void flash_service_cb(ic_flash_state *flash_state)
 {
   NRF_LOG_INFO("{ %s } from %d\r\n", (uint32_t)__func__, flash_state->state);
     /*	flash ended doing operation, going back to nop state  */
   m_flash_state.state = nop;
+  if (m_flash_cb != NULL)
+    m_flash_cb(flash_state);
 }
 /*******************************************************  IC_FILE_SYSTEM  **********************************************************************/
 uint32_t temp_file_addr = FLASH_STARTING_ADDRESS;
@@ -216,7 +221,7 @@ uint8_t data_to_write[] =
 /******************************************************************************************************************************************************************/
 ic_return_val_e ic_flash_write(uint32_t address, uint8_t *data_to_write, size_t data_len, func_finished cb)
 {
-  if (write_to_flash(address, data_to_write, data_len, &m_flash_state, cb) != Flash_Success)
+  if (write_to_flash(address, data_to_write, data_len, &m_flash_state, flash_service_cb) != Flash_Success)
     return IC_ERROR;
   if(cb == NULL)
   {
@@ -224,14 +229,16 @@ ic_return_val_e ic_flash_write(uint32_t address, uint8_t *data_to_write, size_t 
     m_flash_state.state = nop;
   }
   else
-    while(m_flash_state.state != nop){ vTaskDelay(1); };
+     m_flash_cb = cb;
+  vTaskDelay(1);
+//    while(m_flash_state.state != nop){ vTaskDelay(1); };
   return IC_SUCCESS;
 }
 /******************************************************************************************************************************************************************/
 ic_return_val_e ic_flash_sector_erase(uint32_t address, func_finished cb)
 {
   ++(m_mbr_info.erasal_num);
-  if (erase_sector_from_flash(address, &m_flash_state, cb) != Flash_Success)
+  if (erase_sector_from_flash(address, &m_flash_state, flash_service_cb) != Flash_Success)
   {
     --(m_mbr_info.erasal_num);
     return IC_ERROR;
@@ -242,13 +249,15 @@ ic_return_val_e ic_flash_sector_erase(uint32_t address, func_finished cb)
     m_flash_state.state = nop;
   }
   else
-    while(m_flash_state.state != nop){ vTaskDelay(1); };
+    m_flash_cb = cb;
+  vTaskDelay(1);
+//    while(m_flash_state.state != nop){ vTaskDelay(1); };
   return IC_SUCCESS;
 }
 /******************************************************************************************************************************************************************/
 ic_return_val_e ic_flash_read(uint32_t address, uint8_t *read_data, size_t len, func_finished cb)
 {
-  if (read_from_flash(address, read_data, len, &m_flash_state, cb) != Flash_Success)
+  if (read_from_flash(address, read_data, len, &m_flash_state, flash_service_cb) != Flash_Success)
     return IC_ERROR;
   if(cb == NULL)
   {
@@ -256,14 +265,16 @@ ic_return_val_e ic_flash_read(uint32_t address, uint8_t *read_data, size_t len, 
     m_flash_state.state = nop;
   }
   else
-    while(m_flash_state.state != nop){ vTaskDelay(1); };
+    m_flash_cb = cb;
+  vTaskDelay(1);
+//    while(m_flash_state.state != nop){ vTaskDelay(1); };
   return IC_SUCCESS;
 }
 /******************************************************************************************************************************************************************/
 ic_return_val_e ic_flash_read_specific(uint16_t block_address, uint8_t sector_address, uint8_t page_address, uint8_t *read_data, size_t len,
 		func_finished cb)
 {
-  if (read_from_flash_specific(block_address, sector_address, page_address, read_data, len, &m_flash_state, cb) != Flash_Success)
+  if (read_from_flash_specific(block_address, sector_address, page_address, read_data, len, &m_flash_state, flash_service_cb) != Flash_Success)
     return IC_ERROR;
   if(cb == NULL)
   {
@@ -271,13 +282,15 @@ ic_return_val_e ic_flash_read_specific(uint16_t block_address, uint8_t sector_ad
     m_flash_state.state = nop;
   }
   else
-    while(m_flash_state.state != nop){ vTaskDelay(1); };
+    m_flash_cb = cb;
+  vTaskDelay(1);
+//    while(m_flash_state.state != nop){ vTaskDelay(1); };
   return IC_SUCCESS;
 }
 /******************************************************************************************************************************************************************/
 ic_return_val_e ic_flash_erase_chip(func_finished cb)
 {
-  if (erase_chip(&m_flash_state, cb) != Flash_Success)
+  if (erase_chip(&m_flash_state, flash_service_cb) != Flash_Success)
     return IC_ERROR;
   if(cb == NULL)
   {
@@ -285,7 +298,9 @@ ic_return_val_e ic_flash_erase_chip(func_finished cb)
     m_flash_state.state = nop;
   }
   else
-    while(m_flash_state.state != nop){ vTaskDelay(1); };
+    m_flash_cb = cb;
+  vTaskDelay(1);
+//    while(m_flash_state.state != nop){ vTaskDelay(1); };
   return IC_SUCCESS;
 }
 /******************************************************************************************************************************************************************/
@@ -398,13 +413,12 @@ void flash_test_read()
 /************************************************* FLASH TESTING *********************************************************/
 ic_return_val_e ic_flash_test(void)
 {
-  ic_flash_sector_erase(0xFAC, flash_service_cb);
-  ic_flash_write(0xFACE00, (uint8_t*)"TEST_FLASH_NEUROON_OPEN", 23, flash_service_cb);
-
+  ic_flash_sector_erase(0xFAC, NULL);
+  ic_flash_write(0xFACE00, (uint8_t*)"TEST_FLASH_NEUROON_OPEN", 23, NULL);
   uint8_t *_file_data = (uint8_t *)pvPortMalloc(23);
   if (_file_data != NULL)
   {
-    ic_flash_read(0xFACE00, _file_data, 23, flash_service_cb);
+    ic_flash_read(0xFACE00, _file_data, 23, NULL);
     NRF_LOG_INFO("{%s}: %s\r\n", (uint32_t)__func__, (uint32_t)_file_data);
   }
   vPortFree(_file_data);

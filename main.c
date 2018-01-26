@@ -396,6 +396,7 @@ static void init_task (void *arg){
   ic_btn_pwr_long_press_handle_init(m_deep_sleep);
 
   ic_flash_init();
+  ic_flash_test();
   ic_ads_service_init();
   ic_service_stream1_init();
   init_err_stream();

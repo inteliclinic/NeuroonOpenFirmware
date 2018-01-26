@@ -26,13 +26,14 @@ static uint32_t temp_file_addr = FLASH_STARTING_ADDRESS;
 static volatile uint16_t temp_mbr_addr = 0;
 uint8_t m_output_buffer[256];
 
-/*
-void callback_filesys(ic_flash_state *m_flash_state)
+static bool m_file_semaphore = false;
+
+static void callback_filesys(ic_flash_state *flash_state)
 {
-  NRF_LOG_INFO("{ %s }\r\n", (uint32_t)__func__);
-  m_flash_state->state = nop;
+  NRF_LOG_INFO("{ %s } from %d\r\n", (uint32_t)__func__, flash_state->state);
+  m_file_semaphore = true;
 }
-*/
+
 /******************************************************************************************************************************************************************/
 ic_filesys_return_type ic_open_source(s_mbr_info *get_source)
 {
@@ -66,12 +67,12 @@ ic_filesys_return_type ic_mbr_write(s_mbr_info *source_p)
   if (temp_mbr_addr == 0 || temp_mbr_addr == 4096)
   {
     temp_mbr_addr = 0;
-    if (ic_flash_sector_erase(FLASH_MBR_SECTOR, flash_service_cb) != IC_SUCCESS)
+    if (ic_flash_sector_erase(FLASH_MBR_SECTOR, callback_filesys) != IC_SUCCESS)
       return IC_FILE_ERROR;
   }
 //  temp_mbr_addr += 256;
   /*NRF_LOG_INFO("MBR temp2: %d\r\n", temp_mbr_addr);*/
-  if (ic_flash_write(temp_mbr_addr, (uint8_t*)source_p, sizeof(s_mbr_info), flash_service_cb) != IC_SUCCESS)
+  if (ic_flash_write(temp_mbr_addr, (uint8_t*)source_p, sizeof(s_mbr_info), callback_filesys) != IC_SUCCESS)
     return IC_FILE_ERROR;
 
 	return IC_FILE_SUCCESS;
@@ -80,7 +81,7 @@ ic_filesys_return_type ic_mbr_write(s_mbr_info *source_p)
 ic_filesys_return_type ic_mbr_read(uint8_t *mbr_buff)
 {
   /*NRF_LOG_INFO("MBR temp2: %d\r\n", temp_mbr_addr);*/
-  if (ic_flash_read(temp_mbr_addr, mbr_buff, FILE_WRITE_PACK_SIZE, flash_service_cb) != IC_SUCCESS)
+  if (ic_flash_read(temp_mbr_addr, mbr_buff, FILE_WRITE_PACK_SIZE, callback_filesys) != IC_SUCCESS)
     return IC_FILE_ERROR;
 
   return IC_FILE_SUCCESS;
@@ -90,13 +91,13 @@ ic_filesys_return_type ic_mbr_format(s_mbr_info *source_p, bool first_use)
 {
   if (first_use == false)
   {
-    ic_flash_read(0x00, m_output_buffer, FILE_WRITE_PACK_SIZE, flash_service_cb);
+    ic_flash_read(0x00, m_output_buffer, FILE_WRITE_PACK_SIZE, callback_filesys);
 //	memcpy(&source_p->neuroon_sig, &output_buffer[0], sizeof(uint32_t));
     memcpy(&source_p->erasal_num, &m_output_buffer[FLASH_ERASAL_NUM_OFFSET], sizeof(uint32_t));
   }
   else
   {
-    if (ic_flash_sector_erase(0, flash_service_cb) == IC_SUCCESS)
+    if (ic_flash_sector_erase(0, callback_filesys) == IC_SUCCESS)
     {
       source_p->erasal_num = 0;
       source_p->num_of_files = 0;
@@ -168,7 +169,7 @@ ic_filesys_return_type ic_read_file(s_mbr_info *file, char *filename, uint8_t *d
 				{
 				  if (data != NULL)
 				  {
-				    ic_flash_read((file->source_info[j].start_addr * ( j + 1 )), data, FILE_WRITE_PACK_SIZE, flash_service_cb);
+				    ic_flash_read((file->source_info[j].start_addr * ( j + 1 )), data, FILE_WRITE_PACK_SIZE, callback_filesys);
 				    data += FILE_WRITE_PACK_SIZE;
 				  }
 				  else
@@ -194,7 +195,7 @@ ic_filesys_return_type ic_write_file(s_mbr_info *file, char *filename, uint8_t *
 			{
 			  uint8_t *_temp_data = 0;
 			  memcpy(_temp_data, data, 256);
-        ic_flash_write(temp_file_addr, _temp_data, FILE_WRITE_PACK_SIZE, flash_service_cb);
+        ic_flash_write(temp_file_addr, _temp_data, FILE_WRITE_PACK_SIZE, callback_filesys);
 				temp_file_addr += FILE_WRITE_PACK_SIZE;
 
 				return IC_FILE_SUCCESS;
