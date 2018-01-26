@@ -254,23 +254,15 @@ static void on_charged(void){
   ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, PERIOD<<1, 0, 50);
 }
 
-typedef enum{
-  IC_BLATCH_UNKNOWN = 0x00,
-  IC_BLATCH_N_FULL  = 0x01,
-  IC_BLATCH_FULL    = 0x02
-}e_batteryLatch;
 static TimerHandle_t m_charging_timer_handle = NULL;
 static void charging_timer_callback(TimerHandle_t xTimer){
-  UNUSED_PARAMETER(xTimer);
-  static e_batteryLatch _latch = IC_BLATCH_UNKNOWN;
+  __auto_type _timer_ret_val = pdFAIL;
   __auto_type _bat = ic_bq_getChargerState();
-  ic_bq_read_measurement_data();
-  if(_bat == BATT_CHARGED && _latch != IC_BLATCH_FULL){
-    _latch = IC_BLATCH_FULL;
+  if(_bat == BATT_CHARGED){
+    STOP_TIMER(xTimer, 0, _timer_ret_val);
+    if(_timer_ret_val != pdPASS)
+      NRF_LOG_ERROR("Charging timer still running");
     on_charged();
-  }else if(_bat != BATT_CHARGED && _latch != IC_BLATCH_N_FULL){
-    _latch = IC_BLATCH_N_FULL;
-    on_charging();
   }
 }
 
@@ -431,13 +423,14 @@ static void init_task (void *arg){
 
     ic_btn_usb_unplug_handle_init(on_unplug);
 
-    if(ic_bq_getChargerState() == BATT_CHARGED)
+    if(ic_bq_getChargerState() == BATT_CHARGED){
       on_charged();
-    else
+    }else{
       on_charging();
-    START_TIMER(m_charging_timer_handle, 0, _timer_ret_val);
-    if(_timer_ret_val != pdPASS)
-      NRF_LOG_ERROR("Charging timer not started");
+      START_TIMER(m_charging_timer_handle, 0, _timer_ret_val);
+      if(_timer_ret_val != pdPASS)
+        NRF_LOG_ERROR("Charging timer not started");
+    }
     vTaskDelete(NULL);
     taskYIELD();
   }
