@@ -71,6 +71,7 @@
 /*#include "bsp_btn_ble.h"*/
 #include "nrf_gpio.h"
 #include "nrf_drv_clock.h"
+#include "nrf_power.h"
 
 #define NRF_LOG_MODULE_NAME "APP"
 #include "nrf_log.h"
@@ -406,6 +407,7 @@ static void init_err_stream(void){
 static void init_task (void *arg){
   UNUSED_PARAMETER(arg);
   power_up_all_systems();
+  ic_wdt_init();
 
   ic_neuroon_exti_init();
   ic_ltc_service_init();
@@ -446,7 +448,6 @@ static void init_task (void *arg){
   ic_btn_usb_plug_handle_init(on_plug);
   m_welcome();
   ic_btn_pwr_long_press_handle_init(m_deep_sleep);
-  ic_wdt_init();
 
   ic_ads_service_init();
   ic_service_stream1_init();
@@ -499,7 +500,7 @@ int main(void)
     vTaskSuspend(m_cleanup_task);
 
 
-    NRF_LOG_INFO("Reset reason: %d; Ret val: %d\n", NRF_POWER->RESETREAS, sd_power_reset_reason_clr(0xFFFFFFFF));
+    NRF_LOG_INFO("Reset reason: %d\n", NRF_POWER->RESETREAS);
 
     m_welcome = NRF_POWER->RESETREAS & (0x01<<16) || NRF_POWER->RESETREAS & (0x01<<1)? welcome : showoff;
 
@@ -508,6 +509,7 @@ int main(void)
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
     NRF_LOG_INFO("starting scheduler\n");
+    nrf_power_resetreas_clear(0xFFFFFFFF);
     vTaskStartScheduler();
 
     for (;;)
