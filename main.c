@@ -116,15 +116,33 @@
 
 #define DEAD_BEEF                       0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
-static TaskHandle_t m_init_task;
-static TaskHandle_t m_cleanup_task;
-static void (*m_welcome)(void);
+#define IC_NRF_RESETREAS_WDT_BIT (0x01<<1)
+#define IC_NRF_RESETREAS_EXTI_BIT (0x01<<16)
 
 enum shutdown_source_e{
   IC_PWR_DOWN_SRC,
   IC_USB_PLUG_SRC,
   IC_USB_UNPLUG_SRC
 }m_shutdown_source;
+
+typedef enum{
+  IC_RESET_REAS_WATCHDOG,
+  IC_RESET_REAS_BUTTON,
+  IC_RESET_REAS_PWR
+}e_reset_reason;
+
+static TaskHandle_t m_init_task;
+static TaskHandle_t m_cleanup_task;
+static e_reset_reason m_reset_reason;
+
+static inline e_reset_reason get_reset_reason(void){
+  if(NRF_POWER->RESETREAS & IC_NRF_RESETREAS_WDT_BIT)
+    return IC_RESET_REAS_WATCHDOG;
+  else if(NRF_POWER->RESETREAS & IC_NRF_RESETREAS_EXTI_BIT)
+    return IC_RESET_REAS_BUTTON;
+  else
+    return IC_RESET_REAS_PWR;
+}
 
 /**@brief Callback function for asserts in the SoftDevice.
  *
@@ -222,8 +240,8 @@ static void on_disconnect(void){
   ic_actuator_set_off_func(IC_VIBRATOR, 0, 0, 0);
   ic_actuator_set_off_func(IC_POWER_LEDS, 0, 0, 0);
 
-  ic_actuator_set_ramp_func(IC_LEFT_BLUE_LED, WELCOME_PERIOD, 0, 5);
-  ic_actuator_set_ramp_func(IC_RIGHT_BLUE_LED, WELCOME_PERIOD, 0, 5);
+  ic_actuator_set_ramp_func(IC_LEFT_BLUE_LED, WELCOME_PERIOD>>1, 0, 3);
+  ic_actuator_set_ramp_func(IC_RIGHT_BLUE_LED, WELCOME_PERIOD>>1, 0, 3);
   /*ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, PERIOD, 0, 5);*/
   /*ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 5);*/
 }
@@ -243,14 +261,14 @@ static void on_charging(void){
 
 static void on_charged(void){
   ic_actuator_set_ramp_func(IC_RIGHT_RED_LED, PERIOD, 0, 0);
-  ic_actuator_set_ramp_func(IC_LEFT_GREEN_LED, PERIOD, 0, 0);
+  ic_actuator_set_ramp_func(IC_LEFT_BLUE_LED, PERIOD, 0, 0);
   ic_actuator_set_ramp_func(IC_RIGHT_GREEN_LED, PERIOD, 0, 0);
   ic_actuator_set_ramp_func(IC_LEFT_RED_LED, PERIOD, 0, 0);
   ic_actuator_set_ramp_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 0);
   ic_actuator_set_off_func(IC_VIBRATOR, 0, 0, 0);
   ic_actuator_set_off_func(IC_POWER_LEDS, 0, 0, 0);
 
-  ic_actuator_set_ramp_func(IC_LEFT_BLUE_LED, PERIOD, 0, 30);
+  ic_actuator_set_ramp_func(IC_LEFT_GREEN_LED, PERIOD, 0, 30);
 }
 
 static TimerHandle_t m_charging_timer_handle = NULL;
@@ -266,7 +284,7 @@ static void charging_timer_callback(TimerHandle_t xTimer){
   }
 }
 
- void welcome(void){
+static void welcome(void){
   ic_actuator_set_triangle_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD+1, 63);
   vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
   ic_actuator_set_triangle_func(IC_LEFT_GREEN_LED, WELCOME_PERIOD, WELCOME_PERIOD+1, 63);
@@ -281,7 +299,14 @@ static void charging_timer_callback(TimerHandle_t xTimer){
   vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
 }
 
-void showoff(void){
+static void welcome_wdt(void){
+  ic_actuator_set_triangle_func(IC_LEFT_RED_LED, PERIOD, PERIOD+1, 63);
+  vTaskDelay(pdMS_TO_TICKS(PERIOD>>2));
+  ic_actuator_set_triangle_func(IC_RIGHT_RED_LED, PERIOD, PERIOD+1, 63);
+  vTaskDelay(pdMS_TO_TICKS(PERIOD>>2));
+}
+
+static void showoff(void){
   ic_actuator_set_triangle_func(IC_POWER_LEDS, WELCOME_PERIOD>>2, WELCOME_PERIOD, 63);
   vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
   ic_actuator_set_triangle_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
@@ -373,35 +398,6 @@ static void cleanup_task (void *arg){
     NRF_POWER->SYSTEMOFF = 1;
 }
 
-TaskHandle_t m_stream2_handle = NULL;
-static volatile bool m_send_to_stream2 = false;
-uint32_t g_twi_err_cnt = 0;
-
-static void on_stream2_state_change(bool active){
-  NRF_LOG_INFO("{%s}\n",(uint32_t)__func__);
-  active ? ({RESUME_TASK(m_stream2_handle);}) : vTaskSuspend(m_stream2_handle);
-  m_send_to_stream2 = active;
-}
-
-void stream2_task(void *arg){
-  static char _buffer[20];
-  for(;;){
-    snprintf(_buffer, sizeof(_buffer), "%ld: %ld", GET_TICK_COUNT(), g_twi_err_cnt);
-    if(m_send_to_stream2) ble_iccs_send_to_stream2((uint8_t *)_buffer, strlen(_buffer)+1, NULL);
-    vTaskDelay(pdMS_TO_TICKS(1000));
-  }
-}
-
-static void init_err_stream(void){
-  ble_iccs_connect_to_stream2(on_stream2_state_change);
-
-  if(pdPASS != xTaskCreate(stream2_task, "STR1", 128, NULL, 2, &m_stream2_handle)){
-    APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
-  }
-
-  vTaskSuspend(m_stream2_handle);
-}
-
 static void init_task (void *arg){
   UNUSED_PARAMETER(arg);
   power_up_all_systems();
@@ -435,21 +431,27 @@ static void init_task (void *arg){
     taskYIELD();
   }
 
-  if(m_welcome != showoff)
-    vTaskDelay(IC_BUTTON_LONG_PRESS_OFFSET);
-
-  if(!ic_button_pressed(IC_BUTTON_PWR_BUTTON_PIN) && m_welcome == welcome){
-    power_down_all_systems();
-    NRF_POWER->SYSTEMOFF = 1;
-  }
-
   ic_btn_usb_plug_handle_init(on_plug);
-  m_welcome();
+
+  if(m_reset_reason == IC_RESET_REAS_WATCHDOG)
+    welcome_wdt();
+  else if(m_reset_reason == IC_RESET_REAS_BUTTON){
+    vTaskDelay(IC_BUTTON_LONG_PRESS_OFFSET);
+    if(!ic_button_pressed(IC_BUTTON_PWR_BUTTON_PIN) && m_reset_reason == IC_RESET_REAS_BUTTON){
+      power_down_all_systems();
+      NRF_POWER->SYSTEMOFF = 1;
+    }
+    else
+      welcome();
+  }
+  else
+    showoff();
+
+
   ic_btn_pwr_long_press_handle_init(m_deep_sleep);
 
   ic_ads_service_init();
   ic_service_stream1_init();
-  init_err_stream();
   ic_ble_module_init();
   sd_power_reset_reason_clr(NRF_POWER->RESETREAS);
   ic_service_timestamp_init();
@@ -497,17 +499,13 @@ int main(void)
     }
     vTaskSuspend(m_cleanup_task);
 
-
     NRF_LOG_INFO("Reset reason: %d\n", NRF_POWER->RESETREAS);
-
-    m_welcome = NRF_POWER->RESETREAS & (0x01<<16) || NRF_POWER->RESETREAS & (0x01<<1)? welcome : showoff;
-
+    m_reset_reason = get_reset_reason();
     NRF_LOG_INFO("GPREGRET: %d\n", NRF_POWER->GPREGRET);
-
+    nrf_power_resetreas_clear(0xFFFFFFFF);
 
     /*SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;*/
     NRF_LOG_INFO("starting scheduler\n");
-    nrf_power_resetreas_clear(0xFFFFFFFF);
     vTaskStartScheduler();
 
     for (;;)

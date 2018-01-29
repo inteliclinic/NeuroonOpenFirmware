@@ -372,8 +372,8 @@ static ic_return_val_e actuator_set_func(
     device->beta = device->intensity*m_beta_factor;
   }
   else if(func==FUN_TYPE_RAMP){
-    device->b_ramp_coef = device->intensity;
-    int _tmp = (intensity - device->intensity);
+    device->b_ramp_coef = device->desired_val;
+    int _tmp = (intensity - device->desired_val);
     device->a_ramp_coef = _tmp/127.0;
     device->ramp_step = 0;
     NRF_LOG_INFO("_tmp: %d, intensity: %d, device->intensity: %d a: " NRF_LOG_FLOAT_MARKER "\n",_tmp, intensity, device->intensity, NRF_LOG_FLOAT(device->a_ramp_coef));

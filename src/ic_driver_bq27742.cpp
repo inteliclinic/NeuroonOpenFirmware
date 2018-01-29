@@ -1329,23 +1329,23 @@ bool ic_bq_getDischarging(void) {
  * @return state
  */
 en_chargerState ic_bq_getChargerState(void) {
-  en_chargerState state = BATT_NOTCHARGING;
 
+  if(ic_bq_battery_full_charged())
+    return BATT_CHARGED;
+
+  auto state = BATT_NOTCHARGING;
   int16_t avgCurr;
+
   get_bq_register(BQ27742_AVERAGE_CURRENT, avgCurr);
+
   if (  avgCurr<0 ) { //nie ładuje
     state = BATT_NOTCHARGING;
-
-  } else { //ładuje się ??
-    if (ic_bq_battery_full_charged()) {
-      state = BATT_CHARGED;
-    } else {
-      if (bq27742_charging_error_detected()) {
-        state = BATT_CHARGING;
-      } else {
-        state = BATT_CHARGER_FAULT;
-      }
-    }
+  }
+  else{
+    if (bq27742_charging_error_detected())
+      state = BATT_CHARGING;
+    else
+      state = BATT_CHARGER_FAULT;
   }
   return state;
 }

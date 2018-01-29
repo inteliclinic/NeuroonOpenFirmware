@@ -320,12 +320,9 @@ ic_return_val_e ic_twi_read(
 
 }
 
-extern uint32_t g_twi_err_cnt;
-
 void ic_twi_refresh_bus(){
   NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);
   /*NRF_LOG_FLUSH();*/
-  g_twi_err_cnt++;
   app_twi_uninit(&m_curren_state.nrf_drv_instance);
   clean_queue(&m_transaction_queue);
   app_twi_init(
