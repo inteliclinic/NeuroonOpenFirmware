@@ -92,18 +92,24 @@ static void send_data_task(void *arg){
     m_stream1_packet.frame.red_sample = m_afe_measurement.red_diff;
     portEXIT_CRITICAL();
 
+    /*NRF_LOG_INFO("x: %d\ty: %d\tz: %d\n", m_stream1_packet.frame.acc[0], m_stream1_packet.frame.acc[1], m_stream1_packet.frame.acc[2]);*/
+
     __auto_type _ret_val = ble_iccs_send_to_stream1(
         m_stream1_packet.raw_data,
         sizeof(u_otherDataFrameContainer),
         NULL);
 
-    switch(_ret_val)
-    {
+    switch(_ret_val){
       case IC_SUCCESS:
         break;
+      case IC_BLE_NOT_CONNECTED:
+        break;
+      case IC_BUSY:
+        vTaskDelay(1);
+        continue; // TODO: Fix it. Can kill CPU.
       default:
-        NRF_LOG_ERROR("Stream1: %s\n", (uint32_t)g_return_val_string[_ret_val]);
-        continue;
+        /*NRF_LOG_INFO("err: %s\n", (uint32_t)ic_get_nrferr2str(_nrf_error));*/
+        break;
     }
     vTaskSuspend(NULL);
     taskYIELD();
@@ -173,6 +179,7 @@ ic_return_val_e ic_service_stream1_deinit(void){
 
 static void on_stream1_state_change(bool active){
   __auto_type _timer_ret_val = pdFAIL;
+  NRF_LOG_INFO("{%s}%s\n", (uint32_t)__func__, (uint32_t)(active?"true":"false"));
   if(active){
     GIVE_SEMAPHORE(m_data_lock);
     START_TIMER (m_service_stream1_timer_handle, 0, _timer_ret_val);
@@ -187,6 +194,7 @@ static void on_stream1_state_change(bool active){
 }
 
 static void read_acc_callback(acc_data_s acc_measurement){
+  /*NRF_LOG_INFO("x: %d\ty: %d\tz: %d\n", acc_measurement.x , acc_measurement.y, acc_measurement.z);*/
   memcpy(&m_acc_measurement, &acc_measurement, sizeof(acc_data_s));
   if(++m_measurement_cnt >= NUM_OF_CONN_DEVS){
     RESUME_TASK(m_send_data_task_handle);
