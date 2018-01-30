@@ -273,15 +273,21 @@ static void on_charged(void){
 
 static TimerHandle_t m_charging_timer_handle = NULL;
 
-static void charging_timer_callback(TimerHandle_t xTimer){
-  __auto_type _bat = ic_bq_getChargerState();
-  if(_bat == BATT_CHARGED){
+static void get_charger_state_callback(en_chargerState state){
+  if(state == BATT_CHARGED){
     __auto_type _timer_ret_val = pdFAIL;
-    STOP_TIMER(xTimer, 0, _timer_ret_val);
+    STOP_TIMER(m_charging_timer_handle, 0, _timer_ret_val);
     if(_timer_ret_val != pdPASS)
       NRF_LOG_ERROR("Charging timer still running");
     on_charged();
+  }else{
+    on_charging();
   }
+}
+
+static void charging_timer_callback(TimerHandle_t xTimer){
+  UNUSED_PARAMETER(xTimer);
+  ic_bq_getChargerState(get_charger_state_callback);
 }
 
 static void welcome(void){
@@ -405,6 +411,7 @@ static void init_task (void *arg){
 
   ic_neuroon_exti_init();
   ic_ltc_service_init();
+  ic_bq_init();
 
   if(!ic_button_pressed(IC_BUTTON_USB_CONNECT_PIN)){
     if(m_charging_timer_handle == NULL)
@@ -418,15 +425,13 @@ static void init_task (void *arg){
 
     ic_btn_usb_unplug_handle_init(on_unplug);
 
-    if(ic_bq_getChargerState() == BATT_CHARGED){
-      on_charged();
-    }else{
-      on_charging();
-      __auto_type _timer_ret_val = pdFAIL;
-      START_TIMER(m_charging_timer_handle, 0, _timer_ret_val);
-      if(_timer_ret_val != pdPASS)
-        NRF_LOG_ERROR("Charging timer not started");
-    }
+    __auto_type _timer_ret_val = pdFAIL;
+    START_TIMER(m_charging_timer_handle, 0, _timer_ret_val);
+    if(_timer_ret_val != pdPASS)
+      NRF_LOG_ERROR("Charging timer not started");
+
+    ic_bq_getChargerState(get_charger_state_callback);
+
     vTaskDelete(NULL);
     taskYIELD();
   }

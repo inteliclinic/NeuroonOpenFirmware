@@ -27,6 +27,7 @@
 
 ble_bas_t m_ble_bas;
 static TimerHandle_t m_service_bas_timer_handle = NULL;
+static void get_charger_level_callback(uint16_t level);
 
 void ble_icbas_on_ble_evt(ble_evt_t *p_ble_evt){
   ble_bas_on_ble_evt(&m_ble_bas, p_ble_evt);
@@ -35,7 +36,6 @@ void ble_icbas_on_ble_evt(ble_evt_t *p_ble_evt){
 void icbas_evt_handler(ble_bas_t *p_bas, ble_bas_evt_t *p_evt){
   UNUSED_PARAMETER(p_bas);
   __auto_type _timer_ret_val = pdFAIL;
-  __auto_type _bat = ic_bq_getChargeLevel();
   switch (p_evt->evt_type){
     case BLE_BAS_EVT_NOTIFICATION_DISABLED:
       STOP_TIMER  (m_service_bas_timer_handle, 0, _timer_ret_val);
@@ -43,7 +43,7 @@ void icbas_evt_handler(ble_bas_t *p_bas, ble_bas_evt_t *p_evt){
       break; // BLE_BAS_EVT_NOTIFICATION_DISABLED
 
     case BLE_BAS_EVT_NOTIFICATION_ENABLED:
-      ble_bas_battery_level_update(&m_ble_bas, _bat);  //TODO: brak funkcji BQ
+      ic_bq_getChargeLevel(get_charger_level_callback);
       START_TIMER (m_service_bas_timer_handle, 0, _timer_ret_val);
       NRF_LOG_INFO("BAS notification connected.\r\n");
       break; // BLE_BAS_EVT_NOTIFICATION_ENABLED
@@ -60,7 +60,7 @@ void ble_icbas_init(void){
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&bas_init.battery_level_char_attr_md.read_perm);
   BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&bas_init.battery_level_char_attr_md.write_perm);
 
-  bas_init.initial_batt_level = 100;
+  /*bas_init.initial_batt_level = 100;*/
   bas_init.support_notification = true;
   bas_init.evt_handler = icbas_evt_handler;
 
@@ -71,10 +71,7 @@ void ble_icbas_init(void){
 
 static void bas_timer_callback(TimerHandle_t xTimer){
   UNUSED_PARAMETER(xTimer);
-  __auto_type _bat = ic_bq_getChargeLevel();
-  NRF_LOG_INFO("bat: %d\n", _bat);
-  if(NRF_SUCCESS != ble_bas_battery_level_update(&m_ble_bas, _bat)) //TODO: brak funkcji BQ
-    NRF_LOG_ERROR("Battery level not updated\n");
+  ic_bq_getChargeLevel(get_charger_level_callback);
 }
 
 ic_return_val_e ic_init_battery_update(void){
@@ -86,5 +83,11 @@ ic_return_val_e ic_init_battery_update(void){
         (void *) 0,
         bas_timer_callback);
   return IC_SUCCESS;
+}
+
+static void get_charger_level_callback(uint16_t level){
+  NRF_LOG_INFO("bat: %d\n", level);
+  if(NRF_SUCCESS != ble_bas_battery_level_update(&m_ble_bas, level)) //TODO: brak funkcji BQ
+    NRF_LOG_ERROR("Battery level not updated\n");
 }
 

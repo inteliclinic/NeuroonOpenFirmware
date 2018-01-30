@@ -1219,7 +1219,7 @@ static bool ic_bq_battery_full_charged (void)
 
 static ic_return_val_e ic_bq_battery_full_charged (void (*cb)(bool))
 {
-  auto _lamda = [](uint16_t flag_value){
+  auto _lamda = [&cb](uint16_t flag_value){
     cb(flag_value & (1<<FC));
   };
 
