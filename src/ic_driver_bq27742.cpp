@@ -1219,10 +1219,8 @@ static bool ic_bq_battery_full_charged (void)
 
 static ic_return_val_e ic_bq_battery_full_charged (void (*cb)(bool))
 {
-  static uint16_t _flag_value;
-
-  auto _lamda = [&_flag_value](uint16_t flag_value){
-    cb(flag_value & (1<<FC);
+  auto _lamda = [](uint16_t flag_value){
+    cb(flag_value & (1<<FC));
   };
 
   return bq27742_flags_read (_lamda);
