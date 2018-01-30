@@ -25,9 +25,38 @@ typedef enum {
 void ic_bq_flash_image();
 void ic_bq_reset();
 
-uint16_t ic_bq_getChargeLevel(void);
-en_chargerState ic_bq_getChargerState(void);
+/**
+ * @brief Return State of charge
+ *
+ * @return percent value
+ */
+ic_return_val_e ic_bq_getChargeLevel(void (*cb)(uint16_t));
+
+/**
+ * @brief Return battery charger state
+ *
+ * @return state
+ */
+ic_return_val_e ic_bq_getChargerState(void (*cb)(en_chargerState));
+
+/**
+ * @brief Puts battery data via nrf log module
+ */
 void ic_bq_read_measurement_data (void);
+
+/**
+ * @brief
+ *
+ * @return
+ */
+ic_return_val_e ic_bq_init(void);
+
+/**
+ * @brief
+ *
+ * @return
+ */
+ic_return_val_e ic_bq_deinit(void);
 
 #ifdef __cplusplus
 }

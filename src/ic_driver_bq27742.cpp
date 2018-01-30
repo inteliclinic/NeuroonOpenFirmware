@@ -147,7 +147,6 @@ static ic_return_val_e set_bq_register(const uint8_t reg_addr, const T *data, si
 
 template <class T>
 static ic_return_val_e get_bq_register(const uint8_t reg_addr, T &data){
-
   uint8_t _buffer[sizeof(T)];
 
   TWI_READ_DATA(BQ, reg_addr , _buffer, sizeof(_buffer), NULL, NULL);
@@ -163,6 +162,27 @@ static ic_return_val_e get_bq_register(const uint8_t reg_addr, T &data){
   #else
   return IC_SUCCESS;
   #endif
+}
+
+template <class cbArg>
+static ic_return_val_e get_bq_register(const uint8_t reg_addr, void(*cb)(cbArg)){
+  static uint8_t _buffer[sizeof(cbArg)];
+
+  static auto _lamda = [&cb](ic_return_val_e ret_val, void *p_context){
+    for(auto _byte : _buffer)
+      NRF_LOG_RAW_INFO("0x%02X ", _byte);
+    NRF_LOG_RAW_INFO("\n");
+
+    cb(*reinterpret_cast<cbArg *>(_buffer));
+  };
+
+  return TWI_READ_DATA(
+      BQ,
+      reg_addr
+      ,_buffer,
+      sizeof(_buffer),
+      _lamda,
+      NULL);
 }
 
 /**
@@ -1014,7 +1034,6 @@ static uint16_t bq27742_device_type_read(){
 #define BQ_ADVANCED
 
 void ic_bq_flash_image(){
-  TWI_INIT(BQ);
   NRF_LOG_INFO("Control Status: 0x%X\n", bq27742_control_status_read());
   auto _unsealed = bq27742_unsealed_set();
   if(!_unsealed){
@@ -1119,7 +1138,6 @@ void ic_bq_flash_image(){
   NRF_LOG_INFO("Sealed: %s\n",
       (uint32_t)(_sealed?"true":"false"));
 
-  TWI_DEINIT(BQ);
   vTaskDelay(5);
 }
 
@@ -1138,6 +1156,10 @@ static uint16_t bq27742_read_reg_data (uint8_t command)
   return return_value;
 }
 
+static ic_return_val_e bq27742_read_reg_data (uint8_t command, void (*cb)(uint16_t)){
+  return get_bq_register (command, cb);
+}
+
 
 /**
  * @fn bq27742_flags_read ()
@@ -1153,10 +1175,13 @@ static uint16_t bq27742_flags_read ()
   return flag_value;
 }
 
+static ic_return_val_e bq27742_flags_read (void (*cb)(uint16_t)){
+  return bq27742_read_reg_data(BQ27742_FLAGS, cb);
+}
+
 
 
 void ic_bq_reset(){
-  TWI_INIT(BQ);
   for (uint16_t i = 0; i<0x09; ++i){
     auto _rc = bq27742_read_control_data(i);
     NRF_LOG_INFO("0x%04X: 0x%X\n",i, _rc);
@@ -1169,32 +1194,38 @@ void ic_bq_reset(){
   auto _sealed = bq27742_sealed_set();
   NRF_LOG_INFO("Sealed: %s\n",
       (uint32_t)(_sealed?"true":"false"));
-  TWI_DEINIT(BQ);
 }
 
 uint16_t ic_bq_getSafetyStatus(void) {
-  TWI_INIT(BQ);
 
   uint16_t safety = bq27742_read_control_data(BQ27742_SAFETY_STATUS);
 //  NRF_LOG_INFO("** Safety status: 0x%02X invalid protector: %d\n", safety , safety&0x80);
 
-  TWI_DEINIT(BQ);
   return safety;
 }
 
 
 static bool ic_bq_battery_full_charged (void)
 {
-  TWI_INIT(BQ);
   uint16_t flag_value = 0;
 
   flag_value = bq27742_flags_read ();
 
-  TWI_DEINIT(BQ);
   if(flag_value & (1<<FC))
     return true;
   else
     return false;
+}
+
+static ic_return_val_e ic_bq_battery_full_charged (void (*cb)(bool))
+{
+  static uint16_t _flag_value;
+
+  auto _lamda = [&_flag_value](uint16_t flag_value){
+    cb(flag_value & (1<<FC);
+  };
+
+  return bq27742_flags_read (_lamda);
 }
 
 
@@ -1204,11 +1235,9 @@ static bool ic_bq_battery_full_charged (void)
 // */
 //bool bq27742_battery_soc1_threshold (void)
 //{
-//  TWI_INIT(BQ);
 //  uint16_t flag_value = 0;
 //
 //  flag_value = bq27742_flags_read ();
-//  TWI_DEINIT(BQ);
 //  if(flag_value & (1<<SOC1))
 //    return true;
 //  else
@@ -1221,11 +1250,9 @@ static bool ic_bq_battery_full_charged (void)
 // */
 //bool bq27742_battery_socf_threshold (void)
 //{
-//  TWI_INIT(BQ);
 //  uint16_t flag_value = 0;
 //
 //  flag_value = bq27742_flags_read ();
-//  TWI_DEINIT(BQ);
 //  if(flag_value & (1<<SOCF))
 //    return true;
 //  else
@@ -1238,11 +1265,9 @@ static bool ic_bq_battery_full_charged (void)
 // */
 //bool bq27742_discharging_error_detected (void)
 //{
-//  TWI_INIT(BQ);
 //  uint16_t safety_status = 0;
 //  uint8_t charging_error_mask = 1 << UVP_S | 1 << OTD_S | 1 << TDD_S | 1 << ISD_S;
 //  safety_status = ic_bq_getSafetyStatus();
-//  TWI_DEINIT(BQ);
 //  if(safety_status & charging_error_mask)
 //    return true;
 //  else
@@ -1255,11 +1280,19 @@ static bool ic_bq_battery_full_charged (void)
  */
 static bool bq27742_charging_error_detected (void)
 {
-  TWI_INIT(BQ);
   uint16_t safety_status = 0;
   uint8_t charging_error_mask = 1 << OVP_S | 1 << OTC_S | 1 << TDD_S | 1 << ISD_S;
   safety_status = ic_bq_getSafetyStatus();
-  TWI_DEINIT(BQ);
+  if(safety_status & charging_error_mask)
+    return true;
+  else
+    return false;
+}
+
+static bool bq27742_charging_error_detected (void (*cb)(bool)){
+  uint16_t safety_status = 0;
+  uint8_t charging_error_mask = 1 << OVP_S | 1 << OTC_S | 1 << TDD_S | 1 << ISD_S;
+  safety_status = ic_bq_getSafetyStatus();
   if(safety_status & charging_error_mask)
     return true;
   else
@@ -1270,7 +1303,6 @@ static bool bq27742_charging_error_detected (void)
 
 void ic_bq_read_measurement_data (void)
 {
-  TWI_INIT(BQ);
   uint16_t temp;
   get_bq_register(BQ27742_TEMPERATURE, temp);
   vTaskDelay(100);
@@ -1288,22 +1320,30 @@ void ic_bq_read_measurement_data (void)
   NRF_LOG_RAW_INFO("voltage: %dmV\n", voltage);
   NRF_LOG_RAW_INFO("avg current: %dmA\n", avgCurr);
   NRF_LOG_RAW_INFO("state of charge: %d%%\n", soc);
-  TWI_DEINIT(BQ);
 }
 
-
-/**
- * Return State of charge
- * @return percent value
- */
-uint16_t ic_bq_getChargeLevel(void)
-{
+ic_return_val_e ic_bq_init(void){
+  if (m_module_initialized == false)
+    return IC_SUCCESS;
   TWI_INIT(BQ);
-  uint16_t soc;
-  get_bq_register(BQ27742_STATE_OF_CHARGE, soc);
-//  NRF_LOG_RAW_INFO("state of charge: %d\n", soc);
+  m_module_initialized = true;
+
+  return IC_SUCCESS;
+}
+
+ic_return_val_e ic_bq_deinit(void){
+  if(m_module_initialized == false)
+    return IC_NOT_INIALIZED;
   TWI_DEINIT(BQ);
-  return soc;
+  m_module_initialized = false;
+
+  return IC_SUCCESS;
+}
+
+uint16_t ic_bq_getChargeLevel(void (*cb)(uint16_t))
+{
+  return get_bq_register(BQ27742_STATE_OF_CHARGE, cb);
+//  NRF_LOG_RAW_INFO("state of charge: %d\n", soc);
 }
 
 
@@ -1312,42 +1352,38 @@ uint16_t ic_bq_getChargeLevel(void)
  * @return percent value
  */
 bool ic_bq_getDischarging(void) {
-  TWI_INIT(BQ);
   uint16_t flag_value = 0;
 
   flag_value = bq27742_flags_read();
-  TWI_DEINIT(BQ);
   if (flag_value & (1 << DSG))
     return true;
   else
     return false;
 }
 
+static void (*m_user_charger_state_cb)(en_chargerState state);
 
-/**
- * Return battery charger state
- * @return state
- */
-en_chargerState ic_bq_getChargerState(void) {
+static void avg_current_cb(int16_t avg_curr){
+  if(avg_curr < 0)
+    m_user_charger_state_cb(BATT_NOTCHARGING);
+  else
+    m_user_charger_state_cb(BATT_CHARGING);
+}
 
-  if(ic_bq_battery_full_charged())
-    return BATT_CHARGED;
+static void battery_charged_cb(bool charged){
+  if(charged)
+    m_user_charger_state_cb(BATT_CHARGED);
+  else
+    get_bq_register(BQ27742_AVERAGE_CURRENT, avgCurr);
+}
 
-  auto state = BATT_NOTCHARGING;
-  int16_t avgCurr;
+ic_return_val_e ic_bq_getChargerState(void (*cb)(en_chargerState)){
+  if(cb == NULL)
+    return IC_ERROR;
 
-  get_bq_register(BQ27742_AVERAGE_CURRENT, avgCurr);
+  m_user_charger_state_cb = cb;
 
-  if (  avgCurr<0 ) { //nie ładuje
-    state = BATT_NOTCHARGING;
-  }
-  else{
-    if (bq27742_charging_error_detected())
-      state = BATT_CHARGING;
-    else
-      state = BATT_CHARGER_FAULT;
-  }
-  return state;
+  return ic_bq_battery_full_charged(battery_charged_cb)
 }
 
 
@@ -1365,7 +1401,6 @@ void bq27742_data_flash_read(
     size_t len,
     uint8_t block = 0)
 {
-  TWI_INIT(BQ);
   NRF_LOG_RAW_INFO("Read of class id(%d): 0x%02x (block=%d)\n",subclass_id, subclass_id,block);
   for(int i = 0;i<32;i++)
     value[i] = 0;
@@ -1391,14 +1426,12 @@ void bq27742_data_flash_read(
   uint8_t _checksum = 255 - (uint8_t)(_flash_data_sum);
   NRF_LOG_RAW_INFO("chckCalc0x%02X memChck0x%02X",_checksum, memChck[0]);
   NRF_LOG_RAW_INFO("\n")
-  TWI_DEINIT(BQ);
 }
 
 /**
  * Read and print on console all data from data flash
  */
 void ic_bq_readFlashTest(void){
-  TWI_INIT(BQ);
 //  NRF_LOG_INFO("Control Status: 0x%X\n", bq27742_control_status_read());
   auto _unsealed = bq27742_unsealed_set();
   if(!_unsealed){
@@ -1470,6 +1503,5 @@ void ic_bq_readFlashTest(void){
 
 
   bq27742_sealed_set();
-  TWI_DEINIT(BQ);
 }
 
