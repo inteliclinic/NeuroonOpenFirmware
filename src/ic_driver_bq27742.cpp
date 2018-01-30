@@ -1374,7 +1374,7 @@ static void battery_charged_cb(bool charged){
   if(charged)
     m_user_charger_state_cb(BATT_CHARGED);
   else
-    get_bq_register(BQ27742_AVERAGE_CURRENT, avgCurr);
+    get_bq_register(BQ27742_AVERAGE_CURRENT, avg_current_cb);
 }
 
 ic_return_val_e ic_bq_getChargerState(void (*cb)(en_chargerState)){
