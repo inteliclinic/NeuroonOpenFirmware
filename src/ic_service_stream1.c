@@ -196,6 +196,10 @@ static void on_stream1_state_change(bool active){
 static void read_acc_callback(acc_data_s acc_measurement){
   /*NRF_LOG_INFO("x: %d\ty: %d\tz: %d\n", acc_measurement.x , acc_measurement.y, acc_measurement.z);*/
   memcpy(&m_acc_measurement, &acc_measurement, sizeof(acc_data_s));
+  /*NRF_LOG_INFO("ACC VAL:\tx: %d, y: %d, z: %d\n",*/
+    /*acc_measurement.x,*/
+    /*acc_measurement.y,*/
+    /*acc_measurement.z);*/
   if(++m_measurement_cnt >= NUM_OF_CONN_DEVS){
     RESUME_TASK(m_send_data_task_handle);
     m_measurement_cnt = 0;
