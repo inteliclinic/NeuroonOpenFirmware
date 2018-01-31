@@ -307,7 +307,7 @@ static void welcome_wdt(void){
 }
 
 static void showoff(void){
-  ic_actuator_set_triangle_func(IC_POWER_LEDS, WELCOME_PERIOD>>2, WELCOME_PERIOD, 63);
+  ic_actuator_set_blink_func(IC_POWER_LEDS, WELCOME_PERIOD>>2, WELCOME_PERIOD, 63);
   vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
   ic_actuator_set_triangle_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
   vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
