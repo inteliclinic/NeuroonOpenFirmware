@@ -29,11 +29,11 @@ ic_return_val_e ic_acc_init(void)//void(*fp)(acc_data_s))
       /*  set resolution to 12 bit  */
     if (ic_lis3dh_set_resolution(LIS3DH_RES_12BIT) != IC_SUCCESS)
       return IC_ERROR;
-      /*  set g range to 4g  */
-    if (ic_lis3dh_set_g_range(LIS3DH_RATE_G_RANGE_4g) != IC_SUCCESS)
+      /*  set g range to 2g  */
+    if (ic_lis3dh_set_g_range(LIS3DH_RATE_G_RANGE_2g) != IC_SUCCESS)
       return IC_ERROR;
-      /*  set data rate on 25Hz  */
-    if (ic_lis3dh_set_power_mode(LIS3DH_RATE_25Hz) != IC_SUCCESS)
+      /*  set data rate on 50Hz  */
+    if (ic_lis3dh_set_power_mode(LIS3DH_RATE_50Hz) != IC_SUCCESS)
       return IC_ERROR;
 
     return IC_SUCCESS;
