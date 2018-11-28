@@ -34,7 +34,7 @@ or alternatively modify ```NeuroonOpenFirmware/sdk/components/toolchain/gcc/Make
 **NRFTOOLS**\
 First download [JLink Software](https://www.segger.com/downloads/jlink/JLink_Linux_x86_64.deb), than install it using ```sudo dpkg -i JLink_Linux_x86_64.deb```. It is adviced to reboot your machine after installation.
 
-Now download [nRF-Command-Line-Tools](https://www.nordicsemi.com/eng/nordic/download_resource/58852/31/84507885/94917): ```wget -O nRF-Command-Line-Tools_9_8_1_cd /icd //inux-x86_64.tar https://www.nordicsemi.com/eng/nordic/download_resource/58852/31/84507885/94917```
+Now download [nRF-Command-Line-Tools](https://www.nordicsemi.com/eng/nordic/download_resource/58852/31/84507885/94917): ```wget -O nRF-Command-Line-Tools_9_8_1_Linux-x86_64.tar https://www.nordicsemi.com/eng/nordic/download_resource/58852/31/84507885/94917```
 
 extract:\
 ```mkdir nrftools && cd nrftools```\
