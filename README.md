@@ -72,6 +72,6 @@ add to binaries:\
 This is the easiest way to flash Neuroon. J-Link debugger should be immediately recognized by your operating system.
 It can be stand alone debuger or dev-board with onboard J-Link (like Nordic Semiconductor [PCA10040](http://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.nrf52%2Fdita%2Fnrf52%2Fdevelopment%2Fnrf52_dev_kit.html))
 
-*TODO*:photos
+Please refer to [flashing instructions](https://github.com/inteliclinic/NeuroonOpenFirmware/blob/master/flashing.pdf)
 ### ST-Link
 *TODO*
