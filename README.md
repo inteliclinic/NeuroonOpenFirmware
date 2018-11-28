@@ -18,7 +18,7 @@
 
 ### Ubuntu Linux
 **TOOLCHAIN**\
-Ubuntu 18.04 has a bug in repository version of 'newlib' which prevents output file from linking. ```arm-none-eabi-gcc``` and ```arm-none-eabi-newlib``` should be installed externally for example:
+Ubuntu 18.04 has a bug in repository version of 'newlib' which prevents output file from linking. ```arm-none-eabi-gcc``` and ```arm-none-eabi-newlib``` should be installed externally, for example:
 
 Download toolchain:\
 ```wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2```
