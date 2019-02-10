@@ -17,6 +17,7 @@ $(OUTPUT_DIRECTORY)/$(BOOT_TARGET).out: \
 
 # Source files common to all targets
 SRC_FILES = \
+  $(SDK_ROOT)/components/toolchain/gcc/gcc_startup_nrf51.S \
   $(SDK_ROOT)/components/libraries/util/app_error_weak.c \
   $(SDK_ROOT)/components/libraries/scheduler/app_scheduler.c \
   $(SDK_ROOT)/components/libraries/timer/app_timer.c \
@@ -40,7 +41,6 @@ SRC_FILES = \
   $(SDK_ROOT)/components/ble/common/ble_advdata.c \
   $(SDK_ROOT)/components/ble/common/ble_conn_params.c \
   $(SDK_ROOT)/components/ble/common/ble_srv_common.c \
-  $(SDK_ROOT)/components/toolchain/gcc/gcc_startup_nrf51.S \
   $(SDK_ROOT)/components/toolchain/system_nrf51.c \
   $(SDK_ROOT)/components/softdevice/common/softdevice_handler/softdevice_handler.c \
   $(SDK_ROOT)/components/softdevice/common/softdevice_handler/softdevice_handler_appsh.c \
@@ -59,9 +59,6 @@ SRC_FILES = \
   $(SDK_ROOT)/external/nano-pb/pb_common.c \
   $(SDK_ROOT)/external/nano-pb/pb_decode.c \
   $(SDK_ROOT)/components/libraries/crypto/nrf_crypto.c \
-  #$(BOOT_PROJ_DIR)/ic_pwr_management.c \
-  #$(SDK_ROOT)/components/libraries/twi/app_twi.c \
-  #$(BOOT_PROJ_DIR)/ic_driver_twi.c \
 
 # Include folders common to all targets
 INC_FOLDERS = \
@@ -103,7 +100,6 @@ INC_FOLDERS = \
   $(SDK_ROOT)/components/softdevice/s130/headers/nrf51 \
   $(SDK_ROOT)/components/libraries/queue \
   $(SDK_ROOT)/components/toolchain/gcc \
-  $(SDK_ROOT)/components/libraries/twi \
 
 # Libraries common to all targets
 LIB_FILES = \

@@ -169,9 +169,7 @@ static uint8_t function_ramp_up(struct device_state_s *device){
 uint8_t function_ramp(struct device_state_s *device){
   int16_t _step = device->cur_period*device->alpha;
   uint8_t _ret_val;
-  NRF_LOG_INFO("_step:%d\tramp_step:%d\n", _step, device->ramp_step);
   if(_step<device->ramp_step || _step==127){
-    NRF_LOG_INFO("Turning on\n");
     _ret_val = 127*device->a_ramp_coef + device->b_ramp_coef;
     actuator_set_func(device,FUN_TYPE_ON, 0, 0, _ret_val);
     return device->desired_val;
