@@ -14,8 +14,20 @@
 extern "C" {
 #endif
 
+/** Battery charging state */
+typedef enum {
+  BATT_NOTCHARGING = 0,   //!< Charger disconnected
+  BATT_CHARGING = 1,    //!< Charger connected and battery is charging
+  BATT_CHARGED = 2,    //!< Charger connected and battery is full charged
+  BATT_CHARGER_FAULT =3 //!< Charger connected and battery is on fault state
+}en_chargerState;
+
 void ic_bq_flash_image();
 void ic_bq_reset();
+
+uint16_t ic_bq_getChargeLevel(void);
+en_chargerState ic_bq_getChargerState(void);
+void ic_bq_read_measurement_data (void);
 
 #ifdef __cplusplus
 }

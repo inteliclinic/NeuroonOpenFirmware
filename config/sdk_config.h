@@ -2833,7 +2833,7 @@
 // <e> WDT_ENABLED - nrf_drv_wdt - WDT peripheral driver
 //==========================================================
 #ifndef WDT_ENABLED
-#define WDT_ENABLED 0
+#define WDT_ENABLED 1
 #endif
 #if  WDT_ENABLED
 // <o> WDT_CONFIG_BEHAVIOUR  - WDT behavior in CPU SLEEP or HALT mode
@@ -2851,7 +2851,7 @@
 
 
 #ifndef WDT_CONFIG_RELOAD_VALUE
-#define WDT_CONFIG_RELOAD_VALUE 2000
+#define WDT_CONFIG_RELOAD_VALUE 1000000
 #endif
 
 // <o> WDT_CONFIG_IRQ_PRIORITY  - Interrupt priority
@@ -3479,7 +3479,7 @@
 // <e> NRF_LOG_ENABLED - nrf_log - Logging
 //==========================================================
 #ifndef NRF_LOG_ENABLED
-#define NRF_LOG_ENABLED 1
+#define NRF_LOG_ENABLED 0
 
 #endif
 #if  NRF_LOG_ENABLED
@@ -3576,7 +3576,7 @@
 // <i> Function for getting the timestamp is provided by the user
 
 #ifndef NRF_LOG_USES_TIMESTAMP
-#define NRF_LOG_USES_TIMESTAMP 0
+#define NRF_LOG_USES_TIMESTAMP 1
 #endif
 
 #endif //NRF_LOG_ENABLED

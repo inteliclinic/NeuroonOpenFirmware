@@ -53,16 +53,19 @@ static struct device_state_s{
   uint8_t intensity;
   float alpha;
   float beta;
+  float a_ramp_coef;
+  uint8_t b_ramp_coef;
+  uint8_t ramp_step;
 }m_device_state[] =
 {
-  {.desired_val = 0x00, .device = ACTUATOR_LEFT_GREEN_LED,   .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF},
-  {.desired_val = 0x00, .device = ACTUATOR_LEFT_RED_LED,     .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF},
-  {.desired_val = 0x00, .device = ACTUATOR_LEFT_BLUE_LED,    .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF},
-  {.desired_val = 0x00, .device = ACTUATOR_RIGHT_GREEN_LED,  .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF},
-  {.desired_val = 0x00, .device = ACTUATOR_RIGHT_RED_LED,    .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF},
-  {.desired_val = 0x00, .device = ACTUATOR_RIGHT_BLUE_LED,   .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF},
-  {.desired_val = 0x00, .device = ACTUATOR_VIBRATOR,         .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF},
-  {.desired_val = 0x00, .device = ACTUATOR_POWER_LEDS,       .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF}
+  {.desired_val = 0x00, .device = ACTUATOR_LEFT_GREEN_LED,   .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF, .intensity = 0x00},
+  {.desired_val = 0x00, .device = ACTUATOR_LEFT_RED_LED,     .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF, .intensity = 0x00},
+  {.desired_val = 0x00, .device = ACTUATOR_LEFT_BLUE_LED,    .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF, .intensity = 0x00},
+  {.desired_val = 0x00, .device = ACTUATOR_RIGHT_GREEN_LED,  .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF, .intensity = 0x00},
+  {.desired_val = 0x00, .device = ACTUATOR_RIGHT_RED_LED,    .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF, .intensity = 0x00},
+  {.desired_val = 0x00, .device = ACTUATOR_RIGHT_BLUE_LED,   .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF, .intensity = 0x00},
+  {.desired_val = 0x00, .device = ACTUATOR_VIBRATOR,         .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF, .intensity = 0x00},
+  {.desired_val = 0x00, .device = ACTUATOR_POWER_LEDS,       .associated_callback = NULL,  .turned_on = false,  .refresh_ltc = false, .func = FUN_TYPE_OFF, .intensity = 0x00}
 };
 
 static ic_return_val_e actuator_set_func(
@@ -164,9 +167,16 @@ static uint8_t function_ramp_up(struct device_state_s *device){
 }
 
 uint8_t function_ramp(struct device_state_s *device){
-  uint8_t _step = device->cur_period*device->alpha;
-  return _step;
-  /*if (_step == 0) _step = 1;*/
+  int16_t _step = device->cur_period*device->alpha;
+  uint8_t _ret_val;
+  if(_step<device->ramp_step || _step==127){
+    _ret_val = 127*device->a_ramp_coef + device->b_ramp_coef;
+    actuator_set_func(device,FUN_TYPE_ON, 0, 0, _ret_val);
+    return device->desired_val;
+  }
+  _ret_val = _step*device->a_ramp_coef + device->b_ramp_coef;
+  device->ramp_step = _step;
+  return _ret_val;
 }
 
 static uint8_t function_off(struct device_state_s *device){
@@ -224,7 +234,7 @@ uint8_t(*m_function_map[])(struct device_state_s *) = {
   function_square,
   function_saw,
   function_triangle,
-  function_on
+  function_ramp
 };
 
 static uint8_t calculate_val(struct device_state_s *device){
@@ -358,6 +368,14 @@ static ic_return_val_e actuator_set_func(
   if((device->device == ACTUATOR_VIBRATOR) && (func != FUN_TYPE_OFF)){
     device->intensity = intensity*m_beta_factor_vib1;
     device->beta = device->intensity*m_beta_factor;
+  }
+  else if(func==FUN_TYPE_RAMP){
+    device->b_ramp_coef = device->desired_val;
+    int _tmp = (intensity - device->desired_val);
+    device->a_ramp_coef = _tmp/127.0;
+    device->ramp_step = 0;
+    NRF_LOG_INFO("_tmp: %d, intensity: %d, device->intensity: %d a: " NRF_LOG_FLOAT_MARKER "\n",_tmp, intensity, device->intensity, NRF_LOG_FLOAT(device->a_ramp_coef));
+    device->intensity = intensity;
   }
   else{
     device->beta = func==FUN_TYPE_OFF ? device->desired_val*m_beta_factor : intensity*m_beta_factor;

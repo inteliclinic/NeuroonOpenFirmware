@@ -74,7 +74,7 @@ static void ads_timer_callback(TimerHandle_t xTimer){
   __auto_type _semphr_successfull = pdTRUE;
   TAKE_SEMAPHORE(m_twi_ready, 0, _semphr_successfull);
   if(_semphr_successfull == pdFALSE){
-    NRF_LOG_INFO("Could not take TWI transaction semaphore\n");
+    /*NRF_LOG_INFO("Could not take TWI transaction semaphore\n");*/
   }
   switch(ads_get_value(read_callback, false)){
     case IC_ERROR:
@@ -82,11 +82,9 @@ static void ads_timer_callback(TimerHandle_t xTimer){
       break;
     case IC_BUSY:
       NRF_LOG_INFO("ads read busy!(ADS)\n");
-      ads_get_value(read_callback, true);
       break;
     case IC_SOFTWARE_BUSY:
       NRF_LOG_INFO("ads read busy!(SOFT)\n");
-      ads_get_value(read_callback, true);
       break;
     case IC_DRIVER_BUSY:
       NRF_LOG_INFO("ads read busy!(DRIVER)\n");
@@ -112,8 +110,8 @@ static void send_data_task(void *arg){
       case IC_BLE_NOT_CONNECTED:
         break;
       case IC_BUSY:
-        NRF_LOG_INFO("Ależ dupa!\n");
-        continue; // TODO: Fix it. Can kill CPU.
+        vTaskDelay(1);
+        continue;
       default:
         /*NRF_LOG_INFO("err: %s\n", (uint32_t)ic_get_nrferr2str(_nrf_error));*/
         break;
