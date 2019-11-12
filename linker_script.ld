@@ -5,7 +5,8 @@ GROUP(-lgcc -lc -lnosys)
 
 MEMORY
 {
-  FLASH (rx) : ORIGIN = 0x1B000, LENGTH = 0x1FC00
+  FLASH (rx) : ORIGIN = 0x1B000, LENGTH = 0x1F800
+  SERIAL_NUMBER (r) : ORIGIN = 0x3A800, LENGTH = 0x400
   /*RAM (rwx) :  ORIGIN = 0x20002078, LENGTH = 0x5f88*/
   RAM (rwx) :  ORIGIN = 0x20001ff8, LENGTH = 0x6008
 
@@ -16,8 +17,15 @@ MEMORY
   UICR_BOOTLOADER (r) : ORIGIN = 0x10001014, LENGTH = 0x04
 }
 
+
 SECTIONS
 {
+  .serialNumber(NOLOAD) :
+  {
+    PROVIDE(__start_serial_number = .);
+    KEEP(*(.serialNumber))
+    PROVIDE(__stop_serial_number = .);
+  } > SERIAL_NUMBER
   /* Ensures the bootloader settings are placed at the last flash page. */
   .bootloaderSettings(NOLOAD) :
   {
