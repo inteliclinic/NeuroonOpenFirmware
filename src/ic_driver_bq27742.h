@@ -28,6 +28,7 @@ void ic_bq_reset();
 uint16_t ic_bq_getChargeLevel(void);
 en_chargerState ic_bq_getChargerState(void);
 void ic_bq_read_measurement_data (void);
+void ic_bq_shutdown(void);
 
 #ifdef __cplusplus
 }

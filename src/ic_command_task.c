@@ -32,6 +32,9 @@ enum e_command_desc{
   DFU_DESC,
   FEED_DESC,
   UNLOCK_DESC,
+  SHUTDOWN_DESC,
+  TEST_DESC,
+  FLASH_BQ_DESC,
 
   NUM_OF_COMMANDS
 };
@@ -91,6 +94,18 @@ static command_desc_t m_cmd_list[NUM_OF_COMMANDS] = {
   {
     .cmd = UNLOCK_MASK,
     .cmd_callback.cmd_handle = default_cmd_handle
+  },
+  {
+    .cmd = SHUTDOWN_CMD,
+    .cmd_callback.cmd_handle = default_cmd_handle
+  },
+  {
+    .cmd = TEST_CMD,
+    .cmd_callback.cmd_handle = default_cmd_handle
+  },
+  {
+    .cmd = FLASH_BQ_CMD,
+    .cmd_callback.cmd_handle = default_cmd_handle
   }
 };
 
@@ -137,6 +152,18 @@ ic_return_val_e cmd_task_connect_to_feed_cmd(void (*p_func)(u_BLECmdPayload)){
 
 ic_return_val_e cmd_task_connect_to_unlock_cmd(void (*p_func)(u_BLECmdPayload)){
   return m_cmd_task_connect_to_cmd(p_func, &m_cmd_list[UNLOCK_DESC]);
+}
+
+ic_return_val_e cmd_task_connect_to_shutdown_cmd(void (*p_func)(u_BLECmdPayload)){
+  return m_cmd_task_connect_to_cmd(p_func, &m_cmd_list[SHUTDOWN_DESC]);
+}
+
+ic_return_val_e cmd_task_connect_to_test_cmd(void (*p_func)(u_BLECmdPayload)){
+  return m_cmd_task_connect_to_cmd(p_func, &m_cmd_list[TEST_DESC]);
+}
+
+ic_return_val_e cmd_task_connect_to_flashBQ_cmd(void (*p_func)(u_BLECmdPayload)){
+  return m_cmd_task_connect_to_cmd(p_func, &m_cmd_list[FLASH_BQ_DESC]);
 }
 
 void cmd_main_task(void *args){

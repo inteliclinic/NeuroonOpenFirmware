@@ -7,6 +7,7 @@
  * Description
  */
 
+#include <stddef.h>
 #include <string.h>
 #include "ic_ble_service.h"
 #include "ble_gatts.h"

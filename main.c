@@ -246,6 +246,7 @@ static void on_disconnect(void){
   /*ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, PERIOD, 0, 5);*/
 }
 
+#ifndef CHARGE_BYPASS
 static void on_charging(void){
   ic_actuator_set_ramp_func(IC_RIGHT_RED_LED, PERIOD, 0, 0);
   ic_actuator_set_ramp_func(IC_LEFT_GREEN_LED, PERIOD, 0, 0);
@@ -283,6 +284,7 @@ static void charging_timer_callback(TimerHandle_t xTimer){
     on_charged();
   }
 }
+#endif
 
 static void welcome(void){
   ic_actuator_set_triangle_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD+1, 63);
@@ -306,7 +308,7 @@ static void welcome_wdt(void){
   vTaskDelay(pdMS_TO_TICKS(PERIOD>>2));
 }
 
-static void showoff(void){
+void showoff(void){
   ic_actuator_set_blink_func(IC_POWER_LEDS, WELCOME_PERIOD>>2, WELCOME_PERIOD, 63);
   vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
   ic_actuator_set_triangle_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
@@ -329,6 +331,25 @@ static void showoff(void){
   NRF_POWER->SYSTEMOFF = 1;
 }
 
+static void showoff_light(void){
+  ic_actuator_set_blink_func(IC_POWER_LEDS, WELCOME_PERIOD>>2, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
+  ic_actuator_set_triangle_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
+  ic_actuator_set_triangle_func(IC_LEFT_GREEN_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
+  ic_actuator_set_triangle_func(IC_LEFT_BLUE_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
+  ic_actuator_set_triangle_func(IC_RIGHT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
+  ic_actuator_set_triangle_func(IC_RIGHT_GREEN_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
+  ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
+  ic_actuator_set_triangle_func(IC_VIBRATOR, WELCOME_PERIOD, WELCOME_PERIOD, 63);
+  vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD));
+}
+
 void bye_bye(void){
   ic_actuator_set_off_func(IC_LEFT_RED_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
   ic_actuator_set_off_func(IC_LEFT_GREEN_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
@@ -349,6 +370,7 @@ void bye_bye(void){
   vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
   ic_actuator_set_triangle_func(IC_RIGHT_BLUE_LED, WELCOME_PERIOD, WELCOME_PERIOD, 63);
   vTaskDelay(pdMS_TO_TICKS(WELCOME_PERIOD>>2));
+
 }
 
 static void m_deep_sleep(void){
@@ -357,6 +379,7 @@ static void m_deep_sleep(void){
   RESUME_TASK(m_cleanup_task);
 }
 
+#ifndef CHARGE_BYPASS
 static void on_plug(){
   m_shutdown_source = IC_USB_PLUG_SRC;
   RESUME_TASK(m_cleanup_task);
@@ -369,6 +392,7 @@ static void on_unplug(){
   UNUSED_VARIABLE(_timer_ret_val);
   RESUME_TASK(m_cleanup_task);
 }
+#endif
 
 static void cleanup_task (void *arg){
   NRF_LOG_INFO("{%s}\n", (uint32_t)__func__);
@@ -398,6 +422,10 @@ static void cleanup_task (void *arg){
     NRF_POWER->SYSTEMOFF = 1;
 }
 
+static void shutdown_cmd(u_BLECmdPayload _) { ic_bq_shutdown(); }
+static void showoff_cmd(u_BLECmdPayload _) { showoff_light(); }
+static void program_BQ_cmd(u_BLECmdPayload _) { ic_bq_flash_image(); }
+
 static void init_task (void *arg){
   UNUSED_PARAMETER(arg);
   power_up_all_systems();
@@ -406,6 +434,13 @@ static void init_task (void *arg){
   ic_neuroon_exti_init();
   ic_ltc_service_init();
 
+  if (m_reset_reason != IC_RESET_REAS_WATCHDOG &&
+      m_reset_reason != IC_RESET_REAS_BUTTON) {
+    showoff_light();
+    vTaskDelay(IC_BUTTON_LONG_PRESS_OFFSET);
+  }
+
+#ifndef CHARGE_BYPASS
   if(!ic_button_pressed(IC_BUTTON_USB_CONNECT_PIN)){
     if(m_charging_timer_handle == NULL)
       m_charging_timer_handle = xTimerCreate(
@@ -432,6 +467,7 @@ static void init_task (void *arg){
   }
 
   ic_btn_usb_plug_handle_init(on_plug);
+  #endif
 
   if(m_reset_reason == IC_RESET_REAS_WATCHDOG)
     welcome_wdt();
@@ -444,8 +480,7 @@ static void init_task (void *arg){
     else
       welcome();
   }
-  else
-    showoff();
+
 
 
   ic_btn_pwr_long_press_handle_init(m_deep_sleep);
@@ -458,6 +493,9 @@ static void init_task (void *arg){
   cmd_module_init();
   ic_init_battery_update();
   on_disconnect();
+  cmd_task_connect_to_shutdown_cmd(shutdown_cmd);
+  cmd_task_connect_to_test_cmd(showoff_cmd);
+  cmd_task_connect_to_flashBQ_cmd(program_BQ_cmd);
   vTaskDelete(NULL);
   taskYIELD();
 }
