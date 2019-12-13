@@ -26,5 +26,8 @@ ic_return_val_e cmd_task_connect_to_status_cmd(void (*p_func)(u_BLECmdPayload));
 ic_return_val_e cmd_task_connect_to_dfu_cmd(void (*p_func)(u_BLECmdPayload));
 ic_return_val_e cmd_task_connect_to_feed_cmd(void (*p_func)(u_BLECmdPayload));
 ic_return_val_e cmd_task_connect_to_unlock_cmd(void (*p_func)(u_BLECmdPayload));
+ic_return_val_e cmd_task_connect_to_shutdown_cmd(void (*p_func)(u_BLECmdPayload));
+ic_return_val_e cmd_task_connect_to_test_cmd(void (*p_func)(u_BLECmdPayload));
+ic_return_val_e cmd_task_connect_to_flashBQ_cmd(void (*p_func)(u_BLECmdPayload));
 
 #endif /* !IC_COMMAND_TASK_H */

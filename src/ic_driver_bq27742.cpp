@@ -8,6 +8,7 @@
  */
 
 /*#include "ic_driver_bq27742.h"*/
+#include <string.h>
 #include <typeinfo>
 #include <cstdint>
 #include <cstring>
@@ -1121,6 +1122,15 @@ void ic_bq_flash_image(){
 
   TWI_DEINIT(BQ);
   vTaskDelay(5);
+}
+
+void ic_bq_shutdown() {
+  TWI_INIT(BQ);
+
+  uint16_t _set_shutdown = BQ27742_SET_SHUTDOWN;
+  set_bq_register(BQ27742_CONTROL, _set_shutdown);
+
+  TWI_DEINIT(BQ);
 }
 
 /**

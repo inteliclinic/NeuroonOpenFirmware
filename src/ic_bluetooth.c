@@ -34,6 +34,7 @@
 #include "ble_dis.h"
 #include "ic_ble_service.h"
 #include "ic_service_bas.h"
+#include "ic_serial.h"
 
 #include "ble_conn_state.h"
 
@@ -264,16 +265,15 @@ static void gap_params_init(void)
  */
 static void services_init(void)
 {
-  ble_gap_addr_t _mac;
   ble_dis_init_t dis_init;
-  sd_ble_gap_address_get(&_mac);
 
   static uint8_t m_serial_buf[IC_CHAR_MAX_LEN];
-  uint8_t _n = 0;
 
-  for(int i=0; i<sizeof(_mac.addr); ++i){
-    _n += snprintf((char *)(&m_serial_buf[_n]), sizeof(m_serial_buf)-_n, "%x", _mac.addr[i]);
-  }
+  unsigned int _year  = __start_serial_number[IC_SERIAL_YEAR_POS];
+  unsigned int _batch = __start_serial_number[IC_SERIAL_BATCH_POS];
+  unsigned int _sn    = __start_serial_number[IC_SERIAL_SN_POS];
+
+  snprintf((char *)m_serial_buf, sizeof(m_serial_buf), "%04d.%04d.%05d", _year, _batch, _sn);
 
   NRF_LOG_INFO("%s\n", (uint32_t)m_serial_buf);
 

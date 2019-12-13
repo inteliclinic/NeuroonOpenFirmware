@@ -182,7 +182,7 @@ boot_generate_settings: $(OUTPUT_DIRECTORY)/boot_settings.hex
 $(OUTPUT_DIRECTORY)/boot_settings.hex:
 	@test -s $(NEUROON_APP) || { echo "Build neuroonOpen.hex! Try <<make>>"; exit 1; }
 	@echo Generating bootloader settings.
-	nrfutil settings generate --family NRF51 --application $(NEUROON_APP) --application-version $(NEUROON_APP_VER) --bootloader-version $(NEUROON_BOOT_VER) --bl-settings-version $(NEUROON_BOOT_SETTINGS_VER) $(@D)/boot_settings.hex
+	nrfutil settings generate --family NRF51 --application $(NEUROON_APP) --application-version $(NEUROON_APP_VER) --bootloader-version $(NEUROON_BOOT_VER) --bl-settings-version $(NEUROON_BOOT_SETTINGS_VER) $(@D)/boot_settings.hex --no-backup
 
 boot_merge_settings: $(OUTPUT_DIRECTORY)/$(BOOT_TARGET)_s.hex
 $(OUTPUT_DIRECTORY)/$(BOOT_TARGET)_s.hex: $(BOOT_PROJ_DIR)/dfu_public_key.c $(addprefix $(OUTPUT_DIRECTORY)/, $(BOOT_TARGET).hex boot_settings.hex)
