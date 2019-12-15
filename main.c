@@ -117,7 +117,9 @@
 #define DEAD_BEEF                       0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
 #define IC_NRF_RESETREAS_WDT_BIT (0x01<<1)
+#define IC_NRF_RESETREAS_SREQ (0x01<<2)
 #define IC_NRF_RESETREAS_EXTI_BIT (0x01<<16)
+#define IC_NRF_RESETREAS_LPCOMP (0x01<<17)
 
 enum shutdown_source_e{
   IC_PWR_DOWN_SRC,
@@ -127,6 +129,7 @@ enum shutdown_source_e{
 
 typedef enum{
   IC_RESET_REAS_WATCHDOG,
+  IC_RESET_REAS_SREQ,
   IC_RESET_REAS_BUTTON,
   IC_RESET_REAS_PWR
 }e_reset_reason;
@@ -140,6 +143,8 @@ static inline e_reset_reason get_reset_reason(void){
     return IC_RESET_REAS_WATCHDOG;
   else if(NRF_POWER->RESETREAS & IC_NRF_RESETREAS_EXTI_BIT)
     return IC_RESET_REAS_BUTTON;
+  else if(NRF_POWER->RESETREAS & IC_NRF_RESETREAS_SREQ)
+    return IC_RESET_REAS_SREQ;
   else
     return IC_RESET_REAS_PWR;
 }
@@ -434,11 +439,6 @@ static void init_task (void *arg){
   ic_neuroon_exti_init();
   ic_ltc_service_init();
 
-  if (m_reset_reason != IC_RESET_REAS_WATCHDOG &&
-      m_reset_reason != IC_RESET_REAS_BUTTON) {
-    showoff_light();
-    vTaskDelay(IC_BUTTON_LONG_PRESS_OFFSET);
-  }
 
 #ifndef CHARGE_BYPASS
   if(!ic_button_pressed(IC_BUTTON_USB_CONNECT_PIN)){
@@ -468,6 +468,12 @@ static void init_task (void *arg){
 
   ic_btn_usb_plug_handle_init(on_plug);
   #endif
+
+  if (m_reset_reason != IC_RESET_REAS_WATCHDOG &&
+      m_reset_reason != IC_RESET_REAS_BUTTON){
+    showoff_light();
+    vTaskDelay(IC_BUTTON_LONG_PRESS_OFFSET);
+  }
 
   if(m_reset_reason == IC_RESET_REAS_WATCHDOG)
     welcome_wdt();
