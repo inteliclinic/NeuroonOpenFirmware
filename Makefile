@@ -66,6 +66,7 @@ SRC_FILES += \
   $(PROJ_DIR)/src/ic_driver_actuators.c\
   $(PROJ_DIR)/src/ic_nrf_error.c \
   $(PROJ_DIR)/src/ic_common_types.c \
+  $(PROJ_DIR)/src/ic_serial.c \
   $(NUC_ROOT)/src/ic_characteristics.c \
   $(NUC_ROOT)/src/ic_crc8.c \
   $(NUC_ROOT)/src/ic_device.c \
