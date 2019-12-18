@@ -265,15 +265,41 @@ static void gap_params_init(void)
  */
 static void services_init(void)
 {
+  static const char _digits[] = {'0','1','2','3','4','5','6','7','8','9'};
   ble_dis_init_t dis_init;
 
   static uint8_t m_serial_buf[IC_CHAR_MAX_LEN];
 
-  unsigned int _year  = __start_serial_number[IC_SERIAL_YEAR_POS];
-  unsigned int _batch = __start_serial_number[IC_SERIAL_BATCH_POS];
-  unsigned int _sn    = __start_serial_number[IC_SERIAL_SN_POS];
+  unsigned int _manufacturer  = __start_serial_number[IC_SERIAL_MANUFACTURER];
+  unsigned int _day           = __start_serial_number[IC_SERIAL_DAY];
+  unsigned int _month         = __start_serial_number[IC_SERIAL_MONTH];
+  unsigned int _sn            = __start_serial_number[IC_SERIAL_SN];
+  unsigned int _year          = __start_serial_number[IC_SERIAL_YEAR];
 
-  snprintf((char *)m_serial_buf, sizeof(m_serial_buf), "%04d.%04d.%05d", _year, _batch, _sn);
+  uint8_t serial_tab[] = {
+    (_manufacturer-_manufacturer%10)/10,
+    _manufacturer%10,
+    (_day-_day%10)/10,
+    _day%10,
+    (_month-_month%10)/10,
+    _month%10,
+    (_sn-_sn%1000)/1000,
+    (_sn%1000-_sn%100)/100,
+    (_sn%100-_sn%10)/10,
+    _sn%10,
+    (_year-_year%10)/10,
+    _year%10,
+    0,0
+  };
+
+  __auto_type crc = crc6_calculate(serial_tab, sizeof(serial_tab)-2);
+
+  serial_tab[sizeof(serial_tab)-2] = (crc - crc%10)/10;
+  serial_tab[sizeof(serial_tab)-1] = crc%10;
+
+  for(size_t i = 0; i<sizeof(serial_tab); ++i){
+    snprintf((char *)(&m_serial_buf[i]), sizeof(m_serial_buf-i), "%c", _digits[serial_tab[i]]);
+  }
 
   NRF_LOG_INFO("%s\n", (uint32_t)m_serial_buf);
 
