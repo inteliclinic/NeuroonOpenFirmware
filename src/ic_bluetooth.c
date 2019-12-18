@@ -292,7 +292,7 @@ static void services_init(void)
     0,0
   };
 
-  __auto_type crc = crc6_calculate(serial_tab, sizeof(serial_tab));
+  __auto_type crc = crc6_calculate(serial_tab, sizeof(serial_tab)-2);
 
   serial_tab[sizeof(serial_tab)-2] = (crc - crc%10)/10;
   serial_tab[sizeof(serial_tab)-1] = crc%10;
